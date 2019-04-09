@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>RecipeBuilder</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="RecipeBuilder">
+    <div id="precedencetable">
+      <table>
+          <tr>
+            <th>task1</th>
+            <th>task2</th>
+          </tr>
+          <template v-for="prec in precedences">
+              <tr>
+                <td><input type="text" v-bind:value="prec.task1"></input></td>
+                <td><input type="text" v-bind:value="prec.task2"></input></td>
+                <td><input type="button" value="x"></input></td>
+              </tr>
+          </template>
+          <tr>
+            <td colspan="2"><input type="button" value="Add"></input></td>
+          </tr>
+      </table>
+    </div>
+    <div id="proctimetable">
+      <table>
+          <tr>
+            <th>task</th>
+            <th>eq</th>
+            <th>proctime</th>
+          </tr>
+          <template v-for="pt in proctimes">
+              <tr>
+                <td><input type="text" v-bind:value="pt.task"></input></td>
+                <td><input type="text" v-bind:value="pt.eq"></input></td>
+                <td><input type="text" v-bind:value="pt.proctime"></input></td>
+                <td><input type="button" value="x"></input></td>
+              </tr>
+          </template>
+          <tr>
+            <td colspan="3"><input type="button" value="Add"></input></td>
+          </tr>
+      </table>
+    </div>
+    <div id="gvoutput">Graph will be displayed here</div>
+  </div>
+</body>
+<script src="./RecipeBuilder.js"></script>
+</html>
