@@ -1,21 +1,38 @@
 table {
     font-family: arial, sans-serif;
     border-collapse: collapse;
-    float: left;
-    margin: 10px;
+    margin: 15px;
 }
 
-td, th {
+td, th{
     border: 1px solid #dddddd;
     text-align: center;
-    padding: 8px;
+    padding-left: 5px;
+    padding-right: 5px;
 }
 
 th {
-    background-color: #dddddd;
+    background-color: #444444;
+    color: white;
+    font-size: 15px;
+    padding: 4px;
 }
 
-input {
-    width: 50px;
+td{
+    font-size: 12px;
+    width: 100px;
+    padding: 6px;
+}
+
+input, select {
     text-align: center;
+    width: 80%;
+}
+
+button{
+    width: 100%;
+}
+
+.tables{
+    float: left;
 }
