@@ -40,19 +40,6 @@
                 </form>
               </td>
             </tr>
-          </table>
-          <table>
-            <th>
-              Tasks
-            </th>
-            <tr>
-              <td>
-                Task name
-              </td>
-              <td>
-                Product name
-              </td>
-            </tr>
             <tr v-for="(task, index) in tasks" :key="index">
               <td>
                   {{task.name}}
@@ -86,16 +73,6 @@
               <form>
                   <button type="button" v-on:click="addEquipment()">Add</button>
               </form>
-            </td>
-          </tr>
-        </table>
-        <table>
-          <th style="width: 150px">
-            Equipments
-          </th>
-          <tr>
-            <td>
-                Equipment name
             </td>
           </tr>
           <tr v-for="(eq, index) in equipments" :key="index">
