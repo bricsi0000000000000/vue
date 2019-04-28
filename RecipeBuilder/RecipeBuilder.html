@@ -7,19 +7,22 @@
     <title>RecipeBuilder</title>
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <link rel="stylesheet" href="style.css">
+    <script src="vizGraphRender.js"></script>
+    <script src="viz.js"></script>
+    <script src="full.render.js"></script>
 </head>
 <body>
     <div id="RecipeBuilder">
-      <div class="tables"> <!--TASKS-->
-        <table>
+      <div class="tables">
+        <table> <!--TASKS-->
             <th>
               Add new task
             </th>
             <tr>
-              <td>
+              <td class="title">
                 Task name
               </td>
-              <td>
+              <td class="title">
                 Product name
               </td>
             </tr>
@@ -36,7 +39,7 @@
               </td>
               <td style="width: 60px">
                 <form>
-                    <button type="button" v-on:click="addTask()">Add</button>
+                    <button type="button" v-on:click="addTask()" class="addBtn">Add</button>
                 </form>
               </td>
             </tr>
@@ -48,18 +51,16 @@
                   {{task.product}}
               </td>
               <td style="width: 60px">
-                <button type="button" v-on:click="deleteTask(index)">Delete</button>
+                <button type="button" v-on:click="deleteTask(index)" class="deleteBtn">Delete</button>
               </td>
             </tr>
-          </table>
-      </div>
-      <div class="tables"> <!--EQUIPMENTS-->
-        <table>
+        </table>
+        <table> <!--EQUIPMENTS-->
           <th style="width: 150px">
             Add new equipment
           </th>
           <tr>
-            <td>
+            <td class="title">
               Equipment name
             </td>
           </tr>
@@ -71,7 +72,7 @@
             </td>
             <td style="width: 60px">
               <form>
-                  <button type="button" v-on:click="addEquipment()">Add</button>
+                  <button type="button" v-on:click="addEquipment()" class="addBtn">Add</button>
               </form>
             </td>
           </tr>
@@ -80,21 +81,19 @@
                 {{eq}}
             </td>
             <td style="width: 60px">
-              <button type="button" v-on:click="deleteEq(index)">Delete</button>
+              <button type="button" v-on:click="deleteEq(index)" class="deleteBtn">Delete</button>
             </td>
           </tr>
         </table>
-      </div>
-      <div class="tables"> <!--PRECEDENCES-->
-        <table>
+        <table><!--PRECEDENCES-->
           <th style="width: 100px">
             Precedence
           </th>
           <tr>
-            <td>
+            <td class="title">
               Task1
             </td>
-            <td>
+            <td class="title">
               Task2 / Product
             </td>
           </tr>
@@ -110,7 +109,7 @@
               </select>
             </td>
             <td style="width: 60px">
-              <button type="button" v-on:click="addPrecedence()">Add</button>
+              <button type="button" v-on:click="addPrecedence()" class="addBtn">Add</button>
             </td>
           </tr>
           <tr v-for="(precedence, index) in precedences" :key="index">
@@ -121,24 +120,22 @@
                 {{precedence.task2}}
             </td>
             <td style="width: 60px">
-              <button type="button" v-on:click="deletePrecendence(index)">Delete</button>
+              <button type="button" v-on:click="deletePrecendence(index)" class="deleteBtn">Delete</button>
             </td>
           </tr>
         </table>
-      </div>
-      <div class="tables"> <!--PROCTIMES-->
-        <table>
+        <table><!--PROCTIMES-->
           <th style="width: 100px">
             Proctimes
           </th>
           <tr>
-            <td>
+            <td class="title">
               Task
             </td>
-            <td>
+            <td class="title">
               Eq
             </td>
-            <td>
+            <td class="title">
               Proctime
             </td>
           </tr>
@@ -160,7 +157,7 @@
             </td>
             <td style="width: 60px">
               <form>
-                  <button type="button" v-on:click="addProctime()">Add</button>
+                  <button type="button" v-on:click="addProctime()" class="addBtn">Add</button>
               </form>
             </td>
           </tr>
@@ -175,14 +172,16 @@
                 {{proctime.proctime}}
             </td>
             <td style="width: 60px">
-              <button type="button" v-on:click="deleteProctime(index)">Delete</button>
+              <button type="button" v-on:click="deleteProctime(index)" class="deleteBtn">Delete</button>
             </td>
           </tr>
         </table>
       </div>
-      {{warningTxt}}
+      <div>
+        {{warningTxt}}
+      </div>
       <button type="button" v-on:click="vizGraphTxtOut()">Get graph</button>
-      {{vizGraphTxt}}
+      <div id="vizGraphPlace"></div>
     </div>
   </body>
   <script src="RecipeBuilder.js"></script>
