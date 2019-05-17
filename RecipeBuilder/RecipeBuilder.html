@@ -5,15 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>RecipeBuilder</title>
-    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
     <link rel="stylesheet" href="style.css">
+
+    <!--VUE-->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <script src="vizGraphRender.js"></script>
     <script src="viz.js"></script>
     <script src="full.render.js"></script>
+
+    <!--BOOTSTRAP
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>-->
 </head>
 <body>
     <div id="RecipeBuilder">
       <div class="tables">
+          <table> <!--PRODUCTS-->
+            <th style="width: 130px">
+              Add new product
+            </th>
+            <tr>
+              <td class="title">
+                Product name
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <form>
+                  <input type="text" v-model="productName" id="productname" placeholder="Product name">
+                </form>
+              </td>
+              <td style="width: 60px">
+                <form>
+                    <button type="button" v-on:click="addProduct()" class="addBtn">Add</button>
+                </form>
+              </td>
+            </tr>
+            <tr v-for="(product, index) in products" :key="index">
+              <td>
+                  {{product}}
+              </td>
+              <td style="width: 60px">
+                <button type="button" v-on:click="deleteProduct(index)" class="deleteBtn">Delete</button>
+              </td>
+            </tr>
+        </table>
         <table> <!--TASKS-->
             <th>
               Add new task
@@ -21,9 +58,6 @@
             <tr>
               <td class="title">
                 Task name
-              </td>
-              <td class="title">
-                Product name
               </td>
             </tr>
             <tr>
@@ -33,9 +67,9 @@
                 </form>
               </td>
               <td>
-                <form>
-                  <input type="text" v-model="productName" id="productname" placeholder="Product name">
-                </form>
+                <select id="task_id" v-model="product">
+                  <option v-for="(product, index) in products" :key="index" :value="product">{{product}}</option>
+                </select>
               </td>
               <td style="width: 60px">
                 <form>
@@ -43,15 +77,15 @@
                 </form>
               </td>
             </tr>
-            <tr v-for="(task, index) in tasks" :key="index">
+            <tr v-for="(t, index) in tasksAndProducts" :key="index">
               <td>
-                  {{task.name}}
+                  {{t.name}}
               </td>
               <td>
-                  {{task.product}}
+                  {{t.product}}
               </td>
               <td style="width: 60px">
-                <button type="button" v-on:click="deleteTask(index)" class="deleteBtn">Delete</button>
+                <button type="button" v-on:click="deleteTaskAndTasksAndProducts(index)" class="deleteBtn">Delete</button>
               </td>
             </tr>
         </table>
@@ -94,20 +128,30 @@
               Task1
             </td>
             <td class="title">
-              Task2 / Product
+              Task2
             </td>
           </tr>
           <tr>
-            <td>
+          <td>
               <select id="task_id" v-model="task1">
-                <option v-for="(task, index) in tasks" :key="index" :value="task.name">{{task.name}}</option>
+                <option v-for="(task, index) in tmpTask1" :key="index" :value="task" v-on:click="removeTmpTask2()">{{task}}</option>
               </select>
             </td>
             <td>
               <select id="task_id" v-model="task2">
-                <option v-for="(task, index) in tasksAndProducts" :key="index" :value="task">{{task}}</option>
+                <option v-for="(task, index) in tmpTask2" :key="index" :value="task" v-on:click="removeTmpTask1()">{{task}}</option>
+              </select>
+            </td>           
+            <!--<td>
+              <select id="task_id" v-model="task1">
+                <option v-for="(task, index) in tasks" :key="index" :value="task">{{task}}</option>
               </select>
             </td>
+            <td>
+              <select id="task_id" v-model="task2">
+                <option v-for="(task, index) in tasks" :key="index" :value="task">{{task}}</option>
+              </select>
+            </td>-->
             <td style="width: 60px">
               <button type="button" v-on:click="addPrecedence()" class="addBtn">Add</button>
             </td>
@@ -142,7 +186,7 @@
           <tr>
             <td>
               <select id="task_id" v-model="proctime_task">
-                <option v-for="(task, index) in tasks" :key="index" :value="task.name">{{task.name}}</option>
+                <option v-for="(task, index) in tasks" :key="index" :value="task">{{task}}</option>
               </select>
             </td>
             <td>
@@ -152,7 +196,7 @@
             </td>
             <td>
               <form>
-                <input type="text" v-model="proctime" id="proctime" placeholder="Proctime">
+                <input type="number" v-model="proctime" id="proctime" placeholder="Proctime">
               </form>
             </td>
             <td style="width: 60px">
@@ -180,7 +224,6 @@
       <div>
         {{warningTxt}}
       </div>
-      <button type="button" v-on:click="vizGraphTxtOut()">Get graph</button>
       <div id="vizGraphPlace"></div>
     </div>
   </body>
