@@ -2,9 +2,14 @@ var vm = new Vue({
   el: '#RecipeBuilder',
   data() {
     return{
-      taskName: '',
+      products:[],
       productName: '',
-      tasks: [], //name, product
+
+      tasks: [], 
+      taskName: '',
+
+      tasksAndProducts:[], //name, product  //which task which product
+      product:'',
 
       equipmentName:'',
       equipments: [],
@@ -14,8 +19,8 @@ var vm = new Vue({
       task1:"",
       task2:"",
       precedences: [], //task1, task2
-
-      tasksAndProducts:[],
+     // task2ToProduct:[], //task2, product
+      precedencesWithProducts:[], //name1, name2
 
       proctimes:[], //task, eq, proctime
       proctime:"",
@@ -27,104 +32,383 @@ var vm = new Vue({
       vizGraphTxt:"",
 
       show:false,
+
+      tmpTask1:[],
+      tmpTask2:[],
     }
   }, 
   methods:{
-    addTask(){
-        this.tasks.push({name: this.taskName, product: this.productName});
-        this.taskName='';
-        this.productName='';
-        this.addTasksAndProducts();
-        this.deleteEmptyTask();
-        this.deleteSameTasks();
-        this.deleteDuplicateTasks();
+    /*--------ADD--------*/
+    addProduct(){
+      if(this.productName === ""){
+        this.showWarning("PROUDCT: product name is empty");
+      }
+      else{
+          this.products.push(this.productName);
+          this.deleteDuplicateProducts();
+      }
+      this.productName='';
+    },
+    addTask(){ 
+      if(this.taskName === "" || this.product === ""){
+        this.showWarning("TASK: task name is empty");
+      }
+      else{
+        if(this.products.length <= 0){
+          this.showWarning("TASK: products are empty");
+        }
+        else{
+          add=true;
+          for(i=0; i< this.products.length; i++){
+            if(this.taskName === this.products[i]){
+              add=false;
+            }
+          }
+          if(add===true){
+            this.tasks.push(this.taskName);
+            this.addTasksAndProducts(); 
+            this.deleteDuplicateTasks();
+          }
+          else{
+            this.showWarning("TASK: New task name equals to a product name");
+          }
+        }
+      }
+      this.taskName='';
+      this.product='';
+    },
+    addTmpTask12(){
+      this.tmpTask1.push(this.taskName);
+      this.tmpTask2.push(this.taskName);
+    },
+    addEquipment(){
+      if(this.equipmentName === ""){
+        this.showWarning("EQ: equipment name is empty");
+      }
+      else{
+        this.equipments.push(this.equipmentName);
+        this.deleteDuplicateEquipments();
+      }
+      this.equipmentName='';
+    },
+    addPrecedence(){
+      if(this.task1 === "" || this.task2 === ""){
+        if(this.task1 ===""){
+          this.showWarning("PRECEDENCE: task1 is empty");
+        }
+        if(this.task2 ===""){
+          this.showWarning("PRECEDENCE: task2 is empty");
+        }
+      }
+      else{
+        if(this.task1 !== "" && this.task2 !== ""){
+          product="";
+          this.precedences.push({task1: this.task1, task2: this.task2});
+          this.precedencesWithProducts.push({name1: this.task1, name2: this.task2});
+          for(i=0; i < this.tasksAndProducts.length; i++){
+            if(this.task2 === this.tasksAndProducts[i].name){
+              product = this.tasksAndProducts[i].product;
+             // this.task2ToProduct.push({task2: this.task2, product: product});
+              this.precedencesWithProducts.push({name1: this.task2, name2: product});
+              break;
+            }
+          }
+          count=0;
+          for(i=0; i < this.precedencesWithProducts.length; i++){
+            if(this.precedencesWithProducts[i].name2 === product){
+              count++;
+            }
+          }
+
+          if(count > 1){
+            for(i=0; i < this.precedencesWithProducts.length-1; i++){
+              if(this.precedencesWithProducts[i].name2 === product){
+                this.deletePrecedencesWithProducts(i);
+              }
+            }
+          }
+
+          this.deleteDuplicatePrecedence();
+          this.fillUpTmpTaks12();
+        }
+        else{
+          this.showWarning("PRECEDENCE: task1 and task2 are empty");
+        }
+      }
+      this.task1="";
+      this.task2="";
+      this.deleteEmptyPrecedences();
+
+      this.vizGraphTxtOut();
+    },
+    addProctime(){
+      if(this.proctime_task === "" || this.proctime_eq === "" || this.proctime === ""){
+        if(this.proctime_task ===""){
+          this.showWarning("PROCTIMES: Task is empty");
+        }
+        if(this.proctime_eq ===""){
+          this.showWarning("PROCTIMES: Eq is empty");
+        }
+        else{
+          this.showWarning("PROCTIMES: Proctime is empty");
+        }
+      }
+      else{
+        this.proctimes.push({task: this.proctime_task, eq: this.proctime_eq, proctime: this.proctime});
+      }
+      this.proctime="";
+      this.proctime_task="";
+      this.proctime_eq="";
+
+      this.deleteDuplicateProctimes();
+
+      this.vizGraphTxtOut();
+    },
+    addTasksAndProducts(){
+      this.tasksAndProducts.push({name: this.taskName , product: this.product});
+    },
+    /*-------------------*/
+
+    /*--------FILL-------*/
+    fillUpTmpTaks12(){
+      this.tmpTask1=[];
+      this.tmpTask2=[];
+      for(i=0; i< this.tasks.length; i++){
+        this.taskName=this.tasks[i];
+        this.addTmpTask12();
+      }
+      this.taskName="";
+    },
+    /*-------------------*/
+
+    /*------REMOVE-------*/
+    removeTmpTask1(){
+      this.fillUpTmpTaks12();
+      for(i=0; i< this.tmpTask1.length; i++){
+        if(this.tmpTask1[i] === this.task2){
+          this.tmpTask1.splice(i,1);
+        }
+      }
+    },
+    removeTmpTask2(){
+      this.fillUpTmpTaks12();
+      for(i=0; i< this.tmpTask2.length; i++){
+        if(this.tmpTask2[i] === this.task1){
+          this.tmpTask2.splice(i,1);
+        }
+      }
+    },
+    /*-------------------*/
+
+    /*--------DELETE-ID--------*/
+    deleteProduct(id){
+      productName="";
+      for(i=0; i < this.products.length; i++){
+        if(id === i){
+          productName = this.products[i];
+        }
+      }
+      this.updateTasksAndProducts(productName);
+      this.updatePrecedences();
+      this.products.splice(id,1);
+    },
+    deleteTaskAndTasksAndProducts(id){
+      task="";
+      for(i=0; i < this.tasks.length; i++){
+        if(id === i){
+          task = this.tasks[i];
+        }
+      }
+      this.updatePrecedencesFromTask(task);
+      this.updateProctimesFromProduct(task);
+      this.tasks.splice(id,1);
+      this.deleteTasksAndProducts(id);
+      this.updatePrecedences();
     },
     deleteTask(id){
-      deleteTask = this.tasks[id].name;
-
-      //DELETE PRECEDENCE
-      deleteIds=[];
-
-      for(i=0; i< this.precedences.length; i++){
-        if(this.precedences[i].task1 === deleteTask || this.precedences[i].task2 === deleteTask){
-          deleteIds.push(i);
-        }
-      }
-
-      for(i=0; i < deleteIds.length; i++){
-        this.deletePrecendence(deleteIds[i]);
-      }
-
-      //DELETE PROCTIME
-      deleteIds=[];
-
-      for(i=0; i< this.proctimes.length; i++){
-        if(this.proctimes[i].task === deleteTask ){
-          deleteIds.push(i);
-        }
-      }
-
-      for(i=0; i < this.proctimes.length; i++){
-        this.deleteProctime(deleteIds[i]);
-      }
-
       this.tasks.splice(id,1);
-      this.addTasksAndProducts();
     },
-    deleteSameTasks(){
-      for(i=0; i< this.tasks.length; i++){
-        if(this.tasks[i].name === this.tasks[i].product){
-          this.deleteTask(i);
-          this.showWarning("Same tasks");
+    deleteTmpTask1(id){
+      this.tmpTask1.splice(id,1);
+    },
+    deleteTmpTask2(id){
+      this.tmpTask2.splice(id,1);
+    },
+    deleteTasksAndProducts(id){
+      this.tasksAndProducts.splice(id,1);
+    },
+    deleteEq(id){
+      eqName="";
+      for(i=0; i < this.equipments.length; i++){
+        if(i===id){
+          eqName = this.equipments[i];
+        }
+      }
+      this.updateProctimes(eqName);
+      this.equipments.splice(id,1);
+    },
+    deletePrecendence(id){
+      this.precedences.splice(id,1);
+    },
+    deleteProctime(id){
+      this.proctimes.splice(id,1);
+    },
+    deleteEmptyPrecedences(){
+      for(i=0; i < this.precedences.length; i++){
+        if(this.precedences[i].task1 === undefined || this.precedences[i].task2 === undefined){
+          this.deletePrecendence(i);
+        }
+      }
+    },
+    deletePrecedencesWithProducts(id){
+      this.precedencesWithProducts.splice(id,1);
+    },
+    /*-------------------------*/
+
+    /*----------UPDATE---------*/
+    updateTasksAndProducts(productName){
+      deleteThis=[];
+      for(i=0; i < this.tasksAndProducts.length; i++){
+        if(productName === this.tasksAndProducts[i].product){
+          deleteThis.push({name: this.tasksAndProducts[i].name , product: this.tasksAndProducts[i].product});
         }
       }
 
-      for(i=0; i < this.tasks.length; i++){
-        for(j=i+1; j < this.tasks.length; j++){
-          if(this.tasks[j].product === this.tasks[i].name){
+      for(i=0; i < deleteThis.length; i++){
+        for(j=0; j < this.tasksAndProducts.length; j++){
+          if(deleteThis[i].name === this.tasksAndProducts[j].name){
+            this.deleteTasksAndProducts(j);
+          }
+        }
+        for(j=0; j < this.tasks.length; j++){
+          if(deleteThis[i].name === this.tasks[j]){
+            this.updateProctimesFromProduct(this.tasks[j]);
             this.deleteTask(j);
-            this.showWarning("Same tasks");
+          }
+        }
+      }
+
+      this.vizGraphTxtOut();
+    },
+    updatePrecedences(){
+      deleteThis=[];
+      for(i=0; i < this.precedences.length; i++){
+        add=true;
+        for(j=0; j < this.tasks.length; j++){
+          if(this.precedences[i].task1 === this.tasks[j] ||
+             this.precedences[i].task2 === this.tasks[j]){
+            add=false;
+          }
+        }
+        if(add===true){
+          deleteThis.push({task1: this.precedences[i].task1, task2: this.precedences[i].task2});
+        }
+      }
+
+      for(i=0; i < deleteThis.length; i++){
+        for(j=0; j < this.precedences.length; j++){
+          if(deleteThis[i].task1 === this.precedences[j].task1 &&
+             deleteThis[i].task2 === this.precedences[j].task2){
+            this.deletePrecendence(j);
+          }
+        }
+      }
+
+      this.fillUpTmpTaks12();
+
+      this.vizGraphTxtOut();
+    },
+    updatePrecedencesFromTask(task){
+      deleteThis=[];
+      for(i=0; i < this.precedences.length; i++){
+        if(task === this.precedences[i].task1 ||
+           task === this.precedences[i].task2){
+             deleteThis.push({task1: this.precedences[i].task1, task2: this.precedences[i].task2});
+        }
+      }
+
+      for(i=0; i < deleteThis.length; i++){
+        for(j=0; j < this.precedences.length; j++){
+          if(deleteThis[i].task1 === this.precedences[j].task1 &&
+             deleteThis[i].task2 === this.precedences[j].task2){
+            this.deletePrecendence(j);
+          }
+        }
+      }
+
+      this.vizGraphTxtOut();
+    },
+    updateProctimes(eqName){
+      deleteThis=[];
+      for(i=0; i < this.proctimes.length; i++){
+        if(eqName === this.proctimes[i].eq){
+          deleteThis.push({task: this.proctimes[i].task, eq: this.proctimes[i].eq});
+        }
+      }
+      for(i=0; i < deleteThis.length; i++){
+        for(j=0; j < this.proctimes.length; j++){
+          if(deleteThis[i].task === this.proctimes[j].task &&
+             deleteThis[i].eq === this.proctimes[j].eq){
+            this.deleteProctime(j);
+          }
+        }
+      }
+
+      this.vizGraphTxtOut();
+    },
+    updateProctimesFromProduct(task){
+      deleteThis=[];
+      for(i=0; i < this.proctimes.length; i++){
+        if(task === this.proctimes[i].task){
+             deleteThis.push(this.proctimes[i].task);
+        }
+      }
+
+      for(i=0; i < deleteThis.length; i++){
+        for(j=0; j < this.proctimes.length; j++){
+          if(deleteThis[i] === this.proctimes[j].task){
+            this.deleteProctime(j);
+          }
+        }
+      }
+
+      this.vizGraphTxtOut();
+    },
+    /*-------------------------*/
+
+    /*--------DELETE-DUPLICATE--------*/
+    deleteDuplicateProducts(){
+      for(i=0; i < this.products.length; i++){
+        for(j=i+1; j < this.products.length; j++){
+          if(this.products[j] === this.products[i]){
+            this.deleteProduct(j);
+            this.showWarning("Same products");
           }
         }
       }
     },
     deleteDuplicateTasks(){
-      for(i=0; i < this.tasks.length; i++){
-        for(j=i+1; j < this.tasks.length; j++){
-          if(this.tasks[j].name === this.tasks[i].name &&
-            this.tasks[j].product === this.tasks[i].product ){
-            this.deleteTask(j);
-            this.showWarning("Same tasks");
-          }
-        }
-      }
-    },
-    addTasksAndProducts(){
-      this.tasksAndProducts=[];
-
-      for(j=0; j< this.tasks.length; j++){
-        this.tasksAndProducts.push(this.tasks[j].name);
-
-        yes=true;
-        for(i=0; i< this.tasksAndProducts.length; i++){
-          if(this.tasksAndProducts[i] === this.tasks[j].product){
+      yes=true;
+      for(i=0; i < this.tasksAndProducts.length; i++){
+        for(j=i+1; j < this.tasksAndProducts.length; j++){
+          if(this.tasksAndProducts[j].name === this.tasksAndProducts[i].name &&
+            this.tasksAndProducts[j].product === this.tasksAndProducts[i].product ){
             yes=false;
-          }
-        }
-        if(yes){
-          this.tasksAndProducts.push(this.tasks[j].product);
+            break;
         }
       }
-    },
-    addEquipment(){
-      this.equipments.push(this.equipmentName);
-      this.equipmentName='';
+      if(!yes){
+        break;
+      }
+     }
 
-      this.deleteEmptyEq();
-      this.deleteDuplicateEquipments();
-    },
-    deleteEq(id){
-      this.equipments.splice(id,1);
+     if(!yes){
+      this.deleteTasksAndProducts(j);
+      this.showWarning("Same tasks and products");
+     }
+     else{
+      this.addTmpTask12();
+     }
     },
     deleteDuplicateEquipments(){
       for(i=0; i < this.equipments.length; i++){
@@ -136,18 +420,6 @@ var vm = new Vue({
         }
       }
     },
-    addPrecedence(){
-      this.precedences.push({task1: this.task1, task2: this.task2});
-
-      this.task1="";
-      this.task2="";
-
-      this.deleteSamePrecedences();
-      this.deleteDuplicatePrecedence();
-    },
-    deletePrecendence(id){
-      this.precedences.splice(id,1);
-    },
     deleteDuplicatePrecedence(){
       for(i=0; i < this.precedences.length; i++){
         for(j=i+1; j < this.precedences.length; j++){
@@ -156,45 +428,6 @@ var vm = new Vue({
             this.deletePrecendence(j);
             this.showWarning("Same precedences");
           }
-        }
-      }
-    },
-    deleteSamePrecedences(){
-      for(i=0; i< this.precedences.length; i++){
-        if(this.precedences[i].task1 === this.precedences[i].task2){
-          this.deletePrecendence(i);
-          this.showWarning("Same tasks");
-        }
-      }
-    },
-    addProctime(){
-      this.proctimes.push({task: this.proctime_task, eq: this.proctime_eq, proctime: this.proctime});
-      this.proctime="";
-      this.proctime_task="",
-      this.proctime_eq="",
-
-      this.deleteEmptyProctime();
-      this.deleteDuplicateProctimes();
-    },
-    deleteProctime(id){
-      this.proctimes.splice(id,1);
-    },
-    deleteEmptyProctime(){
-      for(i=0; i< this.proctimes.length; i++){
-        if(this.proctimes[i].task === ""){
-          this.deleteProctime(i);
-          this.showWarning("PROCTIME: task name is empty");
-        }
-        else if(this.proctimes[i].eq === ""){
-          this.deleteProctime(i);
-          this.showWarning("PROCTIME: equipment name is empty");
-        }
-        else if(this.proctimes[i].proctime === ""){
-          this.deleteProctime(i);
-          this.showWarning("PROCTIME: proctime name is empty");
-        }
-        else{
-          this.warningTxt="";
         }
       }
     },
@@ -227,32 +460,8 @@ var vm = new Vue({
         }
       }
     },
-    deleteEmptyTask(){
-      for(i=0; i< this.tasks.length; i++){
-        if(this.tasks[i].name === ''){
-          this.deleteTask(i);
-          this.showWarning("TASKS: task name is empty");
-        }
-        else if(this.tasks[i].product === ''){
-          this.deleteTask(i);
-          this.showWarning("TASKS: product name is empty");
-        }
-        else{
-          this.warningTxt="";
-        }
-      }
-    },
-    deleteEmptyEq(){
-      for(i=0; i< this.equipments.length; i++){
-        if(this.equipments[i] === ''){
-          this.deleteEq(i);
-          this.showWarning("EQUIPMENTS: Equipment name is empty");
-        }
-        else{
-          this.warningTxt="";
-        }
-      }
-    },
+    /*--------------------------------*/
+
     showWarning(text){
       this.warningTxt = text;
       this.show = true;
@@ -292,11 +501,12 @@ var vm = new Vue({
         this.vizGraphTxt += "}> ]";
       }
 
-      for(i=0; i< this.precedences.length; i++){
-        this.vizGraphTxt += this.precedences[i].task1 + " -> " + this.precedences[i].task2;
+      for(i=0; i< this.precedencesWithProducts.length; i++){
+        this.vizGraphTxt += this.precedencesWithProducts[i].name1 + " -> " + this.precedencesWithProducts[i].name2;
+ 
 
         tempProctimes=[];
-        tempTask = this.precedences[i].task1;
+        tempTask = this.precedencesWithProducts[i].name1;
         for(j=0; j< this.proctimes.length; j++){
           if(this.proctimes[j].task === tempTask){
             tempProctimes.push(this.proctimes[j].proctime);
@@ -325,6 +535,8 @@ var vm = new Vue({
         viz = new Viz();
         console.error(error);
       });
+
+      console.log(this.vizGraphTxt);
     },
   },
 })

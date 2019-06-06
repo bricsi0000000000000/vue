@@ -5,182 +5,235 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>RecipeBuilder</title>
-    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+
     <link rel="stylesheet" href="style.css">
+
+    <!--VUE-->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <script src="vizGraphRender.js"></script>
     <script src="viz.js"></script>
     <script src="full.render.js"></script>
+
+    <!--BOOTSTRAP-->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 </head>
 <body>
     <div id="RecipeBuilder">
-      <div class="tables">
-        <table> <!--TASKS-->
-            <th>
-              Add new task
-            </th>
-            <tr>
-              <td class="title">
-                Task name
-              </td>
-              <td class="title">
-                Product name
-              </td>
-            </tr>
-            <tr>
+      <div class="tables" class="container">
+        <div class="row">
+          <div class="col-lg">
+            <table> <!--PRODUCTS-->
+                <th style="width: 130px">
+                  Add new product
+                </th>
+                <tr>
+                  <td class="title">
+                    Product name
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <form>
+                      <input type="text" v-model="productName" id="productname" placeholder="Product name">
+                    </form>
+                  </td>
+                  <td style="width: 60px">
+                    <form>
+                        <button type="button" v-on:click="addProduct()" class="addBtn">Add</button>
+                    </form>
+                  </td>
+                </tr>
+                <tr v-for="(product, index) in products" :key="index">
+                  <td>
+                      {{product}}
+                  </td>
+                  <td style="width: 60px">
+                    <button type="button" v-on:click="deleteProduct(index)" class="deleteBtn">Delete</button>
+                  </td>
+                </tr>
+            </table>
+          </div>
+          <div class="col-lg">
+            <table> <!--TASKS-->
+                <th style="width: 130px">
+                  Add new task
+                </th>
+                <tr>
+                  <td class="title">
+                    Task name
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <form>
+                      <input type="text" v-model="taskName" id="taskname" placeholder="Task name">
+                    </form>
+                  </td>
+                  <td>
+                    <select id="task_id" v-model="product">
+                      <option v-for="(product, index) in products" :key="index" :value="product">{{product}}</option>
+                    </select>
+                  </td>
+                  <td style="width: 60px">
+                    <form>
+                        <button type="button" v-on:click="addTask()" class="addBtn">Add</button>
+                    </form>
+                  </td>
+                </tr>
+                <tr v-for="(t, index) in tasksAndProducts" :key="index">
+                  <td>
+                      {{t.name}}
+                  </td>
+                  <td>
+                      {{t.product}}
+                  </td>
+                  <td style="width: 60px">
+                    <button type="button" v-on:click="deleteTaskAndTasksAndProducts(index)" class="deleteBtn">Delete</button>
+                  </td>
+                </tr>
+            </table>
+          </div>
+            <table> <!--EQUIPMENTS-->
+              <th style="width: 150px">
+                Add new equipment
+              </th>
+              <tr>
+                <td class="title">
+                  Equipment name
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <form>
+                    <input type="text" v-model="equipmentName" id="equipmentname" placeholder="Equipment name">
+                  </form>
+                </td>
+                <td style="width: 60px">
+                  <form>
+                      <button type="button" v-on:click="addEquipment()" class="addBtn">Add</button>
+                  </form>
+                </td>
+              </tr>
+              <tr v-for="(eq, index) in equipments" :key="index">
+                <td>
+                    {{eq}}
+                </td>
+                <td style="width: 60px">
+                  <button type="button" v-on:click="deleteEq(index)" class="deleteBtn">Delete</button>
+                </td>
+              </tr>
+            </table>
+          <div class="col-lg">
+            <table><!--PRECEDENCES-->
+              <th style="width: 100px">
+                Precedence
+              </th>
+              <tr>
+                <td class="title">
+                  Task1
+                </td>
+                <td class="title">
+                  Task2
+                </td>
+              </tr>
+              <tr>
               <td>
-                <form>
-                  <input type="text" v-model="taskName" id="taskname" placeholder="Task name">
-                </form>
-              </td>
-              <td>
-                <form>
-                  <input type="text" v-model="productName" id="productname" placeholder="Product name">
-                </form>
-              </td>
-              <td style="width: 60px">
-                <form>
-                    <button type="button" v-on:click="addTask()" class="addBtn">Add</button>
-                </form>
-              </td>
-            </tr>
-            <tr v-for="(task, index) in tasks" :key="index">
-              <td>
-                  {{task.name}}
-              </td>
-              <td>
-                  {{task.product}}
-              </td>
-              <td style="width: 60px">
-                <button type="button" v-on:click="deleteTask(index)" class="deleteBtn">Delete</button>
-              </td>
-            </tr>
-        </table>
-        <table> <!--EQUIPMENTS-->
-          <th style="width: 150px">
-            Add new equipment
-          </th>
-          <tr>
-            <td class="title">
-              Equipment name
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <form>
-                <input type="text" v-model="equipmentName" id="equipmentname" placeholder="Equipment name">
-              </form>
-            </td>
-            <td style="width: 60px">
-              <form>
-                  <button type="button" v-on:click="addEquipment()" class="addBtn">Add</button>
-              </form>
-            </td>
-          </tr>
-          <tr v-for="(eq, index) in equipments" :key="index">
-            <td>
-                {{eq}}
-            </td>
-            <td style="width: 60px">
-              <button type="button" v-on:click="deleteEq(index)" class="deleteBtn">Delete</button>
-            </td>
-          </tr>
-        </table>
-        <table><!--PRECEDENCES-->
-          <th style="width: 100px">
-            Precedence
-          </th>
-          <tr>
-            <td class="title">
-              Task1
-            </td>
-            <td class="title">
-              Task2 / Product
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <select id="task_id" v-model="task1">
-                <option v-for="(task, index) in tasks" :key="index" :value="task.name">{{task.name}}</option>
-              </select>
-            </td>
-            <td>
-              <select id="task_id" v-model="task2">
-                <option v-for="(task, index) in tasksAndProducts" :key="index" :value="task">{{task}}</option>
-              </select>
-            </td>
-            <td style="width: 60px">
-              <button type="button" v-on:click="addPrecedence()" class="addBtn">Add</button>
-            </td>
-          </tr>
-          <tr v-for="(precedence, index) in precedences" :key="index">
-            <td>
-                {{precedence.task1}}
-            </td>
-            <td>
-                {{precedence.task2}}
-            </td>
-            <td style="width: 60px">
-              <button type="button" v-on:click="deletePrecendence(index)" class="deleteBtn">Delete</button>
-            </td>
-          </tr>
-        </table>
-        <table><!--PROCTIMES-->
-          <th style="width: 100px">
-            Proctimes
-          </th>
-          <tr>
-            <td class="title">
-              Task
-            </td>
-            <td class="title">
-              Eq
-            </td>
-            <td class="title">
-              Proctime
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <select id="task_id" v-model="proctime_task">
-                <option v-for="(task, index) in tasks" :key="index" :value="task.name">{{task.name}}</option>
-              </select>
-            </td>
-            <td>
-              <select id="eq_id" v-model="proctime_eq">
-                <option v-for="(eq, index) in equipments" :key="index" :value="eq">{{eq}}</option>
-              </select>
-            </td>
-            <td>
-              <form>
-                <input type="text" v-model="proctime" id="proctime" placeholder="Proctime">
-              </form>
-            </td>
-            <td style="width: 60px">
-              <form>
-                  <button type="button" v-on:click="addProctime()" class="addBtn">Add</button>
-              </form>
-            </td>
-          </tr>
-          <tr v-for="(proctime, index) in proctimes" :key="index">
-            <td>
-                {{proctime.task}}
-            </td>
-            <td>
-                {{proctime.eq}}
-            </td>
-            <td>
-                {{proctime.proctime}}
-            </td>
-            <td style="width: 60px">
-              <button type="button" v-on:click="deleteProctime(index)" class="deleteBtn">Delete</button>
-            </td>
-          </tr>
-        </table>
+                  <select id="task_id" v-model="task1">
+                    <option v-for="(task, index) in tmpTask1" :key="index" :value="task" v-on:click="removeTmpTask2()">{{task}}</option>
+                  </select>
+                </td>
+                <td>
+                  <select id="task_id" v-model="task2">
+                    <option v-for="(task, index) in tmpTask2" :key="index" :value="task" v-on:click="removeTmpTask1()">{{task}}</option>
+                  </select>
+                </td>           
+                <!--<td>
+                  <select id="task_id" v-model="task1">
+                    <option v-for="(task, index) in tasks" :key="index" :value="task">{{task}}</option>
+                  </select>
+                </td>
+                <td>
+                  <select id="task_id" v-model="task2">
+                    <option v-for="(task, index) in tasks" :key="index" :value="task">{{task}}</option>
+                  </select>
+                </td>-->
+                <td style="width: 60px">
+                  <button type="button" v-on:click="addPrecedence()" class="addBtn">Add</button>
+                </td>
+              </tr>
+              <tr v-for="(precedence, index) in precedences" :key="index">
+                <td>
+                    {{precedence.task1}}
+                </td>
+                <td>
+                    {{precedence.task2}}
+                </td>
+                <td style="width: 60px">
+                  <button type="button" v-on:click="deletePrecendence(index)" class="deleteBtn">Delete</button>
+                </td>
+              </tr>
+            </table>
+          </div>
+          <div class="col-lg">
+            <table><!--PROCTIMES-->
+              <th style="width: 100px">
+                Proctimes
+              </th>
+              <tr>
+                <td class="title">
+                  Task
+                </td>
+                <td class="title">
+                  Eq
+                </td>
+                <td class="title">
+                  Proctime
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <select id="task_id" v-model="proctime_task">
+                    <option v-for="(task, index) in tasks" :key="index" :value="task">{{task}}</option>
+                  </select>
+                </td>
+                <td>
+                  <select id="eq_id" v-model="proctime_eq">
+                    <option v-for="(eq, index) in equipments" :key="index" :value="eq">{{eq}}</option>
+                  </select>
+                </td>
+                <td>
+                  <form>
+                    <input type="number" v-model="proctime" id="proctime" placeholder="Proctime">
+                  </form>
+                </td>
+                <td style="width: 60px">
+                  <form>
+                      <button type="button" v-on:click="addProctime()" class="addBtn">Add</button>
+                  </form>
+                </td>
+              </tr>
+              <tr v-for="(proctime, index) in proctimes" :key="index">
+                <td>
+                    {{proctime.task}}
+                </td>
+                <td>
+                    {{proctime.eq}}
+                </td>
+                <td>
+                    {{proctime.proctime}}
+                </td>
+                <td style="width: 60px">
+                  <button type="button" v-on:click="deleteProctime(index)" class="deleteBtn">Delete</button>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
       </div>
       <div>
         {{warningTxt}}
       </div>
-      <button type="button" v-on:click="vizGraphTxtOut()">Get graph</button>
       <div id="vizGraphPlace"></div>
     </div>
   </body>
