@@ -1,5 +1,5 @@
 var vm = new Vue({
-  el: '#RecipeBuilder',
+  el: '#content',
   data() {
     return{
       products:[],
@@ -19,8 +19,7 @@ var vm = new Vue({
       task1:"",
       task2:"",
       precedences: [], //task1, task2
-     // task2ToProduct:[], //task2, product
-      precedencesWithProducts:[], //name1, name2
+      precedencesWithProducts:[], //task, product
 
       proctimes:[], //task, eq, proctime
       proctime:"",
@@ -66,6 +65,8 @@ var vm = new Vue({
           }
           if(add===true){
             this.tasks.push(this.taskName);
+            this.precedencesWithProducts.push({task: this.taskName, product: this.product});
+
             this.addTasksAndProducts(); 
             this.deleteDuplicateTasks();
           }
@@ -76,6 +77,8 @@ var vm = new Vue({
       }
       this.taskName='';
       this.product='';
+
+      this.vizGraphTxtOut();
     },
     addTmpTask12(){
       this.tmpTask1.push(this.taskName);
@@ -104,27 +107,11 @@ var vm = new Vue({
         if(this.task1 !== "" && this.task2 !== ""){
           product="";
           this.precedences.push({task1: this.task1, task2: this.task2});
-          this.precedencesWithProducts.push({name1: this.task1, name2: this.task2});
-          for(i=0; i < this.tasksAndProducts.length; i++){
-            if(this.task2 === this.tasksAndProducts[i].name){
-              product = this.tasksAndProducts[i].product;
-             // this.task2ToProduct.push({task2: this.task2, product: product});
-              this.precedencesWithProducts.push({name1: this.task2, name2: product});
-              break;
-            }
-          }
-          count=0;
+         
           for(i=0; i < this.precedencesWithProducts.length; i++){
-            if(this.precedencesWithProducts[i].name2 === product){
-              count++;
-            }
-          }
-
-          if(count > 1){
-            for(i=0; i < this.precedencesWithProducts.length-1; i++){
-              if(this.precedencesWithProducts[i].name2 === product){
-                this.deletePrecedencesWithProducts(i);
-              }
+            if(this.precedencesWithProducts[i].task === this.task1){
+              this.deletePrecedencesWithProducts(i);
+              this.precedencesWithProducts.push({task: this.task1, product: this.task2});
             }
           }
 
@@ -141,7 +128,7 @@ var vm = new Vue({
 
       this.vizGraphTxtOut();
     },
-    addProctime(){
+    addProctime(){ 
       if(this.proctime_task === "" || this.proctime_eq === "" || this.proctime === ""){
         if(this.proctime_task ===""){
           this.showWarning("PROCTIMES: Task is empty");
@@ -154,7 +141,12 @@ var vm = new Vue({
         }
       }
       else{
-        this.proctimes.push({task: this.proctime_task, eq: this.proctime_eq, proctime: this.proctime});
+        if(this.proctime < 0){
+          this.showWarning("PROCTIMES: Proctime is negativ");
+        }
+        else{
+          this.proctimes.push({task: this.proctime_task, eq: this.proctime_eq, proctime: this.proctime});
+        }
       }
       this.proctime="";
       this.proctime_task="";
@@ -208,9 +200,13 @@ var vm = new Vue({
           productName = this.products[i];
         }
       }
-      this.updateTasksAndProducts(productName);
-      this.updatePrecedences();
       this.products.splice(id,1);
+      this.updateTasksAndProducts(productName);
+      this.updateTasks();
+      this.updatePrecedences();
+      this.updatePrecedencesWithProducts();
+      this.updateProctimes();
+      this.vizGraphTxtOut();
     },
     deleteTaskAndTasksAndProducts(id){
       task="";
@@ -224,6 +220,8 @@ var vm = new Vue({
       this.tasks.splice(id,1);
       this.deleteTasksAndProducts(id);
       this.updatePrecedences();
+      this.updatePrecedencesWithProductsFromTasks(task);
+      this.vizGraphTxtOut();
     },
     deleteTask(id){
       this.tasks.splice(id,1);
@@ -238,20 +236,35 @@ var vm = new Vue({
       this.tasksAndProducts.splice(id,1);
     },
     deleteEq(id){
-      eqName="";
-      for(i=0; i < this.equipments.length; i++){
-        if(i===id){
-          eqName = this.equipments[i];
-        }
-      }
-      this.updateProctimes(eqName);
       this.equipments.splice(id,1);
+      this.updateProctimesFromEq();
+      this.updateProctimes();
+      this.vizGraphTxtOut();
     },
     deletePrecendence(id){
       this.precedences.splice(id,1);
     },
+    deletePrecedenceFromHtml(id){
+      task1="";
+      task2="";
+      for(i=0; i < this.precedences.length; i++){
+        if(i === id){
+          task1 = this.precedences[i].task1;
+          task2 = this.precedences[i].task2;
+        }
+      }
+      this.deletePrecendence(id);
+      this.updatePrecedencesWithProductsFromPrecedence(task1, task2);
+      this.vizGraphTxtOut();
+    },
+    deleteProctimeFromHtml(id){
+      this.proctimes.splice(id,1);
+      this.updateProctimes();
+      this.vizGraphTxtOut();
+    },
     deleteProctime(id){
       this.proctimes.splice(id,1);
+      this.updateProctimes();
     },
     deleteEmptyPrecedences(){
       for(i=0; i < this.precedences.length; i++){
@@ -266,6 +279,28 @@ var vm = new Vue({
     /*-------------------------*/
 
     /*----------UPDATE---------*/
+    updateTasks(){
+      deleteThis=[];
+      for(i=0; i < this.tasks.length; i++){
+        add=true;
+        for(j=0; j < this.tasksAndProducts.length; j++){//name, product 
+          if(this.tasks[i] === this.tasksAndProducts[j].name){
+            add=false;
+          }
+        }
+        if(add===true){
+          deleteThis.push(this.tasks[i]);
+        }
+      }
+
+      for(i=0; i < deleteThis.length; i++){
+        for(j=0; j < this.tasks.length; j++){
+          if(deleteThis[i] === this.tasks[j]){
+            this.deleteTask(j);
+          }
+        }
+      }
+    },
     updateTasksAndProducts(productName){
       deleteThis=[];
       for(i=0; i < this.tasksAndProducts.length; i++){
@@ -280,15 +315,14 @@ var vm = new Vue({
             this.deleteTasksAndProducts(j);
           }
         }
+      }
+     /* for(i=0; i < deleteThis.length; i++){
         for(j=0; j < this.tasks.length; j++){
           if(deleteThis[i].name === this.tasks[j]){
-            this.updateProctimesFromProduct(this.tasks[j]);
             this.deleteTask(j);
           }
         }
-      }
-
-      this.vizGraphTxtOut();
+      }*/
     },
     updatePrecedences(){
       deleteThis=[];
@@ -300,23 +334,20 @@ var vm = new Vue({
             add=false;
           }
         }
-        if(add===true){
-          deleteThis.push({task1: this.precedences[i].task1, task2: this.precedences[i].task2});
+        if(add==true){
+          deleteThis.push(this.precedences[i].task1);
         }
       }
 
       for(i=0; i < deleteThis.length; i++){
         for(j=0; j < this.precedences.length; j++){
-          if(deleteThis[i].task1 === this.precedences[j].task1 &&
-             deleteThis[i].task2 === this.precedences[j].task2){
+          if(deleteThis[i] === this.precedences[j].task1){
             this.deletePrecendence(j);
           }
         }
       }
 
       this.fillUpTmpTaks12();
-
-      this.vizGraphTxtOut();
     },
     updatePrecedencesFromTask(task){
       deleteThis=[];
@@ -336,25 +367,29 @@ var vm = new Vue({
         }
       }
 
-      this.vizGraphTxtOut();
+      this.fillUpTmpTaks12();
     },
-    updateProctimes(eqName){
+    updateProctimes(){
       deleteThis=[];
-      for(i=0; i < this.proctimes.length; i++){
-        if(eqName === this.proctimes[i].eq){
-          deleteThis.push({task: this.proctimes[i].task, eq: this.proctimes[i].eq});
-        }
-      }
-      for(i=0; i < deleteThis.length; i++){
-        for(j=0; j < this.proctimes.length; j++){
-          if(deleteThis[i].task === this.proctimes[j].task &&
-             deleteThis[i].eq === this.proctimes[j].eq){
-            this.deleteProctime(j);
+      for(i=0; i < this.proctimes.length; i++){//task, eq, proctime
+        add=true;
+        for(j=0; j < this.tasks.length; j++){
+          if(this.proctimes[i].task === this.tasks[j]){
+            add=false;
           }
+        }
+        if(add==true){
+          deleteThis.push(this.proctimes[i].task);
         }
       }
 
-      this.vizGraphTxtOut();
+      for(i=0; i < deleteThis.length; i++){
+        for(j=0; j < this.proctimes.length; j++){
+          if(deleteThis[i] === this.proctimes[j].task){
+            this.proctimes.splice(j,1);
+          }
+        }
+      }
     },
     updateProctimesFromProduct(task){
       deleteThis=[];
@@ -371,8 +406,97 @@ var vm = new Vue({
           }
         }
       }
+    },
+    updateProctimesFromEq(){
+      deleteThis=[];
+      for(i=0; i < this.proctimes.length; i++){ //task, eq, proctime
+        add=true;
+        for(j=0; j < this.equipments.length; j++){
+          if(this.proctimes[i].eq === this.equipments[j]){
+            add=false;
+          }
+        }
+        if(add==true){
+          deleteThis.push(this.proctimes[i].eq);
+        }
+      }
 
-      this.vizGraphTxtOut();
+      for(i=0; i < deleteThis.length; i++){
+        for(j=0; j < this.proctimes.length; j++){
+          if(deleteThis[i] === this.proctimes[j].eq){
+            this.deleteProctime(j);
+          }
+        }
+      }
+    },
+    updatePrecedencesWithProducts(){
+      deleteThis=[];
+      for(i=0; i < this.precedencesWithProducts.length; i++){ //task, product
+        add=true;
+        for(j=0; j < this.tasks.length; j++){
+          if(this.precedencesWithProducts[i].task === this.tasks[j] ||
+             this.precedencesWithProducts[i].product === this.tasks[j]){
+            add=false;
+          }
+        }
+        if(add==true){
+          deleteThis.push(this.precedencesWithProducts[i].task);
+        }
+      }
+
+      for(i=0; i < deleteThis.length; i++){
+        for(j=0; j < this.precedencesWithProducts.length; j++){
+          if(deleteThis[i] === this.precedencesWithProducts[j].task){
+            this.deletePrecedencesWithProducts(j);
+          }
+        }
+      }
+    },
+    updatePrecedencesWithProductsFromTasks(task){
+      deleteThis=[];
+      for(i=0; i < this.precedencesWithProducts.length; i++){ //task, product
+        if(task ===  this.precedencesWithProducts[i].task ||
+           task ===  this.precedencesWithProducts[i].product){
+            deleteThis.push({task: this.precedencesWithProducts[i].task, product: this.precedencesWithProducts[i].product});
+          }
+      }
+
+      for(i=0; i < deleteThis.length; i++){
+        for(j=0; j < this.precedencesWithProducts.length; j++){
+          if(deleteThis[i].task === this.precedencesWithProducts[j].task ||
+             deleteThis[i].product === this.precedencesWithProducts[j].product){
+             this.deletePrecedencesWithProducts(j);
+          }
+        }
+      }
+
+      for(i=0; i < this.tasks.length; i++){
+        add=true;
+        for(j=0; j < this.precedencesWithProducts.length; j++){ //task, product
+          if(this.tasks[i] === this.precedencesWithProducts[j].task){
+            add=false;
+          }
+        }
+        if(add==true){
+          for(j=0; j < this.tasksAndProducts.length; j++){
+            if(this.tasks[i] === this.tasksAndProducts[j].name){
+              this.precedencesWithProducts.push({task: this.tasks[i], product: this.tasksAndProducts[j].product});
+            }
+          }
+        }
+      }
+    },
+    updatePrecedencesWithProductsFromPrecedence(task1){
+      for(i=0; i < this.precedencesWithProducts.length; i++){ //task, product
+        if(task1 === this.precedencesWithProducts[i].task){
+          this.deletePrecedencesWithProducts(i);
+          for(j=0; j < this.tasksAndProducts.length; j++){
+            if(task1 === this.tasksAndProducts[j].name){
+              this.precedencesWithProducts.push({task: task1, product: this.tasksAndProducts[j].product});
+            }
+          }
+        }
+      }
     },
     /*-------------------------*/
 
@@ -502,11 +626,11 @@ var vm = new Vue({
       }
 
       for(i=0; i< this.precedencesWithProducts.length; i++){
-        this.vizGraphTxt += this.precedencesWithProducts[i].name1 + " -> " + this.precedencesWithProducts[i].name2;
+        this.vizGraphTxt += this.precedencesWithProducts[i].task + " -> " + this.precedencesWithProducts[i].product;
  
 
         tempProctimes=[];
-        tempTask = this.precedencesWithProducts[i].name1;
+        tempTask = this.precedencesWithProducts[i].task;
         for(j=0; j< this.proctimes.length; j++){
           if(this.proctimes[j].task === tempTask){
             tempProctimes.push(this.proctimes[j].proctime);
@@ -536,7 +660,7 @@ var vm = new Vue({
         console.error(error);
       });
 
-      console.log(this.vizGraphTxt);
+     // console.log(this.vizGraphTxt);
     },
   },
 })
