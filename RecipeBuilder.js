@@ -1,7 +1,48 @@
+Vue.use(VueDraggable.default);
+
 var vm = new Vue({
   el: '#content',
   data() {
+    const componentInstance = this
     return{
+      options: {
+        // dropzoneSelector: 'ul',
+        // draggableSelector: 'li',
+        // showDropzoneAreas: true,
+        // multipleDropzonesItemsDraggingEnabled: true,
+        //onDrop(event) {
+          onDrop() {
+          var schedTable = document.getElementById('schedTable').innerHTML;
+          s = schedTable.split(">");
+          tasks=[];
+          for(i = 0; i < s.length; i++){ 
+            if(s[i].indexOf("</span") !== -1){
+              ss = s[i].split('<');
+              taskWithEq = ss[0].split(' ');
+              tasks.push(taskWithEq[0]);
+            }
+          }
+          componentInstance.dragAndDropList(tasks);
+         },
+        // onDragstart(event) {
+        //   event.stop();
+        // },
+        onDragend(event) {
+          // if you need to stop d&d
+          // event.stop();
+
+          // you can call component methods, just don't forget 
+          // that here `this` will not reference component scope,
+          // so out from this returned data object make reference
+          // to component instance
+
+          // to detect if draggable element is dropped out
+          if (!event.droptarget) {
+            //console.log('event is dropped out');
+          }
+        }
+      },
+      /*---------------RECIPIE BUILDER---------------*/
       products:[],
       productName: '',
 
@@ -26,17 +67,462 @@ var vm = new Vue({
       proctime_task:"",
       proctime_eq:"",
 
-      taskEquipment:[], //which task which equipments | task, eqs[]
+      taskEquipment:[], //task, eqs[] | which task which equipments
 
-      vizGraphTxt:"",
+      recipieGraphTxt:"",
 
-      show:false,
+      showWarningTxt:false,
 
       tmpTask1:[],
       tmpTask2:[],
+
+      seenForms:true,
+
+      /*---------------SchedGraphBuilder-------------*/
+      schedSequence:[], //egyenlőre az a sorrend amit először bevittünk
+
+      schedGraphTxt:"",
+
+      schedPrecedencesWithProducts:[], //task, product, schedEdge(true/false)
+
+      schedTasks:[], //task
+
     }
   }, 
   methods:{
+    dragAndDropList(tasks){
+      this.schedTasks = [];
+     
+      for(i=0; i< tasks.length; i++){ //task
+        this.schedTasks.push({task: tasks[i]});
+      }
+      this.schedGraphTxtOut(true);
+    },
+    /*---------------SchedGraphBuilder-------------*/
+    switchForms(){
+      this.seenForms = !this.seenForms;
+      if(!this.seenForms){
+        this.schedGraphTxtOut();
+      }
+      else{
+        this.recipieGraphTxtOut();
+      }
+    },
+    updateSchedPrecedencesWithProducts(){
+      this.schedPrecedencesWithProducts=[];
+      for(i=0; i< this.schedTasks.length; i++){ //task
+        for(j=0; j< this.precedencesWithProducts.length; j++){  //task, product
+          if(this.schedTasks[i].task === this.precedencesWithProducts[j].task){
+            this.schedPrecedencesWithProducts.push({task: this.precedencesWithProducts[j].task, product: this.precedencesWithProducts[j].product, schedEdge:false});
+          }
+        }
+      }
+
+      addThis=[];
+      for(i=0; i< this.schedPrecedencesWithProducts.length; i++){ //task, product, schedEdge(true/false)
+        if(i < this.schedPrecedencesWithProducts.length - 1){
+          if(this.schedPrecedencesWithProducts[i].product !== this.schedPrecedencesWithProducts[i+1].task){
+            if(this.schedPrecedencesWithProducts[i].product !== this.schedPrecedencesWithProducts[i+1].product){
+              addThis.push({task: this.schedPrecedencesWithProducts[i].product, product: this.schedPrecedencesWithProducts[i+1].task, schedEdge:true});
+            }
+          }
+        }
+      }
+
+      for(i=0; i< addThis.length; i++){
+        this.schedPrecedencesWithProducts.push({task: addThis[i].task, product: addThis[i].product, schedEdge: addThis[i].schedEdge});
+      }
+    },
+    schedGraphTxtOut(drag){
+      if(!drag){
+        this.schedTasks = this.taskEquipment;
+      }
+
+      this.equipmentsToTask();
+      this.updateSchedPrecedencesWithProducts();
+
+      this.schedGraphTxt ="digraph SGraph { rankdir=LR  splines = true esep=0.5 node [shape=circle,fixedsize=true,width=0.9,label=<<B>\\N</B>>,pin=true]"
+
+      xPosDist = 2;
+      yPosDist = 1.1;
+
+      /* Collect all task to product  */
+      productWithTasks=[]; //product, tasks[]
+      for(i=0; i< this.products.length; i++){ 
+        add = [];
+        p = "";
+        for(j=0; j< this.tasksAndProducts.length; j++){ //name, product
+          if(this.products[i] === this.tasksAndProducts[j].product){
+            p = this.tasksAndProducts[j].product;
+            add.push(this.tasksAndProducts[j].name);
+          }
+        }
+        productWithTasks.push({product: p, tasks: add});
+      }
+
+      /* Collect all precedence to product */
+      productWithPrecedence=[]; //product, precedences[] - task1, task2
+      for(i = 0; i < productWithTasks.length; i++){ //product, tasks[]
+        add = [];
+        for(j = 0; j < productWithTasks[i].tasks.length; j++){
+          for(u = 0; u < this.precedencesWithProducts.length; u++){ //task, product
+            if(productWithTasks[i].tasks[j] === this.precedencesWithProducts[u].task){
+              add.push({task1: this.precedencesWithProducts[u].task, task2: this.precedencesWithProducts[u].product});
+            }
+          }
+        }
+        productWithPrecedence.push({product: productWithTasks[i].product, precedences: add});
+      }
+
+      /* Sort the productWithPrecedence array */
+      /* Add first task to array */
+      sortedProductWithTasks=[]; //product tasks[]
+      for(i = 0; i < productWithPrecedence.length; i++){ //product, precedences[] - task1, task2
+        add=[];
+        for(j = 0; j < productWithPrecedence[i].precedences.length; j++){
+          c = 0;
+          for(u = 0; u < productWithPrecedence[i].precedences.length; u++){
+            if(productWithPrecedence[i].precedences[j].task1 ===  productWithPrecedence[i].precedences[u].task2){
+              c++;
+            }
+          }
+          if(c === 0){
+           add.push(productWithPrecedence[i].precedences[j].task1);
+          }
+        }
+        sortedProductWithTasks.push({product: productWithPrecedence[i].product, tasks: add});
+      }
+      /* Add the rest tasks to array */
+      for(i = 0; i < productWithPrecedence.length; i++){ //product, precedences[] - task1, task2
+        for(z = 0; z < productWithPrecedence[i].precedences.length; z++){ //product, precedences[] - task1, task2
+          add="";
+          for(j = 0; j < sortedProductWithTasks[i].tasks.length; j++){ //product tasks[]
+            for(u = 0; u < productWithPrecedence[i].precedences.length; u++){
+              if(sortedProductWithTasks[i].tasks[j] === productWithPrecedence[i].precedences[u].task1){
+                add = productWithPrecedence[i].precedences[u].task2;
+              }
+            }
+          }
+          yes=true;
+          for(j = 0; j < sortedProductWithTasks[i].tasks.length; j++){ //product tasks[]
+            if(add === sortedProductWithTasks[i].tasks[j]){
+              yes = false;
+            }
+          }
+          if(yes){
+            sortedProductWithTasks[i].tasks.push(add);
+          }
+        }
+      }
+
+      /* To which task goes multiple edges */
+      multipleTasksToOneProduct=[]; //task, product, count
+      for(i=0; i< this.precedencesWithProducts.length; i++){  //task, product
+        t = this.precedencesWithProducts[i].task;
+        p = this.precedencesWithProducts[i].product;
+        c = -1;
+        for(j=0; j< this.precedencesWithProducts.length; j++){  //task, product
+          if(this.precedencesWithProducts[j].product === p){
+            c++;
+          }
+        }
+        multipleTasksToOneProduct.push({task: t, product: p, count: c});
+      }    
+ 
+      /* How many edges goes to a task */
+      howManyEdgesToTask=[]; //task, count
+      for(i = 0; i < multipleTasksToOneProduct.length; i++){ //task, product, count
+        if(multipleTasksToOneProduct[i].count > 0){
+          add=true;
+          for(j = 0; j < howManyEdgesToTask.length; j++){ //task, count
+            if(howManyEdgesToTask[j].task === multipleTasksToOneProduct[i].product){
+              add = false;
+            }
+          }
+          if(add){
+            howManyEdgesToTask.push({task: multipleTasksToOneProduct[i].product, count: 1});
+          }
+          else{
+            for(j = 0; j < howManyEdgesToTask.length; j++){ //task, count
+              if(howManyEdgesToTask[j].task === multipleTasksToOneProduct[i].product){
+                howManyEdgesToTask[j].count += 1;
+              }
+            }
+          }
+        }
+      }
+
+      /* X positions */
+      xPositions=[]; //task, xPos
+      for(i = 0; i < sortedProductWithTasks.length; i++){ //product tasks[]
+        xPos=0;
+        for(j = 0; j < sortedProductWithTasks[i].tasks.length; j++){
+          for(u = 0; u < multipleTasksToOneProduct.length; u++){ //task, product, count
+            if(sortedProductWithTasks[i].tasks[j] === multipleTasksToOneProduct[u].product){
+              if(multipleTasksToOneProduct[u].count > 0){
+                if(sortedProductWithTasks[i].tasks[j-1] === multipleTasksToOneProduct[u].task){
+                  xPos += xPosDist;
+                }
+              }
+              else{
+                xPos += xPosDist;
+              }
+            }
+          }
+          xPositions.push({task: sortedProductWithTasks[i].tasks[j], xPos: xPos});
+        }
+      }
+
+      tasksAsXPos=[]; //xPos, tasks[]
+      for(i = 0; i < xPositions.length; i++){  //task, xPos
+        add=[];
+        for(j = 0; j < xPositions.length; j++){  //task, xPos
+          if(xPositions[i].xPos === xPositions[j].xPos){
+            add.push(xPositions[j].task);
+          }
+        }
+        yes = true;
+        for(j = 0; j < tasksAsXPos.length; j++){ //xPos, tasks[]
+          if(xPositions[i].xPos === tasksAsXPos[j].xPos){
+            yes = false;
+          }
+        }
+        if(yes){
+          tasksAsXPos.push({xPos: xPositions[i].xPos, tasks: add});
+        }
+      }
+
+     /* Y positions */
+     yPositions=[]; //task, yPos
+      for(i = 0; i < tasksAsXPos.length; i++){ //xPos, tasks[]
+        for(u = 0; u < xPositions.length; u++){ //task, xPos
+          for(j = 0; j < tasksAsXPos[i].tasks.length; j++){
+            yes = true;
+            for(z = 0; z < yPositions.length; z++){ //task, yPos
+              if(yPositions[z].task === tasksAsXPos[i].tasks[j]){
+                yes = false;
+              }
+            }
+            if(yes){
+              yPos = 0 - j * yPosDist;
+
+              /*HA KELL A SOROK KÖZÉ PLUSZ HELY AZT ITT KELL*/
+
+              /*for(z = 0; z < sortedProductWithTasks.length; z++){ //product, tasks[]
+                for(t = 0; t < sortedProductWithTasks[z].tasks.length; t++){
+                  if(sortedProductWithTasks[z].tasks[t] === tasksAsXPos[i].tasks[j]){
+                    if(z + 1 < sortedProductWithTasks.length){
+                      if(sortedProductWithTasks[z + 1].product !== sortedProductWithTasks[z].product){
+                       yPos += .5;
+                      }
+                    }
+                  }
+                }
+              }*/
+
+            /*  for(z = 0; z < this.tasksAndProducts.length; z++){ //name, product
+                if(tasksAsXPos[i].tasks[j] === this.tasksAndProducts[z].name){
+                  if(z + 1 < this.tasksAndProducts.length){
+                    if(this.tasksAndProducts[z + 1].product !== this.tasksAndProducts[z].product){
+                      yPos -= .5;
+                    }
+                  }
+                }
+              }
+*/
+              yPositions.push({task: tasksAsXPos[i].tasks[j], yPos: yPos});
+            }
+          }
+        }
+      }
+
+      for(i = 0; i < yPositions.length; i++){ //task, yPos
+        for(j = 0; j < howManyEdgesToTask.length; j++){ //task, count
+          if(yPositions[i].task === howManyEdgesToTask[j].task){
+            if(howManyEdgesToTask[j].count > 0){
+              edgesToThisTask=[];
+              for(u = 0; u < this.precedencesWithProducts.length; u++){ //task, product
+                if(yPositions[i].task === this.precedencesWithProducts[u].product){
+                  edgesToThisTask.push(this.precedencesWithProducts[u].task);
+                }
+              }
+              middleItem = edgesToThisTask[edgesToThisTask.length % 2];
+              y = 0;
+              for(z = 0; z < yPositions.length; z++){ //task, yPos
+                if(yPositions[z].task === middleItem){
+                  if(edgesToThisTask.length % 2 !== 0){
+                    y = yPositions[z].yPos;
+                  }
+                  else{
+                    y = yPositions[z].yPos - yPosDist/2;
+                  }
+                }
+              }
+              yPositions[i].yPos = y;
+
+              prevItem = "";
+              for(u = 0; u < this.precedencesWithProducts.length; u++){ //task, product
+                if(middleItem === this.precedencesWithProducts[u].task){
+                  prevItem = this.precedencesWithProducts[u].product;
+                }
+              }
+
+              for(z = 0; z < sortedProductWithTasks.length; z++){  //product tasks[]
+                for(t = 0; t < sortedProductWithTasks[z].tasks.length; t++){ 
+                  for(u = 0; u < this.precedencesWithProducts.length; u++){ //task, product
+                    if(this.precedencesWithProducts[u].task === prevItem){
+                      y = 0;
+                      for(r = 0; r < yPositions.length; r++){ //task, yPos
+                        if(prevItem === yPositions[r].task){
+                          y = yPositions[r].yPos;
+                        }
+                      }
+                      for(r = 0; r < yPositions.length; r++){ //task, yPos
+                        if(this.precedencesWithProducts[u].product === yPositions[r].task){
+                          yPositions[r].yPos = y;
+                        }
+                      }
+                      prevItem = this.precedencesWithProducts[u].product;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      productsWithMultipleInEdges = [];
+      for(i = 0; i < sortedProductWithTasks.length; i++){ //product tasks[]
+        for(j = 0; j < sortedProductWithTasks[i].tasks.length; j++){ 
+          for(u = 0; u < howManyEdgesToTask.length; u++){ //task, count
+            if(howManyEdgesToTask[u].task === sortedProductWithTasks[i].tasks[j]){
+              productsWithMultipleInEdges.push(sortedProductWithTasks[i].product);
+            }
+          }
+        }
+      }
+
+      for(i = 0; i < sortedProductWithTasks.length; i++){ //product tasks[]
+        yes = true;
+        for(j = 0; j < productsWithMultipleInEdges.length; j++){
+          if(productsWithMultipleInEdges[j] === sortedProductWithTasks[i].product){
+            yes = false;
+          }
+        }
+        if(yes){
+          y = 0;
+          for(j = 0; j < yPositions.length; j++){ //task, yPos
+            for(u = 0; u < sortedProductWithTasks[i].tasks.length; u++){
+              if(yPositions[j].task === sortedProductWithTasks[i].tasks[u]){
+                y = yPositions[j].yPos;
+                break;
+              }
+            }
+            if(y !== 0){
+              break;
+            }
+          }
+          for(j = 0; j < yPositions.length; j++){ //task, yPos
+            for(u = 0; u < sortedProductWithTasks[i].tasks.length; u++){
+              if(yPositions[j].task === sortedProductWithTasks[i].tasks[u]){
+                yPositions[j].yPos = y;
+              }
+            }
+          }
+        }
+      }
+
+      for(i = 0; i < sortedProductWithTasks.length; i++){ //product tasks[]
+       /* Search x position */
+        for(j = 0; j < sortedProductWithTasks[i].tasks.length; j++){ //product tasks[]
+          xPos = 0;
+          for(u = 0; u < xPositions.length; u++){ //task, xPos
+          if(xPositions[u].task === sortedProductWithTasks[i].tasks[j]){
+            xPos = xPositions[u].xPos;
+          }
+        }
+
+       /* Search y position */
+        yPos = 0;
+        for(u = 0; u < yPositions.length; u++){ //task, yPos
+          if(yPositions[u].task === sortedProductWithTasks[i].tasks[j]){
+            yPos = yPositions[u].yPos;
+          }
+        }
+        
+        /* Add task/product to schedGraphTxt */
+        this.schedGraphTxt += " " +  sortedProductWithTasks[i].tasks[j] + " [ pos=\"" + xPos + "," + yPos + "\", label = < <B>\\N</B><BR/>";
+
+
+
+        isProduct = false;
+        for(u = 0; u < this.products.length; u++){
+          if(sortedProductWithTasks[i].tasks[j] === this.products[u]){
+            isProduct = true;
+          }
+        }
+        if(!isProduct){
+          this.schedGraphTxt += "{";
+          /* Add equipments to task*/
+          for(u = 0; u < this.taskEquipment.length; u++){ //task, eqs[]
+            if(this.taskEquipment[u].task === sortedProductWithTasks[i].tasks[j]){
+              for(z = 0; z < this.taskEquipment[u].eqs.length; z++){
+                this.schedGraphTxt += this.taskEquipment[u].eqs[z] +",";
+              }
+            }
+          }
+          this.schedGraphTxt = this.schedGraphTxt.substring(0,this.schedGraphTxt.length-1);
+          this.schedGraphTxt += "}";
+        }
+        this.schedGraphTxt += "> ]";
+      }
+     }
+    /* Search minimum proctime to task */
+     for(i=0; i< this.schedPrecedencesWithProducts.length; i++){ //task, product, schedEdge(true/false)
+      this.schedGraphTxt += this.schedPrecedencesWithProducts[i].task + " -> " + this.schedPrecedencesWithProducts[i].product;
+
+      tempProctimes=[];
+      tempTask = this.schedPrecedencesWithProducts[i].task;
+      for(j=0; j< this.proctimes.length; j++){
+        if(this.proctimes[j].task === tempTask){
+          tempProctimes.push(this.proctimes[j].proctime);
+        }
+      }
+         
+      minProctime = tempProctimes[0];
+      for(j=0; j< tempProctimes.length; j++){
+        if(tempProctimes[j] < minProctime){
+          minProctime = tempProctimes[j];
+        }
+      }
+
+      style="";
+      if(this.schedPrecedencesWithProducts[i].schedEdge == true){
+        style = "dashed";
+      }
+
+      this.schedGraphTxt += " [ label = " + minProctime + ", style=\"" + style + "\" ]";
+    }
+
+    this.schedGraphTxt += "layout=\"neato\"";
+    this.schedGraphTxt += "}";
+
+    var viz = new Viz();
+    viz.renderSVGElement(this.schedGraphTxt)
+    .then(function(element) {
+      document.getElementById('schedGraph').innerHTML="";
+      document.getElementById('schedGraph').appendChild(element);
+    })
+    .catch(error => {
+      viz = new Viz();
+      console.error(error);
+    });
+
+    //console.log(this.schedGraphTxt);
+    },
+
+    /*---------------RECIPIE BUILDER---------------*/
     /*--------ADD--------*/
     addProduct(){
       if(this.productName === ""){
@@ -78,7 +564,7 @@ var vm = new Vue({
       this.taskName='';
       this.product='';
 
-      this.vizGraphTxtOut();
+      this.recipieGraphTxtOut();
     },
     addTmpTask12(){
       this.tmpTask1.push(this.taskName);
@@ -126,7 +612,7 @@ var vm = new Vue({
       this.task2="";
       this.deleteEmptyPrecedences();
 
-      this.vizGraphTxtOut();
+      this.recipieGraphTxtOut();
     },
     addProctime(){ 
       if(this.proctime_task === "" || this.proctime_eq === "" || this.proctime === ""){
@@ -154,7 +640,7 @@ var vm = new Vue({
 
       this.deleteDuplicateProctimes();
 
-      this.vizGraphTxtOut();
+      this.recipieGraphTxtOut();
     },
     addTasksAndProducts(){
       this.tasksAndProducts.push({name: this.taskName , product: this.product});
@@ -206,7 +692,7 @@ var vm = new Vue({
       this.updatePrecedences();
       this.updatePrecedencesWithProducts();
       this.updateProctimes();
-      this.vizGraphTxtOut();
+      this.recipieGraphTxtOut();
     },
     deleteTaskAndTasksAndProducts(id){
       task="";
@@ -221,7 +707,7 @@ var vm = new Vue({
       this.deleteTasksAndProducts(id);
       this.updatePrecedences();
       this.updatePrecedencesWithProductsFromTasks(task);
-      this.vizGraphTxtOut();
+      this.recipieGraphTxtOut();
     },
     deleteTask(id){
       this.tasks.splice(id,1);
@@ -239,7 +725,7 @@ var vm = new Vue({
       this.equipments.splice(id,1);
       this.updateProctimesFromEq();
       this.updateProctimes();
-      this.vizGraphTxtOut();
+      this.recipieGraphTxtOut();
     },
     deletePrecendence(id){
       this.precedences.splice(id,1);
@@ -255,12 +741,12 @@ var vm = new Vue({
       }
       this.deletePrecendence(id);
       this.updatePrecedencesWithProductsFromPrecedence(task1, task2);
-      this.vizGraphTxtOut();
+      this.recipieGraphTxtOut();
     },
     deleteProctimeFromHtml(id){
       this.proctimes.splice(id,1);
       this.updateProctimes();
-      this.vizGraphTxtOut();
+      this.recipieGraphTxtOut();
     },
     deleteProctime(id){
       this.proctimes.splice(id,1);
@@ -316,13 +802,6 @@ var vm = new Vue({
           }
         }
       }
-     /* for(i=0; i < deleteThis.length; i++){
-        for(j=0; j < this.tasks.length; j++){
-          if(deleteThis[i].name === this.tasks[j]){
-            this.deleteTask(j);
-          }
-        }
-      }*/
     },
     updatePrecedences(){
       deleteThis=[];
@@ -452,7 +931,7 @@ var vm = new Vue({
         }
       }
     },
-    updatePrecedencesWithProductsFromTasks(task){
+    updatePrecedencesWithProductsFromTasks(task){ 
       deleteThis=[];
       for(i=0; i < this.precedencesWithProducts.length; i++){ //task, product
         if(task ===  this.precedencesWithProducts[i].task ||
@@ -485,6 +964,7 @@ var vm = new Vue({
           }
         }
       }
+
     },
     updatePrecedencesWithProductsFromPrecedence(task1){
       for(i=0; i < this.precedencesWithProducts.length; i++){ //task, product
@@ -588,7 +1068,7 @@ var vm = new Vue({
 
     showWarning(text){
       this.warningTxt = text;
-      this.show = true;
+      this.showWarningTxt = true;
     },
     equipmentsToTask(){
       this.taskEquipment=[];
@@ -612,21 +1092,21 @@ var vm = new Vue({
         }
       }
     },
-    vizGraphTxtOut(){
+    recipieGraphTxtOut(){
       this.equipmentsToTask();
 
-      this.vizGraphTxt ="digraph SGraph { rankdir=LR 	node [shape=circle,fixedsize=true,width=0.9,label=<<B>\\N</B>>]"
+      this.recipieGraphTxt ="digraph SGraph { rankdir=LR 	node [shape=circle,fixedsize=true,width=0.9,label=<<B>\\N</B>>]"
       for(i=0; i< this.taskEquipment.length; i++){
-        this.vizGraphTxt += " " + this.taskEquipment[i].task + " [ " + "label = < <B>\\N</B><BR/>{";
+        this.recipieGraphTxt += " " + this.taskEquipment[i].task + " [ " + "label = < <B>\\N</B><BR/>{";
         for(j=0; j< this.taskEquipment[i].eqs.length; j++){
-          this.vizGraphTxt += this.taskEquipment[i].eqs[j] +",";
+          this.recipieGraphTxt += this.taskEquipment[i].eqs[j] +",";
         }
-        this.vizGraphTxt = this.vizGraphTxt.substring(0,this.vizGraphTxt.length-1);
-        this.vizGraphTxt += "}> ]";
+        this.recipieGraphTxt = this.recipieGraphTxt.substring(0,this.recipieGraphTxt.length-1);
+        this.recipieGraphTxt += "}> ]";
       }
 
       for(i=0; i< this.precedencesWithProducts.length; i++){
-        this.vizGraphTxt += this.precedencesWithProducts[i].task + " -> " + this.precedencesWithProducts[i].product;
+        this.recipieGraphTxt += this.precedencesWithProducts[i].task + " -> " + this.precedencesWithProducts[i].product;
  
 
         tempProctimes=[];
@@ -644,23 +1124,23 @@ var vm = new Vue({
           }
         }
 
-        this.vizGraphTxt += " [ label = " + minProctime + " ]";
+        this.recipieGraphTxt += " [ label = " + minProctime + " ]";
       }
-      this.vizGraphTxt += "}";
+      this.recipieGraphTxt += "}";
 
-      document.getElementById('vizGraphPlace').innerHTML="";
 
       var viz = new Viz();
-      viz.renderSVGElement(this.vizGraphTxt)
+      viz.renderSVGElement(this.recipieGraphTxt)
       .then(function(element) {
-        document.getElementById('vizGraphPlace').appendChild(element);
+        document.getElementById('recipieGraph').innerHTML="";
+        document.getElementById('recipieGraph').appendChild(element);
       })
       .catch(error => {
         viz = new Viz();
         console.error(error);
       });
 
-     // console.log(this.vizGraphTxt);
+      //console.log(this.recipieGraphTxt);
     },
   },
-})
+}).$mount("#content");
