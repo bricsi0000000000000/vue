@@ -43,83 +43,38 @@ var vm = new Vue({
         }
       },
       /*---------------RECIPIE BUILDER---------------*/
-      products:["a","b","c"],
+      products:[],
       productName: '',
 
-      tasks: [
-        "a1",
-        "a2",
-        "b1",
-        "b2",
-        "c1",
-        "c2",
-        "c3"
-      ], 
+      tasks: [], 
       taskName: '',
 
-      tasksAndProducts:[
-        {"name":"a1","product":"a"},
-        {"name":"a2","product":"a"},
-        {"name":"b1","product":"b"},
-        {"name":"b2","product":"b"},
-        {"name":"c1","product":"c"},
-        {"name":"c2","product":"c"},
-        {"name":"c3","product":"c"}
-      ], //name, product  //which task which product
+      tasksAndProducts:[], //name, product  //which task which product
       product:'',
 
       equipmentName:'',
-      equipments: ["e1"],
+      equipments: [],
 
       warningTxt:"",
 
       task1:"",
       task2:"",
-      precedences: [
-        {"task1":"a1","task2":"a2"},
-        {"task1":"b1","task2":"b2"},
-        {"task1":"c1","task2":"c2"},
-        {"task1":"c2","task2":"c3"}
-      ], //task1, task2
-      precedencesWithProducts:[
-        {"task":"a1","product":"a2"},
-        {"task":"a2","product":"a"},
-        {"task":"b1","product":"b2"},
-        {"task":"b2","product":"b"},
-        {"task":"c1","product":"c2"},
-        {"task":"c2","product":"c3"},
-        {"task":"c3","product":"c"}
-      ], //task, product
+      precedences: [], //task1, task2
+      precedencesWithProducts:[], //task, product
 
-      proctimes:[
-        {"task":"a1","eq":"e1","proctime":"2"},
-        {"task":"a2","eq":"e1","proctime":"1"},
-        {"task":"b1","eq":"e1","proctime":"3"},
-        {"task":"b2","eq":"e1","proctime":"2"},
-        {"task":"c1","eq":"e1","proctime":"1"},
-        {"task":"c2","eq":"e1","proctime":"2"},
-        {"task":"c3","eq":"e1","proctime":"2"}
-      ], //task, eq, proctime
+      proctimes:[], //task, eq, proctime
       proctime:"",
       proctime_task:"",
       proctime_eq:"",
 
-      taskEquipment:[
-        {"task":"a1","eqs":["e1"]},
-        {"task":"a2","eqs":["e1"]},
-        {"task":"b1","eqs":["e1"]},
-        {"task":"b2","eqs":["e1"]},
-        {"task":"c1","eqs":["e1"]},
-        {"task":"c2","eqs":["e1"]},
-        {"task":"c3","eqs":["e1"]}
-      ], //task, eqs[] | which task which equipments
+      taskEquipment:[], //task, eqs[] | which task which equipments
 
       recipieGraphTxt:"",
 
       showWarningTxt:false,
 
-      tmpTask1:["c1","c2","b2","a2","b1","c3","a1"],
-      tmpTask2:["c1","c2","b2","a2","b1","c3","a1"],
+      tmpTask1:[],
+      tmpTask2:[],
 
       seenForms:true,
 
