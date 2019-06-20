@@ -43,38 +43,83 @@ var vm = new Vue({
         }
       },
       /*---------------RECIPIE BUILDER---------------*/
-      products:[],
+      products:["a","b","c"],
       productName: '',
 
-      tasks: [], 
+      tasks: [
+        "a1",
+        "a2",
+        "b1",
+        "b2",
+        "c1",
+        "c2",
+        "c3"
+      ], 
       taskName: '',
 
-      tasksAndProducts:[], //name, product  //which task which product
+      tasksAndProducts:[
+        {"name":"a1","product":"a"},
+        {"name":"a2","product":"a"},
+        {"name":"b1","product":"b"},
+        {"name":"b2","product":"b"},
+        {"name":"c1","product":"c"},
+        {"name":"c2","product":"c"},
+        {"name":"c3","product":"c"}
+      ], //name, product  //which task which product
       product:'',
 
       equipmentName:'',
-      equipments: [],
+      equipments: ["e1"],
 
       warningTxt:"",
 
       task1:"",
       task2:"",
-      precedences: [], //task1, task2
-      precedencesWithProducts:[], //task, product
+      precedences: [
+        {"task1":"a1","task2":"a2"},
+        {"task1":"b1","task2":"b2"},
+        {"task1":"c1","task2":"c2"},
+        {"task1":"c2","task2":"c3"}
+      ], //task1, task2
+      precedencesWithProducts:[
+        {"task":"a1","product":"a2"},
+        {"task":"a2","product":"a"},
+        {"task":"b1","product":"b2"},
+        {"task":"b2","product":"b"},
+        {"task":"c1","product":"c2"},
+        {"task":"c2","product":"c3"},
+        {"task":"c3","product":"c"}
+      ], //task, product
 
-      proctimes:[], //task, eq, proctime
+      proctimes:[
+        {"task":"a1","eq":"e1","proctime":"2"},
+        {"task":"a2","eq":"e1","proctime":"1"},
+        {"task":"b1","eq":"e1","proctime":"3"},
+        {"task":"b2","eq":"e1","proctime":"2"},
+        {"task":"c1","eq":"e1","proctime":"1"},
+        {"task":"c2","eq":"e1","proctime":"2"},
+        {"task":"c3","eq":"e1","proctime":"2"}
+      ], //task, eq, proctime
       proctime:"",
       proctime_task:"",
       proctime_eq:"",
 
-      taskEquipment:[], //task, eqs[] | which task which equipments
+      taskEquipment:[
+        {"task":"a1","eqs":["e1"]},
+        {"task":"a2","eqs":["e1"]},
+        {"task":"b1","eqs":["e1"]},
+        {"task":"b2","eqs":["e1"]},
+        {"task":"c1","eqs":["e1"]},
+        {"task":"c2","eqs":["e1"]},
+        {"task":"c3","eqs":["e1"]}
+      ], //task, eqs[] | which task which equipments
 
       recipieGraphTxt:"",
 
       showWarningTxt:false,
 
-      tmpTask1:[],
-      tmpTask2:[],
+      tmpTask1:["c1","c2","b2","a2","b1","c3","a1"],
+      tmpTask2:["c1","c2","b2","a2","b1","c3","a1"],
 
       seenForms:true,
 
@@ -87,28 +132,42 @@ var vm = new Vue({
 
       schedTasks:[], //task
 
+      uisNisChk: "NIS", //UIS NIS
     }
   }, 
   methods:{
+    uisNisSwitch(){
+      if(this.uisNisChk === "NIS"){
+        this.schedGraphTxtOut(true,true);
+      }
+      else if(this.uisNisChk === "UIS"){
+        this.schedGraphTxtOut(true,false);
+      }
+    },
     dragAndDropList(tasks){
       this.schedTasks = [];
-     
       for(i=0; i< tasks.length; i++){ //task
         this.schedTasks.push({task: tasks[i]});
       }
-      this.schedGraphTxtOut(true);
+
+      if(this.uisNisChk === "NIS"){
+        this.schedGraphTxtOut(true,false);
+      }
+      else if(this.uisNisChk === "UIS"){
+        this.schedGraphTxtOut(true,true);
+      }
     },
     /*---------------SchedGraphBuilder-------------*/
     switchForms(){
       this.seenForms = !this.seenForms;
       if(!this.seenForms){
-        this.schedGraphTxtOut();
+        this.schedGraphTxtOut(false,false);
       }
       else{
         this.recipieGraphTxtOut();
       }
     },
-    updateSchedPrecedencesWithProducts(){
+    NIS(){
       this.schedPrecedencesWithProducts=[];
       for(i=0; i< this.schedTasks.length; i++){ //task
         for(j=0; j< this.precedencesWithProducts.length; j++){  //task, product
@@ -133,15 +192,48 @@ var vm = new Vue({
         this.schedPrecedencesWithProducts.push({task: addThis[i].task, product: addThis[i].product, schedEdge: addThis[i].schedEdge});
       }
     },
-    schedGraphTxtOut(drag){
+    UIS(){
+      this.schedPrecedencesWithProducts=[];
+      for(i=0; i< this.schedTasks.length; i++){ //task
+        for(j=0; j< this.precedencesWithProducts.length; j++){  //task, product
+          if(this.schedTasks[i].task === this.precedencesWithProducts[j].task){
+            this.schedPrecedencesWithProducts.push({task: this.precedencesWithProducts[j].task, product: this.precedencesWithProducts[j].product, schedEdge:false});
+          }
+        }
+      }
+      addThis=[];
+      for(i = 0; i < this.schedTasks.length - 1; i++){ //task
+        yes = true;
+        for(j = 0; j < this.schedPrecedencesWithProducts.length - 1; j++){ //task, product, schedEdge(true/false)
+          if(this.schedTasks[i].task === this.schedPrecedencesWithProducts[j].task &&
+             this.schedTasks[i + 1].task === this.schedPrecedencesWithProducts[j].product){
+               yes = false;
+            }
+        }
+        if(yes){
+          addThis.push({task: this.schedTasks[i].task, product: this.schedTasks[i + 1].task, schedEdge:true});
+        }
+      }
+
+      for(i=0; i< addThis.length; i++){
+        this.schedPrecedencesWithProducts.push({task: addThis[i].task, product: addThis[i].product, schedEdge: addThis[i].schedEdge});
+      }
+    },
+    schedGraphTxtOut(drag , uis){
       if(!drag){
         this.schedTasks = this.taskEquipment;
       }
 
-      this.equipmentsToTask();
-      this.updateSchedPrecedencesWithProducts();
+      if(uis){
+        this.UIS();
+      }
+      else{
+        this.NIS();
+      }
 
-      this.schedGraphTxt ="digraph SGraph { rankdir=LR  splines = true esep=0.5 node [shape=circle,fixedsize=true,width=0.9,label=<<B>\\N</B>>,pin=true]"
+      this.equipmentsToTask();
+
+      this.schedGraphTxt ="digraph SGraph { rankdir=LR  splines=true node [shape=circle,fixedsize=true,width=0.9,label=<<B>\\N</B>>,pin=true]"
 
       xPosDist = 2;
       yPosDist = 1.1;
@@ -478,7 +570,7 @@ var vm = new Vue({
         this.schedGraphTxt += "> ]";
       }
      }
-    /* Search minimum proctime to task */
+     /* Search minimum proctime to task */
      for(i=0; i< this.schedPrecedencesWithProducts.length; i++){ //task, product, schedEdge(true/false)
       this.schedGraphTxt += this.schedPrecedencesWithProducts[i].task + " -> " + this.schedPrecedencesWithProducts[i].product;
 
@@ -500,9 +592,17 @@ var vm = new Vue({
       style="";
       if(this.schedPrecedencesWithProducts[i].schedEdge == true){
         style = "dashed";
+        if(!uis){
+          minProctime = -1;
+        }
       }
 
-      this.schedGraphTxt += " [ label = " + minProctime + ", style=\"" + style + "\" ]";
+      if(minProctime === -1){
+        this.schedGraphTxt += " [ label = \"\", style=\"" + style + "\" ]";
+      }
+      else{
+        this.schedGraphTxt += " [ label = " + minProctime + ", style=\"" + style + "\" ]";
+      }
     }
 
     this.schedGraphTxt += "layout=\"neato\"";
@@ -519,7 +619,7 @@ var vm = new Vue({
       console.error(error);
     });
 
-    //console.log(this.schedGraphTxt);
+   // console.log(this.schedGraphTxt);
     },
 
     /*---------------RECIPIE BUILDER---------------*/
