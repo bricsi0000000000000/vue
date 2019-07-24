@@ -76,14 +76,15 @@ input, select {
 .drag-wrapper {
   display: flex;
   justify-content: left;
+ 
 }
 
 ul {
   display: flex;
   flex-direction: column;
   padding: 3px !important;
-  min-height: 70vh;
-  width: 100px;
+  min-height: 300px;
+  min-width: 50px;
   float:left;
   list-style-type:none;
   overflow-y:auto;

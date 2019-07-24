@@ -43,38 +43,85 @@ var vm = new Vue({
         }
       },
      /*---------------RECIPIE BUILDER---------------*/
-     products:[],
+     products:["a","b","c"],
      productName: '',
 
-     tasks: [], 
+     tasks: [
+       "a1",
+       "a2",
+       "b1",
+       "b2",
+       "c1",
+       "c2",
+       "c3"
+     ], 
      taskName: '',
 
-     tasksAndProducts:[], //name, product  //which task which product
+     tasksAndProducts:[
+       {"name":"a1","product":"a"},
+       {"name":"a2","product":"a"},
+       {"name":"b1","product":"b"},
+       {"name":"b2","product":"b"},
+       {"name":"c1","product":"c"},
+       {"name":"c2","product":"c"},
+       {"name":"c3","product":"c"}
+     ], //name, product  //which task which product
      product:'',
 
      equipmentName:'',
-     equipments: [],
+     equipments: ["e1","e2"],
 
      warningTxt:"",
 
      task1:"",
      task2:"",
-     precedences: [], //task1, task2
-     precedencesWithProducts:[], //task, product
+     precedences: [
+       {"task1":"a1","task2":"a2"},
+       {"task1":"b1","task2":"b2"},
+       {"task1":"c1","task2":"c2"},
+       {"task1":"c2","task2":"c3"}
+     ], //task1, task2
+     precedencesWithProducts:[
+       {"task":"a1","product":"a2"},
+       {"task":"a2","product":"a"},
+       {"task":"b1","product":"b2"},
+       {"task":"b2","product":"b"},
+       {"task":"c1","product":"c2"},
+       {"task":"c2","product":"c3"},
+       {"task":"c3","product":"c"}
+     ], //task, product
 
-     proctimes:[], //task, eq, proctime
+     proctimes:[
+       {"task":"a1","eq":"e1","proctime":"2"},
+       {"task":"a2","eq":"e1","proctime":"1"},
+       {"task":"b1","eq":"e1","proctime":"3"},
+       {"task":"b2","eq":"e2","proctime":"2"},
+       {"task":"c1","eq":"e1","proctime":"1"},
+       {"task":"c2","eq":"e1","proctime":"2"},
+       {"task":"c3","eq":"e2","proctime":"2"}
+     ], //task, eq, proctime
      proctime:"",
      proctime_task:"",
      proctime_eq:"",
 
-     taskEquipment:[], //task, eqs[] | which task which equipments
+     taskEquipment:[
+       {"task":"a1","eqs":["e1"]},
+       {"task":"a2","eqs":["e1"]},
+       {"task":"b1","eqs":["e1"]},
+       {"task":"b2","eqs":["e2"]},
+       {"task":"c1","eqs":["e1"]},
+       {"task":"c2","eqs":["e1"]},
+       {"task":"c3","eqs":["e2"]}
+     ], //task, eqs[] | which task which equipments
+
+     tasksToEq:[], //eq[], tasks[]
 
      recipieGraphTxt:"",
 
      showWarningTxt:false,
 
-     tmpTask1:[],
-     tmpTask2:[],
+     tmpTask1:["c1","c2","b2","a2","b1","c3","a1"],
+     tmpTask2:["c1","c2","b2","a2","b1","c3","a1"],
 
      seenForms:true,
 
@@ -116,6 +163,24 @@ var vm = new Vue({
    switchForms(){
      this.seenForms = !this.seenForms;
      if(!this.seenForms){
+
+      this.tasksToEq = [];
+       for(i=0; i< this.equipments.length; i++){
+        t = [];
+        for(j=0; j< this.taskEquipment.length; j++){ //task, eqs[]
+          for(u=0; u< this.taskEquipment[j].eqs.length; u++){
+            if(this.equipments[i] === this.taskEquipment[j].eqs[u]){
+              t.push(this.taskEquipment[j].task);
+            }
+          }
+        }
+        this.tasksToEq.push({eq: this.equipments[i], tasks: t});
+      }
+
+    /*  for(i=0; i< this.tasksToEq.length; i++){
+        console.log(this.tasksToEq[i].eq + " " + this.tasksToEq[i].tasks);
+      }*/
+
        this.schedGraphTxtOut(false,false);
      }
      else{
@@ -174,7 +239,12 @@ var vm = new Vue({
        this.schedPrecedencesWithProducts.push({task: addThis[i].task, product: addThis[i].product, schedEdge: addThis[i].schedEdge});
      }
    },
-   schedGraphTxtOut(drag , uis){
+   longestPath(){
+    for(i=0; i< this.schedPrecedencesWithProducts.length; i++){ //task, product, schedEdge(true/false)
+      //console.log(this.schedPrecedencesWithProducts[i].task + " " + this.schedPrecedencesWithProducts[i].product + " " + this.schedPrecedencesWithProducts[i].schedEdge);
+    }
+   },
+   schedGraphTxtOut(drag , uis){     
      if(!drag){
        this.schedTasks = this.taskEquipment;
      }
@@ -185,6 +255,8 @@ var vm = new Vue({
      else{
        this.NIS();
      }
+
+     this.longestPath();
 
      this.equipmentsToTask();
 
@@ -499,7 +571,23 @@ var vm = new Vue({
        }
        
        /* Add task/product to schedGraphTxt */
-       this.schedGraphTxt += " " +  sortedProductWithTasks[i].tasks[j] + " [ pos=\"" + xPos + "," + yPos + "\", label = < <B>\\N</B><BR/>";
+       this.schedGraphTxt += " \"";
+
+       p = "";
+       for(u = 0; u < sortedProductWithTasks[i].tasks[j].length; u++){
+         if( sortedProductWithTasks[i].tasks[j][u] === "\""){
+           p += "\\" + sortedProductWithTasks[i].tasks[j][u];
+         }
+         else{
+           p += sortedProductWithTasks[i].tasks[j][u];
+         }
+       }
+
+       if(p[p.length - 1] === "\\"){
+        p += " ";
+      }
+
+       this.schedGraphTxt += p + "\" [ pos=\"" + xPos + "," + yPos + "\", label = < <B>\\N</B><BR/>";
 
 
 
@@ -525,9 +613,46 @@ var vm = new Vue({
        this.schedGraphTxt += "> ]";
      }
     }
+
+
+    for(j = 0; j < this.schedPrecedencesWithProducts.length; j++){ //task, product, schedEdge(true/false)
+      console.log(this.schedPrecedencesWithProducts[j].task + " " + this.schedPrecedencesWithProducts[j].product + " " + this.schedPrecedencesWithProducts[j].schedEdge);
+     }
+
     /* Search minimum proctime to task */
     for(i=0; i< this.schedPrecedencesWithProducts.length; i++){ //task, product, schedEdge(true/false)
-     this.schedGraphTxt += this.schedPrecedencesWithProducts[i].task + " -> " + this.schedPrecedencesWithProducts[i].product;
+
+      p = "";
+      for(u = 0; u <  this.schedPrecedencesWithProducts[i].task.length; u++){
+        if( this.schedPrecedencesWithProducts[i].task[u] === "\""){
+          p += "\\" +  this.schedPrecedencesWithProducts[i].task[u];
+        }
+        else{
+          p +=  this.schedPrecedencesWithProducts[i].task[u];
+        }
+      }
+
+      if(p[p.length - 1] === "\\"){
+        p += " ";
+      }
+
+     this.schedGraphTxt += "\"" + p + "\" -> \"";
+     
+     p = "";
+     for(u = 0; u <  this.schedPrecedencesWithProducts[i].product.length; u++){
+       if( this.schedPrecedencesWithProducts[i].product[u] === "\""){
+         p += "\\" +  this.schedPrecedencesWithProducts[i].product[u];
+       }
+       else{
+         p +=  this.schedPrecedencesWithProducts[i].product[u];
+       }
+     }
+
+     if(p[p.length - 1] === "\\"){
+       p += " ";
+     }
+
+     this.schedGraphTxt += p + "\"";
 
      tempProctimes=[];
      tempTask = this.schedPrecedencesWithProducts[i].task;
@@ -574,7 +699,7 @@ var vm = new Vue({
      console.error(error);
    });
 
-  // console.log(this.schedGraphTxt);
+   //console.log(this.schedGraphTxt);
    },
 
    /*---------------RECIPIE BUILDER---------------*/
@@ -584,8 +709,13 @@ var vm = new Vue({
        this.showWarning("PROUDCT: product name is empty");
      }
      else{
-         this.products.push(this.productName);
-         this.deleteDuplicateProducts();
+      if(this.productName.indexOf("\\\"") !== -1){ /*    ->    \"       */
+        this.showWarning("PROUDCT: product name contains wrong characters: \\\"");
+      }
+      else{
+        this.products.push(this.productName);
+        this.deleteDuplicateProducts();
+      }
      }
      this.productName='';
    },
@@ -598,6 +728,10 @@ var vm = new Vue({
          this.showWarning("TASK: products are empty");
        }
        else{
+          if(this.taskName.indexOf("\\\"") !== -1){ /*    ->    \"       */
+          this.showWarning("TASK: task name contains wrong characters: \\\"");
+        }
+        else{
          add=true;
          for(i=0; i< this.products.length; i++){
            if(this.taskName === this.products[i]){
@@ -614,6 +748,7 @@ var vm = new Vue({
          else{
            this.showWarning("TASK: New task name equals to a product name");
          }
+        }
        }
      }
      this.taskName='';
@@ -630,8 +765,13 @@ var vm = new Vue({
        this.showWarning("EQ: equipment name is empty");
      }
      else{
+      if(this.equipmentName.indexOf("\\\"") !== -1){ /*    ->    \"       */
+        this.showWarning("EQ: equipment name contains wrong characters: \\\"");
+      }
+      else{
        this.equipments.push(this.equipmentName);
        this.deleteDuplicateEquipments();
+      }
      }
      this.equipmentName='';
    },
@@ -1152,28 +1292,67 @@ var vm = new Vue({
 
      this.recipieGraphTxt ="digraph SGraph { rankdir=LR 	node [shape=circle,fixedsize=true,width=0.9,label=<<B>\\N</B>>]"
      for(i=0; i< this.taskEquipment.length; i++){
+      this.recipieGraphTxt += " \"";
+       //this.recipieGraphTxt += String.raw`${this.taskEquipment[i].task}`;
+      p = "";
+      for(j = 0; j < this.taskEquipment[i].task.length; j++){
+        if(this.taskEquipment[i].task[j] === "\""){
+          p += "\\" + this.taskEquipment[i].task[j];
+        }
+        else{
+          p += this.taskEquipment[i].task[j];
+        }
+      }
 
-       this.recipieGraphTxt += " \"";
-       this.recipieGraphTxt += String.raw`${this.taskEquipment[i].task}`;
-       console.log(String.raw`${this.taskEquipment[i].task}`);
-       this.recipieGraphTxt += "\" [ " + "label = < <B>\\N</B><BR/>{";
+      if(p[p.length - 1] === "\\"){
+        p += " ";
+      }
 
-       for(j=0; j< this.taskEquipment[i].eqs.length; j++){
-         this.recipieGraphTxt += this.taskEquipment[i].eqs[j] +",";
-       }
-       this.recipieGraphTxt = this.recipieGraphTxt.substring(0,this.recipieGraphTxt.length-1);
-       this.recipieGraphTxt += "}> ]";
+      this.recipieGraphTxt += p + "\" [ " + "label = < <B>\\N</B><BR/>{";
+
+      for(j=0; j< this.taskEquipment[i].eqs.length; j++){
+        this.recipieGraphTxt += this.taskEquipment[i].eqs[j] +",";
+      }
+      this.recipieGraphTxt = this.recipieGraphTxt.substring(0,this.recipieGraphTxt.length-1);
+      this.recipieGraphTxt += "}> ]";
      }
 
      for(i=0; i< this.precedencesWithProducts.length; i++){
+      this.recipieGraphTxt += "\"";
+      p = "";
+      for(j = 0; j < this.precedencesWithProducts[i].task.length; j++){
+        if(this.precedencesWithProducts[i].task[j] === "\""){
+          p += "\\" + this.precedencesWithProducts[i].task[j];
+        }
+        else{
+          p += this.precedencesWithProducts[i].task[j];
+        }
+      }
 
-       this.recipieGraphTxt += "\"";
-       console.log("String.raw`${this.precedencesWithProducts[i].task}`: " + String.raw`${this.precedencesWithProducts[i].task}`);
-       this.recipieGraphTxt += String.raw`${this.precedencesWithProducts[i].task}`;
-       this.recipieGraphTxt += "\" -> \"";
-       console.log("String.raw`${this.precedencesWithProducts[i].product}`: " + String.raw`${this.precedencesWithProducts[i].product}`);
-       this.recipieGraphTxt += String.raw`${this.precedencesWithProducts[i].product}`;
-       this.recipieGraphTxt += "\"";
+      if(p[p.length - 1] === "\\"){
+        p += " ";
+      }
+
+      this.recipieGraphTxt += p + "\" -> \"";
+
+      p = "";
+      for(j = 0; j < this.precedencesWithProducts[i].product.length; j++){
+        if(this.precedencesWithProducts[i].product[j] === "\""){
+          p += "\\" + this.precedencesWithProducts[i].product[j];
+        }
+        else{
+          p += this.precedencesWithProducts[i].product[j];
+        }
+      }
+
+      if(p[p.length - 1] === "\\"){
+        p += " ";
+      }
+
+      this.recipieGraphTxt += p + "\"";
+
+       //this.recipieGraphTxt += String.raw`${this.precedencesWithProducts[i].task}`;
+      // this.recipieGraphTxt += String.raw`${this.precedencesWithProducts[i].product}`;
 
 
        tempProctimes=[];
@@ -1207,7 +1386,7 @@ var vm = new Vue({
        console.error(error);
      });
 
-     //console.log(this.recipieGraphTxt);
+    // console.log(this.recipieGraphTxt);
    },
  },
 }).$mount("#content");

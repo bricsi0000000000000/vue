@@ -249,19 +249,32 @@
             </div>
           </div>
         </div>
+        <!--<div v-for="(item, index) in equipments" :key="index">
+          {{item}}
+        </div>   
+        <div v-drag-and-drop:options="options" class="drag-wrapper">
+          <ul id="schedTable">
+            <li v-for="(item, index) in taskEquipment" :key="index">
+              <span>{{item.task}}</span>
+            </li>
+          </ul>
+          <div id="schedGraph"></div>
+        </div>
+      -->
         <div class="col- dragAndDrop">        
-          <div v-for="(item, index) in equipments" :key="index">
-            {{item}}
-          </div>   
-          <div v-drag-and-drop:options="options" class="drag-wrapper">
-            <ul id="schedTable">
-              <li v-for="(item, index) in taskEquipment" :key="index">
-                <span>{{item.task}}</span>
-              </li>
-            </ul>
-            <div id="schedGraph"></div>
+          <div v-for="(item, index) in tasksToEq" :key="index">
+            <div v-drag-and-drop:options="options">
+                <ul id="schedTable">
+                  <div style="background: rgb(94, 94, 94); color: white; text-align: center;  font-weight: bold">{{item.eq}}</div>
+                  <li v-for="(item, index) in item.tasks" :key="index">
+                    <span>{{item}}</span>
+                  </li>
+                </ul>
+            </div>
           </div>
-        </div> 
+        </div>
+
+        <div id="schedGraph"></div>
       </div>
       <button type="button" class="switchBtn" v-on:click="switchForms()">Switch</button>
     </div>
