@@ -8,21 +8,11 @@ var vm = new Vue({
       options: {
         // dropzoneSelector: 'ul',
         // draggableSelector: 'li',
-        // showDropzoneAreas: true,
-        // multipleDropzonesItemsDraggingEnabled: true,
+         //showDropzoneAreas: false,
+         //multipleDropzonesItemsDraggingEnabled: false,
         //onDrop(event) {
           onDrop() {
-          var schedTable = document.getElementById('schedTable').innerHTML;
-          s = schedTable.split(">");
-          tasks=[];
-          for(i = 0; i < s.length; i++){ 
-            if(s[i].indexOf("</span") !== -1){
-              ss = s[i].split('<');
-              taskWithEq = ss[0].split('/');
-              tasks.push(taskWithEq[0]);
-            }
-          }
-          componentInstance.dragAndDropList(tasks);
+          componentInstance.getTasks(false);
          },
         // onDragstart(event) {
         //   event.stop();
@@ -43,33 +33,33 @@ var vm = new Vue({
         }
       },
      /*---------------RECIPIE BUILDER---------------*/
-     products:["a","b","c"],
+     products:["a","b"],
      productName: '',
 
      tasks: [
        "a1",
        "a2",
-       "b1",
+       "a3",
+       "b11",
+       "b12",
        "b2",
-       "c1",
-       "c2",
-       "c3"
+       "b3"
      ], 
      taskName: '',
 
      tasksAndProducts:[
        {"name":"a1","product":"a"},
        {"name":"a2","product":"a"},
-       {"name":"b1","product":"b"},
+       {"name":"a3","product":"a"},
+       {"name":"b11","product":"b"},
+       {"name":"b12","product":"b"},
        {"name":"b2","product":"b"},
-       {"name":"c1","product":"c"},
-       {"name":"c2","product":"c"},
-       {"name":"c3","product":"c"}
+       {"name":"b3","product":"b"}
      ], //name, product  //which task which product
      product:'',
 
      equipmentName:'',
-     equipments: ["e1","e2"],
+     equipments: ["e1","e2","e3"],
 
      warningTxt:"",
 
@@ -77,28 +67,29 @@ var vm = new Vue({
      task2:"",
      precedences: [
        {"task1":"a1","task2":"a2"},
-       {"task1":"b1","task2":"b2"},
-       {"task1":"c1","task2":"c2"},
-       {"task1":"c2","task2":"c3"}
+       {"task1":"a2","task2":"a3"},
+       {"task1":"b11","task2":"b2"},
+       {"task1":"b12","task2":"b2"},
+       {"task1":"b2","task2":"b3"}
      ], //task1, task2
      precedencesWithProducts:[
        {"task":"a1","product":"a2"},
-       {"task":"a2","product":"a"},
-       {"task":"b1","product":"b2"},
-       {"task":"b2","product":"b"},
-       {"task":"c1","product":"c2"},
-       {"task":"c2","product":"c3"},
-       {"task":"c3","product":"c"}
+       {"task":"a2","product":"a3"},
+       {"task":"a3","product":"a"},
+       {"task":"b11","product":"b2"},
+       {"task":"b12","product":"b2"},
+       {"task":"b2","product":"b3"},
+       {"task":"b3","product":"b"}
      ], //task, product
 
      proctimes:[
-       {"task":"a1","eq":"e1","proctime":"2"},
-       {"task":"a2","eq":"e1","proctime":"1"},
-       {"task":"b1","eq":"e1","proctime":"3"},
-       {"task":"b2","eq":"e2","proctime":"2"},
-       {"task":"c1","eq":"e1","proctime":"1"},
-       {"task":"c2","eq":"e1","proctime":"2"},
-       {"task":"c3","eq":"e2","proctime":"2"}
+       {"task":"a1","eq":"e1","proctime":"3"},
+       {"task":"a2","eq":"e2","proctime":"2"},
+       {"task":"a3","eq":"e3","proctime":"4"},
+       {"task":"b11","eq":"e1","proctime":"2"},
+       {"task":"b12","eq":"e2","proctime":"4"},
+       {"task":"b2","eq":"e3","proctime":"3"},
+       {"task":"b3","eq":"e1","proctime":"1"}
      ], //task, eq, proctime
      proctime:"",
      proctime_task:"",
@@ -106,24 +97,25 @@ var vm = new Vue({
 
      taskEquipment:[
        {"task":"a1","eqs":["e1"]},
-       {"task":"a2","eqs":["e1"]},
-       {"task":"b1","eqs":["e1"]},
-       {"task":"b2","eqs":["e2"]},
-       {"task":"c1","eqs":["e1"]},
-       {"task":"c2","eqs":["e1"]},
-       {"task":"c3","eqs":["e2"]}
+       {"task":"a2","eqs":["e2"]},
+       {"task":"a3","eqs":["e3"]},
+       {"task":"b11","eqs":["e1"]},
+       {"task":"b12","eqs":["e2"]},
+       {"task":"b2","eqs":["e3"]},
+       {"task":"b3","eqs":["e1"]}
      ], //task, eqs[] | which task which equipments
 
-     tasksToEq:[], //eq[], tasks[]
+     tasksToEq:[], //eq tasks[]
 
      recipieGraphTxt:"",
 
      showWarningTxt:false,
 
-     tmpTask1:["c1","c2","b2","a2","b1","c3","a1"],
-     tmpTask2:["c1","c2","b2","a2","b1","c3","a1"],
+     tmpTask1:["b2","a2","b11","b12","a1","a3","b3"],
+     tmpTask2:["b2","a2","b11","b12","a1","a3","b3"],
 
-     seenForms:true,
+     seenForms: true,
+     loading: true,
 
      /*---------------SchedGraphBuilder-------------*/
      schedSequence:[], //egyenlőre az a sorrend amit először bevittünk
@@ -132,9 +124,14 @@ var vm = new Vue({
 
      schedPrecedencesWithProducts:[], //task, product, schedEdge(true/false)
 
-     schedTasks:[], //task
+     schedTasks:[], 
+     schedTasksArray:[], 
 
-     uisNisChk: "NIS", //UIS NIS
+     lastInCol:[],
+
+     uisNisChk: "UIS", //UIS NIS
+
+     allEdges:[], //task1, task2
    }
  }, 
  methods:{
@@ -146,24 +143,11 @@ var vm = new Vue({
        this.schedGraphTxtOut(true,false);
      }
    },
-   dragAndDropList(tasks){
-     this.schedTasks = [];
-     for(i=0; i< tasks.length; i++){ //task
-       this.schedTasks.push({task: tasks[i]});
-     }
-
-     if(this.uisNisChk === "NIS"){
-       this.schedGraphTxtOut(true,false);
-     }
-     else if(this.uisNisChk === "UIS"){
-       this.schedGraphTxtOut(true,true);
-     }
-   },
+   
    /*---------------SchedGraphBuilder-------------*/
    switchForms(){
      this.seenForms = !this.seenForms;
      if(!this.seenForms){
-
       this.tasksToEq = [];
        for(i=0; i< this.equipments.length; i++){
         t = [];
@@ -177,86 +161,417 @@ var vm = new Vue({
         this.tasksToEq.push({eq: this.equipments[i], tasks: t});
       }
 
-    /*  for(i=0; i< this.tasksToEq.length; i++){
+     /* for(i=0; i< this.tasksToEq.length; i++){
         console.log(this.tasksToEq[i].eq + " " + this.tasksToEq[i].tasks);
       }*/
 
-       this.schedGraphTxtOut(false,false);
+      this.getTasks(true);
+      //this.schedGraphTxtOut(false,false);
      }
      else{
        this.recipieGraphTxtOut();
      }
    },
-   NIS(){
-     this.schedPrecedencesWithProducts=[];
-     for(i=0; i< this.schedTasks.length; i++){ //task
-       for(j=0; j< this.precedencesWithProducts.length; j++){  //task, product
-         if(this.schedTasks[i].task === this.precedencesWithProducts[j].task){
-           this.schedPrecedencesWithProducts.push({task: this.precedencesWithProducts[j].task, product: this.precedencesWithProducts[j].product, schedEdge:false});
-         }
-       }
-     }
 
-     addThis=[];
-     for(i=0; i< this.schedPrecedencesWithProducts.length; i++){ //task, product, schedEdge(true/false)
-       if(i < this.schedPrecedencesWithProducts.length - 1){
-         if(this.schedPrecedencesWithProducts[i].product !== this.schedPrecedencesWithProducts[i+1].task){
-           if(this.schedPrecedencesWithProducts[i].product !== this.schedPrecedencesWithProducts[i+1].product){
-             addThis.push({task: this.schedPrecedencesWithProducts[i].product, product: this.schedPrecedencesWithProducts[i+1].task, schedEdge:true});
-           }
-         }
-       }
-     }
+   getTasks(first){
+    tasks=[];
 
-     for(i=0; i< addThis.length; i++){
-       this.schedPrecedencesWithProducts.push({task: addThis[i].task, product: addThis[i].product, schedEdge: addThis[i].schedEdge});
-     }
-   },
-   UIS(){
-     this.schedPrecedencesWithProducts=[];
-     for(i=0; i< this.schedTasks.length; i++){ //task
-       for(j=0; j< this.precedencesWithProducts.length; j++){  //task, product
-         if(this.schedTasks[i].task === this.precedencesWithProducts[j].task){
-           this.schedPrecedencesWithProducts.push({task: this.precedencesWithProducts[j].task, product: this.precedencesWithProducts[j].product, schedEdge:false});
-         }
-       }
-     }
-     addThis=[];
-     for(i = 0; i < this.schedTasks.length - 1; i++){ //task
-       yes = true;
-       for(j = 0; j < this.schedPrecedencesWithProducts.length - 1; j++){ //task, product, schedEdge(true/false)
-         if(this.schedTasks[i].task === this.schedPrecedencesWithProducts[j].task &&
-            this.schedTasks[i + 1].task === this.schedPrecedencesWithProducts[j].product){
-              yes = false;
-           }
-       }
-       if(yes){
-         addThis.push({task: this.schedTasks[i].task, product: this.schedTasks[i + 1].task, schedEdge:true});
-       }
-     }
+    if(first){
+      for(i = 0; i < this.tasksToEq.length; i++){ 
+        tasks.push(this.tasksToEq[i].eq);
+        for(j = 0; j < this.tasksToEq[i].tasks.length; j++){ 
+          tasks.push(this.tasksToEq[i].tasks[j]);
+        }
+      }
 
-     for(i=0; i< addThis.length; i++){
-       this.schedPrecedencesWithProducts.push({task: addThis[i].task, product: addThis[i].product, schedEdge: addThis[i].schedEdge});
-     }
-   },
-   longestPath(){
-    for(i=0; i< this.schedPrecedencesWithProducts.length; i++){ //task, product, schedEdge(true/false)
-      //console.log(this.schedPrecedencesWithProducts[i].task + " " + this.schedPrecedencesWithProducts[i].product + " " + this.schedPrecedencesWithProducts[i].schedEdge);
     }
+    else{
+      schedTable = document.getElementsByClassName("schedTable");
+      a = [];
+      for(i = 0; i < schedTable.length; i++){ 
+        a.push(schedTable[i].innerHTML);
+      }
+
+      s=[];
+      for(i = 0; i < a.length; i++){ 
+        s.push(a[i].split(">"));
+      }
+
+      for(i = 0; i < s.length; i++){ 
+        for(j = 0; j < s[i].length; j++){ 
+          if(s[i][j].indexOf("</span") !== -1){
+            ss = s[i][j].split('<');
+            taskWithEq = ss[0].split('/');
+            tasks.push(taskWithEq[0]);
+          }
+        }
+      }
+    }
+
+    for(i = 0; i < tasks.length; i++){ 
+     // console.log(tasks[i]);
+    }
+
+    this.dragAndDropList(tasks);
+   },
+   dragAndDropList(tasks){
+     this.schedTasks = [];
+     this.lastInCol = [];
+     for(i=0; i< tasks.length; i++){ 
+      yes = true;
+      for(j = 0; j < this.equipments.length; j++){ 
+        if(this.equipments[j] === tasks[i]){
+          yes = false;
+        }
+      }
+      if(yes){
+        this.schedTasks.push({task: tasks[i]});
+        this.schedTasksArray.push({task: tasks[i]});
+      }
+      else{
+        this.schedTasksArray.push({task: "--"});
+        if(i > 0){
+          this.lastInCol.push(tasks[i - 1]);
+        }
+      }
+     }
+
+     //this.lastInCol.push(tasks[tasks.length-1]);
+
+     for(i=0; i< this.schedTasks.length; i++){ 
+    //  console.log(i+" " + this.schedTasks[i].task);
+     }
+     for(i=0; i< this.lastInCol.length; i++){ 
+     // console.log("L " + this.lastInCol[i]);
+     }
+
+     if(this.uisNisChk === "NIS"){
+       this.schedGraphTxtOut(true,false);
+     }
+     else if(this.uisNisChk === "UIS"){
+       this.schedGraphTxtOut(true,true);
+     }
+   },
+  
+   makeSchedPrecedencesWithProducts(){
+    this.schedPrecedencesWithProducts=[];
+    for(i=0; i< this.schedTasks.length; i++){ //task
+      for(j=0; j< this.precedencesWithProducts.length; j++){  //task, product
+        if(this.schedTasks[i].task === this.precedencesWithProducts[j].task){
+          this.schedPrecedencesWithProducts.push({task: this.precedencesWithProducts[j].task, product: this.precedencesWithProducts[j].product, schedEdge:false});
+        }
+      }
+    }
+
+    addThis=[];
+    for(i = 0; i < this.schedTasks.length - 1; i++){ //task
+      yes = true;
+      for(j = 0; j < this.schedPrecedencesWithProducts.length - 1; j++){ //task, product, schedEdge(true/false)
+        if(this.schedTasks[i].task === this.schedPrecedencesWithProducts[j].task &&
+           this.schedTasks[i + 1].task === this.schedPrecedencesWithProducts[j].product){
+             yes = false;
+          }
+      }
+      if(yes){
+        addThis.push({task: this.schedTasks[i].task, product: this.schedTasks[i + 1].task, schedEdge:true});
+      }
+    }
+
+    for(i=0; i< addThis.length; i++){
+      this.schedPrecedencesWithProducts.push({task: addThis[i].task, product: addThis[i].product, schedEdge: addThis[i].schedEdge});
+    }
+   },
+
+   longestPath(){
+    for(i=0; i< this.allEdges.length; i++){ //task1, task2
+      console.log(this.allEdges[i].task1 + " " + this.allEdges[i].task2 );
+    }
+    console.log("---");
+
+
+    a = [];
+    b = [];
+    b.push(this.allEdges[0].task1);
+    a.push(b);
+    t = this.allEdges[0].task1;
+
+    b = [];
+    for(i = 0; i < this.allEdges.length; i++){ //task1, task2
+      if(t === this.allEdges[i].task1){
+        b.push(this.allEdges[i].task2);
+      }
+    }
+    a.push(b);
+
+    for(i = 0; i < a.length; i++){ 
+      console.log(a[i]);
+    }
+
+    for(i = 0; i < a.length; i++){ 
+      if(a[i].length > 1){
+        b = [];
+        for(j = 0; j < a[i].length; j++){ 
+          for(u = 0; u < this.allEdges.length; u++){ //task1, task2
+            if(a[i][j] === this.allEdges[u].task1){
+              b.push(this.allEdges[u].task2);
+            }
+          }
+        }
+        if(b.length > 1){
+          a.push(b);
+        }
+      }
+    }
+
+    c = []; //task1, task2, time
+    for(i = 0; i < a.length; i++){ 
+      for(j = 0; j < a[i].length; j++){ 
+        for(u = 0; u < this.allEdges.length; u++){ //task1, task2
+          if(a[i][j] === this.allEdges[u].task1){
+            yes = true;
+            for(z = 0; z < c.length; z++){ //task1, task2, time
+              if(true){
+                if(c[z].task1 === a[i][j] && c[z].task2 === this.allEdges[u].task2){
+                  yes = false;
+                }
+              }
+            }
+            if(yes){
+              c.push({task1: a[i][j], task2: this.allEdges[u].task2, time: 0});
+            }
+          }
+        }
+      }
+    }
+
+    for(i = 0; i < c.length; i++){ //task1, task2, time
+      for(j = 0; j < this.proctimes.length; j++){ //task, eq, proctime
+        if(this.proctimes[j].task === c[i].task1){
+          c[i].time = this.proctimes[j].proctime;
+        }
+      }
+    }
+
+    console.log("c");
+    for(i = 0; i < c.length; i++){ //task1, task2, time
+      console.log(c[i]);
+    }
+
+
+    console.log("this.tasks");
+    for(i = 0; i < this.tasks.length; i++){ 
+      console.log(this.tasks[i]);
+    }
+
+    console.log("this.products");
+    for(i = 0; i < this.products.length; i++){ 
+      console.log(this.products[i]);
+    }
+    
+    tasksWithProducts = this.tasks;
+    for(i = 0; i < this.products.length; i++){
+      yes = true;
+      for(j = 0; j < tasksWithProducts.length; j++){
+        if(tasksWithProducts[j] === this.products[i]){
+          yes = false;
+        }
+      }
+      if(yes){
+        tasksWithProducts.push(this.products[i]);
+      }
+    }
+
+    console.log("tasksWithProducts");
+    for(i = 0; i < tasksWithProducts.length; i++){ 
+      console.log(tasksWithProducts[i]);
+    }
+    
+    a = []; //task, time, from, once
+    a.push({task: tasksWithProducts[0], time: 0, from: "", once: false});
+    for(i = 1; i < tasksWithProducts.length; i++){
+      a.push({task: tasksWithProducts[i], time: -1, from: "",once: false});
+    }
+
+    console.log("a");
+    for(i = 0; i < a.length; i++){ //task1, task2, time
+      console.log(a[i]);
+    }
+
+    for(i = 0; i < a.length; i++){ //task, time, from, once
+      for(j = 0; j < c.length; j++){ //task1, task2, time
+       // console.log("max: " + maxTime);
+        tasksIn = []; //task, time
+        for(u = 0; u < a.length; u++){ //task, time, from, once
+          if(!a[u].once){
+            tasksIn.push({task: a[u].task, time: a[u].time});
+          }
+        }
+
+        console.log("tasksIn");
+        for(u = 0; u < tasksIn.length; u++){ //task, time
+          console.log(tasksIn[u]);
+        }
+
+        maxTime = -2;
+        k = "";
+        for(u = 0; u < tasksIn.length; u++){ //task, time
+          if(maxTime < tasksIn[u].time){
+            maxTime = tasksIn[u].time;
+            k = tasksIn[u].task;
+          }
+        }
+        console.log("maxTime: " + maxTime);
+        for(u = 0; u < a.length; u++){ //task, time, from, once
+          if(k === a[u].task){
+            a[u].once = true;
+            console.log("a[u]: " + a[u].task + " " + a[u].once);
+            //break;
+          }
+        }
+        console.log("k: " + k);
+        for(u = 0; u < c.length; u++){ //task1, task2, time
+          if(k === c[u].task1){
+            console.log("c[u].task1: " +  c[u].task1);
+            for(z = 0; z < a.length; z++){ //task, time, from, once
+              if(c[u].task2 === a[z].task){
+                console.log("a[z].task: " +  a[z].task);
+                if(a[z].time === -1){
+                  a[z].time = c[u].time;
+                  console.log("a[z].time = c[u].time: " + a[z].time + " " + c[u].time);
+                }
+                else{
+                  console.log("a[z].time: " + a[z].time);
+                  console.log("c[u].time: " + c[u].time);
+                  a[z].time = +a[z].time + +c[u].time;
+                  console.log("a[z].time" + a[z].time);
+                }
+                a[z].from = c[u].task1;
+
+                console.log("a");
+                for(i = 0; i < a.length; i++){ //task, time, from, once
+                  console.log(a[i]);
+                }
+            }
+          }
+        }
+      }
+    }
+  }
+
+    console.log("a");
+    for(i = 0; i < a.length; i++){ //task, time, from, once
+      console.log(a[i]);
+    }
+
+
+   
+
+   /* d = [];
+    f = [];
+    f.push(c[0].task1);
+    f.push(c[0].task2);
+    d.push(f);
+    for(i = 0; i < c.length; i++){ 
+      f = [];
+      for(j = 0; j < c.length; j++){ 
+        if(c[i].task2 === c[j].task1){
+          f.push(c[j].task2);
+        }
+      }
+      d.push(f);
+    }
+
+    console.log("---");
+    for(i = 0; i < d.length; i++){ 
+      console.log(d[i]);
+    }
+
+    console.log("---");
+    for(i = 0; i < a.length; i++){ 
+      console.log(a[i]);
+    }
+
+    console.log("---");
+    for(i = 0; i < c.length; i++){ 
+      console.log(c[i]);
+    }
+
+   /* a = []; //task, count
+    a.push({task: this.allEdges[0].task1, count: 0});
+    a.push({task: this.allEdges[0].task2, count: 0});
+    t = this.allEdges[0].task2;
+
+    for(i = 1; i < this.allEdges.length; i++){ //task1, task2
+      if(t === this.allEdges[i].task1){
+        t = this.allEdges[i].task2;
+        a.push({task: this.allEdges[i].task2, count: 0});
+      }
+    }
+
+    for(i = 0; i < this.allEdges.length; i++){ //task1, task2
+      for(j = 0; j < a.length; j++){ //task, count
+        if(this.allEdges[i].task1 === a[j].task){
+          a[j].count++;
+        }
+      }
+    }
+
+    console.log("---");
+    for(i = 0; i < a.length; i++){ 
+      console.log(a[i].task + " " + a[i].count);
+    }*/
+
+
+
+  /*  for(i = 0; i < a.length; i++){ //task, count
+      if(a[i].count > 0){
+        b = []; //task, count
+        for(j = 0; j < this.allEdges.length; j++){ //task1, task2
+          if(a[i].task === this.allEdges[j].task1){
+            yes = true;
+            for(u = 0; u < a.length; u++){ //task, count
+              if(a[u].task === this.allEdges[j].task1){
+                yes = false;
+              }
+            }
+            if(yes){
+              b.push({task: this.allEdges[j].task1, count: 0});
+            }
+          }
+        }
+        console.log("---");
+
+        for(j= 0; j < b.length; j++){ //task, count
+          console.log(b[j].task + " " + b[j].count);
+        }
+      }
+    }*/
+
+    /*for(i = 0; i < a.length; i++){ //task, count
+      for(j = 0; j < a[i].count; j++){
+        branch = [];
+        for(u = 0; u < this.allEdges.length; u++){ //task1, task2
+          if(a[i].task === this.allEdges[u].task1){
+            branch.push({task: this.allEdges[u].task2, count: 0});
+          }
+        }
+        console.log("---");
+        for(u = 0; u < branch.length; u++){
+          console.log(branch[u].task);
+        }
+      }
+    }*/
+
+   
    },
    schedGraphTxtOut(drag , uis){     
      if(!drag){
        this.schedTasks = this.taskEquipment;
      }
 
-     if(uis){
-       this.UIS();
-     }
-     else{
-       this.NIS();
-     }
+     this.makeSchedPrecedencesWithProducts();
 
-     this.longestPath();
+     this.allEdges = [];
 
      this.equipmentsToTask();
 
@@ -589,8 +904,6 @@ var vm = new Vue({
 
        this.schedGraphTxt += p + "\" [ pos=\"" + xPos + "," + yPos + "\", label = < <B>\\N</B><BR/>";
 
-
-
        isProduct = false;
        for(u = 0; u < this.products.length; u++){
          if(sortedProductWithTasks[i].tasks[j] === this.products[u]){
@@ -616,74 +929,144 @@ var vm = new Vue({
 
 
     for(j = 0; j < this.schedPrecedencesWithProducts.length; j++){ //task, product, schedEdge(true/false)
-      console.log(this.schedPrecedencesWithProducts[j].task + " " + this.schedPrecedencesWithProducts[j].product + " " + this.schedPrecedencesWithProducts[j].schedEdge);
+      //if(this.schedPrecedencesWithProducts[j].schedEdge){
+       // console.log(this.schedPrecedencesWithProducts[j].task + " " + this.schedPrecedencesWithProducts[j].product + " " + this.schedPrecedencesWithProducts[j].schedEdge);
+     // }
      }
 
     /* Search minimum proctime to task */
-    for(i=0; i< this.schedPrecedencesWithProducts.length; i++){ //task, product, schedEdge(true/false)
 
-      p = "";
-      for(u = 0; u <  this.schedPrecedencesWithProducts[i].task.length; u++){
-        if( this.schedPrecedencesWithProducts[i].task[u] === "\""){
-          p += "\\" +  this.schedPrecedencesWithProducts[i].task[u];
-        }
-        else{
-          p +=  this.schedPrecedencesWithProducts[i].task[u];
-        }
-      }
+    this.schedTasksArray.push({task: "--"});
 
-      if(p[p.length - 1] === "\\"){
-        p += " ";
-      }
-
-     this.schedGraphTxt += "\"" + p + "\" -> \"";
-     
-     p = "";
-     for(u = 0; u <  this.schedPrecedencesWithProducts[i].product.length; u++){
-       if( this.schedPrecedencesWithProducts[i].product[u] === "\""){
-         p += "\\" +  this.schedPrecedencesWithProducts[i].product[u];
+    t = [];
+    r = [];
+    for(j = 1; j < this.schedTasksArray.length; j++){
+     if(this.schedTasksArray[j].task === "--"){
+       if(r.length > 0){
+        t.push(r);
+        r = [];
        }
-       else{
-         p +=  this.schedPrecedencesWithProducts[i].product[u];
-       }
-     }
-
-     if(p[p.length - 1] === "\\"){
-       p += " ";
-     }
-
-     this.schedGraphTxt += p + "\"";
-
-     tempProctimes=[];
-     tempTask = this.schedPrecedencesWithProducts[i].task;
-     for(j=0; j< this.proctimes.length; j++){
-       if(this.proctimes[j].task === tempTask){
-         tempProctimes.push(this.proctimes[j].proctime);
-       }
-     }
-        
-     minProctime = tempProctimes[0];
-     for(j=0; j< tempProctimes.length; j++){
-       if(tempProctimes[j] < minProctime){
-         minProctime = tempProctimes[j];
-       }
-     }
-
-     style="";
-     if(this.schedPrecedencesWithProducts[i].schedEdge == true){
-       style = "dashed";
-       if(!uis){
-         minProctime = -1;
-       }
-     }
-
-     if(minProctime === -1){
-       this.schedGraphTxt += " [ label = \"\", style=\"" + style + "\" ]";
      }
      else{
-       this.schedGraphTxt += " [ label = " + minProctime + ", style=\"" + style + "\" ]";
+       r.push(this.schedTasksArray[j].task);
      }
-   }
+    }
+    for(j = 0; j < t.length; j++){
+      //console.log(t[j]);
+    }
+
+    for(i = 0; i < this.schedPrecedencesWithProducts.length; i++){ //task, product, schedEdge(true/false)
+
+      t1 = "";
+      for(u = 0; u < this.schedPrecedencesWithProducts[i].task.length; u++){
+        if(this.schedPrecedencesWithProducts[i].task[u] === "\""){
+          t1 += "\\" +  this.schedPrecedencesWithProducts[i].task[u];
+        }
+        else{
+          t1 +=  this.schedPrecedencesWithProducts[i].task[u];
+        }
+      }
+
+      if(t1[t1.length - 1] === "\\"){
+        t1 += " ";
+      }
+
+      t2 = "";
+      for(u = 0; u < this.schedPrecedencesWithProducts[i].product.length; u++){
+        if( this.schedPrecedencesWithProducts[i].product[u] === "\""){
+          t2 += "\\" +  this.schedPrecedencesWithProducts[i].product[u];
+        }
+        else{
+          t2 +=  this.schedPrecedencesWithProducts[i].product[u];
+        }
+      }
+
+      if(t2[t2.length - 1] === "\\"){
+        t2 += " ";
+      }
+      if(!this.schedPrecedencesWithProducts[i].schedEdge){
+        this.schedGraphTxt += "\"" + t1 + "\" -> \"" + t2 + "\"";
+
+        this.allEdges.push({task1: t1, task2: t2});
+      }
+
+
+     if(this.schedPrecedencesWithProducts[i].schedEdge){
+        i1 = -1;
+        i2 = -1;
+        for(j = 0; j < t.length; j++){
+          for(u = 0; u < t[j].length; u++){
+            if(t1 === t[j][u]){
+              i1 = j;
+            }
+            if(t2 === t[j][u]){
+              i2 = j;
+            }
+          }
+        }
+
+        if(i1 === i2){
+          tempProctimes=[];
+          tempTask = this.schedPrecedencesWithProducts[i].task;
+          for(j = 0; j < this.proctimes.length; j++){
+            if(this.proctimes[j].task === tempTask){
+              tempProctimes.push(this.proctimes[j].proctime);
+            }
+          }
+              
+          minProctime = tempProctimes[0];
+          for(j = 0; j < tempProctimes.length; j++){
+            if(tempProctimes[j] < minProctime){
+              minProctime = tempProctimes[j];
+            }
+          }
+
+
+          if(!uis){
+            tempT1 = "";
+            for(j = 0; j < this.schedPrecedencesWithProducts.length; j++){ //task, product, schedEdge(true/false)
+              if(!this.schedPrecedencesWithProducts[j].schedEdge){
+                if(this.schedPrecedencesWithProducts[j].task === t1){
+                  tempT1 = this.schedPrecedencesWithProducts[j].product;
+                }
+              }
+            }
+            t1 = tempT1;
+            minProctime = -1;
+          }
+
+
+          this.schedGraphTxt += "\"" + t1 + "\" -> \"" + t2 + "\"";
+
+          this.allEdges.push({task1: t1, task2: t2});
+      
+          if(minProctime !== -1){
+            this.schedGraphTxt += " [ label = " + minProctime + ", style=\"dashed\" ]";
+          }
+          else{
+            this.schedGraphTxt += " [ style=\"dashed\" ]";
+          }
+        }
+      }
+      else{
+        tempProctimes=[];
+        tempTask = this.schedPrecedencesWithProducts[i].task;
+        for(j = 0; j < this.proctimes.length; j++){
+          if(this.proctimes[j].task === tempTask){
+            tempProctimes.push(this.proctimes[j].proctime);
+          }
+        }
+          
+        minProctime = tempProctimes[0];
+        for(j = 0; j < tempProctimes.length; j++){
+          if(tempProctimes[j] < minProctime){
+            minProctime = tempProctimes[j];
+          }
+        }
+
+        this.schedGraphTxt += " [ label = " + minProctime + " ]";
+      }
+    }
 
    this.schedGraphTxt += "layout=\"neato\"";
    this.schedGraphTxt += "}";
@@ -699,7 +1082,10 @@ var vm = new Vue({
      console.error(error);
    });
 
-   //console.log(this.schedGraphTxt);
+   this.longestPath();
+
+
+ //  console.log(this.schedGraphTxt);
    },
 
    /*---------------RECIPIE BUILDER---------------*/
