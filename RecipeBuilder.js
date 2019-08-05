@@ -289,8 +289,8 @@ var vm = new Vue({
     console.log("---");
 
 
-    a = [];
-    b = [];
+    a = []; //a1-ből a másik 2 taszk ami jön
+    b = []; //segéd tömb
     b.push(this.allEdges[0].task1);
     a.push(b);
     t = this.allEdges[0].task1;
@@ -323,38 +323,38 @@ var vm = new Vue({
       }
     }
 
-    c = []; //task1, task2, time
+    edges = []; //task1, task2, time
     for(i = 0; i < a.length; i++){ 
       for(j = 0; j < a[i].length; j++){ 
         for(u = 0; u < this.allEdges.length; u++){ //task1, task2
           if(a[i][j] === this.allEdges[u].task1){
             yes = true;
-            for(z = 0; z < c.length; z++){ //task1, task2, time
+            for(z = 0; z < edges.length; z++){ //task1, task2, time
               if(true){
-                if(c[z].task1 === a[i][j] && c[z].task2 === this.allEdges[u].task2){
+                if(edges[z].task1 === a[i][j] && edges[z].task2 === this.allEdges[u].task2){
                   yes = false;
                 }
               }
             }
             if(yes){
-              c.push({task1: a[i][j], task2: this.allEdges[u].task2, time: 0});
+              edges.push({task1: a[i][j], task2: this.allEdges[u].task2, time: 0});
             }
           }
         }
       }
     }
 
-    for(i = 0; i < c.length; i++){ //task1, task2, time
+    for(i = 0; i < edges.length; i++){ //task1, task2, time
       for(j = 0; j < this.proctimes.length; j++){ //task, eq, proctime
-        if(this.proctimes[j].task === c[i].task1){
-          c[i].time = this.proctimes[j].proctime;
+        if(this.proctimes[j].task === edges[i].task1){
+          edges[i].time = this.proctimes[j].proctime;
         }
       }
     }
 
-    console.log("c");
-    for(i = 0; i < c.length; i++){ //task1, task2, time
-      console.log(c[i]);
+    console.log("edges");
+    for(i = 0; i < edges.length; i++){ //task1, task2, time
+      console.log(edges[i]);
     }
 
 
@@ -386,24 +386,24 @@ var vm = new Vue({
       console.log(tasksWithProducts[i]);
     }
     
-    a = []; //task, time, from, once
-    a.push({task: tasksWithProducts[0], time: 0, from: "", once: false});
+    iterations = []; //task, time, from, once
+    iterations.push({task: tasksWithProducts[0], time: 0, from: "", once: false});
     for(i = 1; i < tasksWithProducts.length; i++){
-      a.push({task: tasksWithProducts[i], time: -1, from: "",once: false});
+      iterations.push({task: tasksWithProducts[i], time: -1, from: "",once: false});
     }
 
-    console.log("a");
-    for(i = 0; i < a.length; i++){ //task1, task2, time
-      console.log(a[i]);
+    console.log("iterations");
+    for(i = 0; i < iterations.length; i++){ //task1, task2, time
+      console.log(iterations[i]);
     }
 
-    for(i = 0; i < a.length; i++){ //task, time, from, once
-      for(j = 0; j < c.length; j++){ //task1, task2, time
+    for(i = 0; i < iterations.length; i++){ //task, time, from, once
+      for(j = 0; j < edges.length; j++){ //task1, task2, time
        // console.log("max: " + maxTime);
         tasksIn = []; //task, time
-        for(u = 0; u < a.length; u++){ //task, time, from, once
-          if(!a[u].once){
-            tasksIn.push({task: a[u].task, time: a[u].time});
+        for(u = 0; u < iterations.length; u++){ //task, time, from, once
+          if(!iterations[u].once){
+            tasksIn.push({task: iterations[u].task, time: iterations[u].time});
           }
         }
 
@@ -421,35 +421,35 @@ var vm = new Vue({
           }
         }
         console.log("maxTime: " + maxTime);
-        for(u = 0; u < a.length; u++){ //task, time, from, once
-          if(k === a[u].task){
-            a[u].once = true;
-            console.log("a[u]: " + a[u].task + " " + a[u].once);
+        for(u = 0; u < iterations.length; u++){ //task, time, from, once
+          if(k === iterations[u].task){
+            iterations[u].once = true;
+            console.log("iterations[u]: " + iterations[u].task + " " + iterations[u].once);
             //break;
           }
         }
         console.log("k: " + k);
-        for(u = 0; u < c.length; u++){ //task1, task2, time
-          if(k === c[u].task1){
-            console.log("c[u].task1: " +  c[u].task1);
-            for(z = 0; z < a.length; z++){ //task, time, from, once
-              if(c[u].task2 === a[z].task){
-                console.log("a[z].task: " +  a[z].task);
-                if(a[z].time === -1){
-                  a[z].time = c[u].time;
-                  console.log("a[z].time = c[u].time: " + a[z].time + " " + c[u].time);
+        for(u = 0; u < edges.length; u++){ //task1, task2, time
+          if(k === edges[u].task1){
+            console.log("edges[u].task1: " +  edges[u].task1);
+            for(z = 0; z < iterations.length; z++){ //task, time, from, once
+              if(edges[u].task2 === iterations[z].task){
+                console.log("iterations[z].task: " +  iterations[z].task);
+                if(iterations[z].time === -1){
+                  iterations[z].time = edges[u].time;
+                  console.log("iterations[z].time = edges[u].time: " + iterations[z].time + " " + edges[u].time);
                 }
                 else{
-                  console.log("a[z].time: " + a[z].time);
-                  console.log("c[u].time: " + c[u].time);
-                  a[z].time = +a[z].time + +c[u].time;
-                  console.log("a[z].time" + a[z].time);
+                  console.log("iterations[z].time: " + iterations[z].time);
+                  console.log("edges[u].time: " + edges[u].time);
+                  iterations[z].time = +iterations[z].time + +edges[u].time;
+                  console.log("iterations[z].time" + iterations[z].time);
                 }
-                a[z].from = c[u].task1;
+                iterations[z].from = edges[u].task1;
 
-                console.log("a");
-                for(i = 0; i < a.length; i++){ //task, time, from, once
-                  console.log(a[i]);
+                console.log("iterations");
+                for(i = 0; i < iterations.length; i++){ //task, time, from, once
+                  console.log(iterations[i]);
                 }
             }
           }
@@ -458,9 +458,9 @@ var vm = new Vue({
     }
   }
 
-    console.log("a");
-    for(i = 0; i < a.length; i++){ //task, time, from, once
-      console.log(a[i]);
+    console.log("iterations");
+    for(i = 0; i < iterations.length; i++){ //task, time, from, once
+      console.log(iterations[i]);
     }
 
 
