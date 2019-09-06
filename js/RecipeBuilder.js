@@ -5,14 +5,37 @@ var vm = new Vue({
   data() {
     const componentInstance = this
     return{
+      arrowImg_products:"images/down-arrow.png",
+      downArowImg_products: "images/down-arrow.png",
+      upArrowImg_products: "images/up-arrow.png",
+
+      arrowImg_tasks:"images/down-arrow.png",
+      downArowImg_tasks: "images/down-arrow.png",
+      upArrowImg_tasks: "images/up-arrow.png",
+
+      arrowImg_eqs:"images/down-arrow.png",
+      downArowImg_eqs: "images/down-arrow.png",
+      upArrowImg_eqs: "images/up-arrow.png",
+
+      arrowImg_precedences:"images/down-arrow.png",
+      downArowImg_precedences: "images/down-arrow.png",
+      upArrowImg_precedences: "images/up-arrow.png",
+
+      arrowImg_proctimes:"images/down-arrow.png",
+      downArowImg_proctimes: "images/down-arrow.png",
+      upArrowImg_proctimes: "images/up-arrow.png",
+
+      downUpClick: false,
+
       options: {
         // dropzoneSelector: 'ul',
         // draggableSelector: 'li',
          //showDropzoneAreas: false,
-         //multipleDropzonesItemsDraggingEnabled: false,
+         //multipleDropzonesItemsDraggingEnabled: true,
         //onDrop(event) {
           onDrop() {
-          componentInstance.getTasks(false);
+            componentInstance.getTasks(false);
+            componentInstance.updateEquimpents();
          },
         // onDragstart(event) {
         //   event.stop();
@@ -28,97 +51,56 @@ var vm = new Vue({
 
           // to detect if draggable element is dropped out
           if (!event.droptarget) {
-            //console.log('event is dropped out');
+           // console.log(event);
           }
         }
       },
      /*---------------RECIPIE BUILDER---------------*/
-     products:["a","b"],
+     products:[],
      productName: '',
 
-     tasks: [
-       "a1",
-       "a2",
-       "a3",
-       "b11",
-       "b12",
-       "b2",
-       "b3"
-     ], 
+     tasks: [], 
      taskName: '',
+     onlyTasks: [],
 
-     tasksAndProducts:[
-       {"name":"a1","product":"a"},
-       {"name":"a2","product":"a"},
-       {"name":"a3","product":"a"},
-       {"name":"b11","product":"b"},
-       {"name":"b12","product":"b"},
-       {"name":"b2","product":"b"},
-       {"name":"b3","product":"b"}
-     ], //name, product  //which task which product
+     tasksAndProducts:[], //name, product  //which task which product
      product:'',
 
      equipmentName:'',
-     equipments: ["e1","e2","e3"],
+     equipments: [],
 
      warningTxt:"",
 
      task1:"",
      task2:"",
-     precedences: [
-       {"task1":"a1","task2":"a2"},
-       {"task1":"a2","task2":"a3"},
-       {"task1":"b11","task2":"b2"},
-       {"task1":"b12","task2":"b2"},
-       {"task1":"b2","task2":"b3"}
-     ], //task1, task2
-     precedencesWithProducts:[
-       {"task":"a1","product":"a2"},
-       {"task":"a2","product":"a3"},
-       {"task":"a3","product":"a"},
-       {"task":"b11","product":"b2"},
-       {"task":"b12","product":"b2"},
-       {"task":"b2","product":"b3"},
-       {"task":"b3","product":"b"}
-     ], //task, product
+     precedences: [], //task1, task2
+     precedencesWithProducts:[], //task, product
 
-     proctimes:[
-       {"task":"a1","eq":"e1","proctime":"3"},
-       {"task":"a2","eq":"e2","proctime":"2"},
-       {"task":"a3","eq":"e3","proctime":"4"},
-       {"task":"b11","eq":"e1","proctime":"2"},
-       {"task":"b12","eq":"e2","proctime":"4"},
-       {"task":"b2","eq":"e3","proctime":"3"},
-       {"task":"b3","eq":"e1","proctime":"1"}
-     ], //task, eq, proctime
+     proctimes:[], //task, eq, proctime
      proctime:"",
      proctime_task:"",
      proctime_eq:"",
 
-     taskEquipment:[
-       {"task":"a1","eqs":["e1"]},
-       {"task":"a2","eqs":["e2"]},
-       {"task":"a3","eqs":["e3"]},
-       {"task":"b11","eqs":["e1"]},
-       {"task":"b12","eqs":["e2"]},
-       {"task":"b2","eqs":["e3"]},
-       {"task":"b3","eqs":["e1"]}
-     ], //task, eqs[] | which task which equipments
-
-     tasksToEq:[], //eq tasks[]
+     taskEquipment:[], //task, eqs[] | which task which equipments
 
      recipieGraphTxt:"",
 
      showWarningTxt:false,
 
-     tmpTask1:["b2","a2","b11","b12","a1","a3","b3"],
-     tmpTask2:["b2","a2","b11","b12","a1","a3","b3"],
+     tmpTask1:[],
+     tmpTask2:[],
 
      seenForms: true,
      loading: true,
 
+     tasksLength: 0,
+     productsLength: 0,
+     eqsLength: 0,
+     precedencesLength: 0,
+     proctimesLength: 0,
+
      /*---------------SchedGraphBuilder-------------*/
-     schedSequence:[], //egyenlőre az a sorrend amit először bevittünk
+     schedSequence:[], 
 
      schedGraphTxt:"",
 
@@ -129,23 +111,93 @@ var vm = new Vue({
 
      lastInCol:[],
 
-     uisNisChk: "UIS", //UIS NIS
+     //uisNisChk: "UIS", //UIS NIS
+     uisNisChk: false, //UIS NIS
 
      allEdges:[], //task1, task2
+
+     longestPath:[], //task1, task2
+
+     longestPathTime:"",
+     longestPathStartTask:"",
+     longestPathEndTask:"",
+     circle:false,
+     circleTaskPairs: [], //task1, task2
    }
  }, 
  methods:{
+   hideAlert(){
+    setTimeout(() => this.showWarningTxt = false, 5000);
+   },
    uisNisSwitch(){
-     if(this.uisNisChk === "NIS"){
+
+     if(this.uisNisChk){
        this.schedGraphTxtOut(true,true);
      }
-     else if(this.uisNisChk === "UIS"){
+     else{
        this.schedGraphTxtOut(true,false);
      }
+
+     this.uisNisChk = !this.uisNisChk;
+
+    
+   },
+
+   changeArrowImg_products(){
+    this.downUpClick_products = !this.downUpClick_products;
+
+    if(this.downUpClick_products){
+      this.arrowImg_products = this.upArrowImg_products;
+    }
+    else{
+      this.arrowImg_products = this.downArowImg_products;
+    }
+   },
+   changeArrowImg_tasks(){
+    this.downUpClick_tasks = !this.downUpClick_tasks;
+
+    if(this.downUpClick_tasks){
+      this.arrowImg_tasks = this.upArrowImg_tasks;
+    }
+    else{
+      this.arrowImg_tasks = this.downArowImg_tasks;
+    }
+   },
+   changeArrowImg_eqs(){
+    this.downUpClick_eqs = !this.downUpClick_eqs;
+
+    if(this.downUpClick_eqs){
+      this.arrowImg_eqs = this.upArrowImg_eqs;
+    }
+    else{
+      this.arrowImg_eqs = this.downArowImg_eqs;
+    }
+   },
+   changeArrowImg_precedences(){
+    this.downUpClick_precedences = !this.downUpClick_precedences;
+
+    if(this.downUpClick_precedences){
+      this.arrowImg_precedences = this.upArrowImg_precedences;
+    }
+    else{
+      this.arrowImg_precedences = this.downArowImg_precedences;
+    }
+   },
+   changeArrowImg_proctimes(){
+    this.downUpClick_proctimes = !this.downUpClick_proctimes;
+
+    if(this.downUpClick_proctimes){
+      this.arrowImg_proctimes = this.upArrowImg_proctimes;
+    }
+    else{
+      this.arrowImg_proctimes = this.downArowImg_proctimes;
+    }
    },
    
    /*---------------SchedGraphBuilder-------------*/
    switchForms(){
+    this.updateOnlyTasks();
+
      this.seenForms = !this.seenForms;
      if(!this.seenForms){
       this.tasksToEq = [];
@@ -171,6 +223,12 @@ var vm = new Vue({
      else{
        this.recipieGraphTxtOut();
      }
+     
+     this.updateProductsLength();
+     this.updateTasksLength();
+     this.updateEqsLength();
+     this.updatePrecedencesLength();
+     this.updateProctimesLength();
    },
 
    getTasks(first){
@@ -208,12 +266,13 @@ var vm = new Vue({
       }
     }
 
-    for(i = 0; i < tasks.length; i++){ 
+    /*for(i = 0; i < tasks.length; i++){ 
      // console.log(tasks[i]);
-    }
+    }*/
 
     this.dragAndDropList(tasks);
    },
+
    dragAndDropList(tasks){
      this.schedTasks = [];
      this.lastInCol = [];
@@ -238,17 +297,17 @@ var vm = new Vue({
 
      //this.lastInCol.push(tasks[tasks.length-1]);
 
-     for(i=0; i< this.schedTasks.length; i++){ 
-    //  console.log(i+" " + this.schedTasks[i].task);
+     /*for(i=0; i< this.schedTasksArray.length; i++){ 
+      //console.log(this.schedTasksArray[i].task);
      }
      for(i=0; i< this.lastInCol.length; i++){ 
      // console.log("L " + this.lastInCol[i]);
-     }
+     }*/
 
-     if(this.uisNisChk === "NIS"){
+     if(this.uisNisChk){
        this.schedGraphTxtOut(true,false);
      }
-     else if(this.uisNisChk === "UIS"){
+     else{
        this.schedGraphTxtOut(true,true);
      }
    },
@@ -282,288 +341,571 @@ var vm = new Vue({
     }
    },
 
-   longestPath(){
-    for(i=0; i< this.allEdges.length; i++){ //task1, task2
-      console.log(this.allEdges[i].task1 + " " + this.allEdges[i].task2 );
-    }
-    console.log("---");
+   circleCheck(){
+      this.circle = false;
+    /* console.log("--this.alledges--");
+      for(i = 0; i < this.allEdges.length; i++){ //task1, task2
+        console.log(this.allEdges[i].task1 + " " + this.allEdges[i].task2);
+      }*/
 
-
-    a = []; //a1-ből a másik 2 taszk ami jön
-    b = []; //segéd tömb
-    b.push(this.allEdges[0].task1);
-    a.push(b);
-    t = this.allEdges[0].task1;
-
-    b = [];
-    for(i = 0; i < this.allEdges.length; i++){ //task1, task2
-      if(t === this.allEdges[i].task1){
-        b.push(this.allEdges[i].task2);
-      }
-    }
-    a.push(b);
-
-    for(i = 0; i < a.length; i++){ 
-      console.log(a[i]);
-    }
-
-    for(i = 0; i < a.length; i++){ 
-      if(a[i].length > 1){
-        b = [];
-        for(j = 0; j < a[i].length; j++){ 
-          for(u = 0; u < this.allEdges.length; u++){ //task1, task2
-            if(a[i][j] === this.allEdges[u].task1){
-              b.push(this.allEdges[u].task2);
-            }
+      //megkeresem a kezdő taszkokat
+      startTasks = [];
+      for(i = 0; i < this.precedences.length; i++){ //task1, task2
+        yes = true;
+        for(j = 0; j < this.precedences.length && yes; j++){ //task1, task2
+          if(this.precedences[i].task1 === this.precedences[j].task2){
+            yes = false;
           }
         }
-        if(b.length > 1){
-          a.push(b);
+        if(yes){
+          //csak egyszer rakom bele őket
+          for(j = 0; j < startTasks.length && yes; j++){
+            if(this.precedences[i].task1 === startTasks[j]){
+              yes = false;
+            }
+          }
+          if(yes){
+            startTasks.push(this.precedences[i].task1);
+          }
         }
       }
-    }
 
-    edges = []; //task1, task2, time
-    for(i = 0; i < a.length; i++){ 
-      for(j = 0; j < a[i].length; j++){ 
-        for(u = 0; u < this.allEdges.length; u++){ //task1, task2
-          if(a[i][j] === this.allEdges[u].task1){
-            yes = true;
-            for(z = 0; z < edges.length; z++){ //task1, task2, time
-              if(true){
-                if(edges[z].task1 === a[i][j] && edges[z].task2 === this.allEdges[u].task2){
+      for(startTaskIndex = 0; startTaskIndex < startTasks.length; startTaskIndex++){ 
+
+        startTask = startTasks[startTaskIndex];
+
+        task2S = [];
+        for(i = 0; i < this.allEdges.length; i++){ //task1, task2
+          if(startTask === this.allEdges[i].task1){
+            task2S.push(this.allEdges[i].task2);
+          }
+        }
+
+        circleArr = []; //task, task2S, end
+        circleArr.push({task: startTask, task2S: task2S, end: true});
+
+        for(r = 0; r < this.allEdges.length && !this.circle; r++){
+        /*  console.log("--circleArr eleje--");
+          for(i = 0; i < circleArr.length; i++){ //task, task2S, end
+            console.log(circleArr[i].task + " | " + circleArr[i].task2S + " | " + circleArr[i].task2S.length + " | " + circleArr[i].end);
+          }*/
+
+          endTask = []; //task, task2S, end
+          for(i = 0; i < circleArr.length; i++){ //task, task2S, end
+            if(circleArr[i].end){
+              endTask.push({task: circleArr[i].task, task2S: circleArr[i].task2S, end: true});
+            }
+          }
+
+          /*console.log("--endTask--");
+          console.log(endTask[0].task + " | " + endTask[0].task2S + " | " + endTask[0].task2S.length + " | " + endTask[0].end);
+  */
+          task2S = [];
+          for(i = 0; i < this.allEdges.length; i++){ //task1, task2
+            if(endTask[0].task2S[0] === this.allEdges[i].task1){
+              task2S.push(this.allEdges[i].task2);
+            }
+          }
+
+          //megnézem hogy ezek közül van e amivel kör lesz
+          endCircleTask = "";
+          for(i = 0; i < task2S.length && !this.circle; i++){
+            for(j = 0; j < circleArr.length && !this.circle; j++){ //task, task2S, end
+              if(task2S[i] === circleArr[j].task){
+                this.circle = true;
+                //console.log("KÖR");
+                circleArr.push({task: circleArr[circleArr.length - 1].task2S[0], task2S: [], end: false});
+                circleArr.push({task: task2S[i], task2S: [], end: false});
+              }
+            }
+          }
+
+          if(this.circle){
+            endTask = circleArr[circleArr.length - 1].task;
+
+            go = true;
+            for(i = 0; i < circleArr.length && go; i++){ //task, task2S, end
+              if(circleArr[i].task === endTask){
+                go = false;
+              }
+            }
+
+            tmpArr = []; 
+            for(j = i - 1; j < circleArr.length; j++){ //task, task2S, end
+              tmpArr.push(circleArr[j].task);
+            }
+
+          /* console.log("KÖRKÖR");
+            for(i = 0; i < tmpArr.length; i++){
+              console.log(tmpArr[i]);
+            }*/
+
+            this.circleTaskPairs = []; //task1, task2
+            for(i = 0; i < tmpArr.length - 1; i++){ 
+              yes = true;
+              for(u = 0; u < this.circleTaskPairs.length && yes; u++){ 
+                if(this.circleTaskPairs[u].task1 === tmpArr[i] && this.circleTaskPairs[u].task2 === tmpArr[i + 1]){
                   yes = false;
                 }
               }
-            }
-            if(yes){
-              edges.push({task1: a[i][j], task2: this.allEdges[u].task2, time: 0});
-            }
-          }
-        }
-      }
-    }
-
-    for(i = 0; i < edges.length; i++){ //task1, task2, time
-      for(j = 0; j < this.proctimes.length; j++){ //task, eq, proctime
-        if(this.proctimes[j].task === edges[i].task1){
-          edges[i].time = this.proctimes[j].proctime;
-        }
-      }
-    }
-
-    console.log("edges");
-    for(i = 0; i < edges.length; i++){ //task1, task2, time
-      console.log(edges[i]);
-    }
-
-
-    console.log("this.tasks");
-    for(i = 0; i < this.tasks.length; i++){ 
-      console.log(this.tasks[i]);
-    }
-
-    console.log("this.products");
-    for(i = 0; i < this.products.length; i++){ 
-      console.log(this.products[i]);
-    }
-    
-    tasksWithProducts = this.tasks;
-    for(i = 0; i < this.products.length; i++){
-      yes = true;
-      for(j = 0; j < tasksWithProducts.length; j++){
-        if(tasksWithProducts[j] === this.products[i]){
-          yes = false;
-        }
-      }
-      if(yes){
-        tasksWithProducts.push(this.products[i]);
-      }
-    }
-
-    console.log("tasksWithProducts");
-    for(i = 0; i < tasksWithProducts.length; i++){ 
-      console.log(tasksWithProducts[i]);
-    }
-    
-    iterations = []; //task, time, from, once
-    iterations.push({task: tasksWithProducts[0], time: 0, from: "", once: false});
-    for(i = 1; i < tasksWithProducts.length; i++){
-      iterations.push({task: tasksWithProducts[i], time: -1, from: "",once: false});
-    }
-
-    console.log("iterations");
-    for(i = 0; i < iterations.length; i++){ //task1, task2, time
-      console.log(iterations[i]);
-    }
-
-    for(i = 0; i < iterations.length; i++){ //task, time, from, once
-      for(j = 0; j < edges.length; j++){ //task1, task2, time
-       // console.log("max: " + maxTime);
-        tasksIn = []; //task, time
-        for(u = 0; u < iterations.length; u++){ //task, time, from, once
-          if(!iterations[u].once){
-            tasksIn.push({task: iterations[u].task, time: iterations[u].time});
-          }
-        }
-
-        console.log("tasksIn");
-        for(u = 0; u < tasksIn.length; u++){ //task, time
-          console.log(tasksIn[u]);
-        }
-
-        maxTime = -2;
-        k = "";
-        for(u = 0; u < tasksIn.length; u++){ //task, time
-          if(maxTime < tasksIn[u].time){
-            maxTime = tasksIn[u].time;
-            k = tasksIn[u].task;
-          }
-        }
-        console.log("maxTime: " + maxTime);
-        for(u = 0; u < iterations.length; u++){ //task, time, from, once
-          if(k === iterations[u].task){
-            iterations[u].once = true;
-            console.log("iterations[u]: " + iterations[u].task + " " + iterations[u].once);
-            //break;
-          }
-        }
-        console.log("k: " + k);
-        for(u = 0; u < edges.length; u++){ //task1, task2, time
-          if(k === edges[u].task1){
-            console.log("edges[u].task1: " +  edges[u].task1);
-            for(z = 0; z < iterations.length; z++){ //task, time, from, once
-              if(edges[u].task2 === iterations[z].task){
-                console.log("iterations[z].task: " +  iterations[z].task);
-                if(iterations[z].time === -1){
-                  iterations[z].time = edges[u].time;
-                  console.log("iterations[z].time = edges[u].time: " + iterations[z].time + " " + edges[u].time);
-                }
-                else{
-                  console.log("iterations[z].time: " + iterations[z].time);
-                  console.log("edges[u].time: " + edges[u].time);
-                  iterations[z].time = +iterations[z].time + +edges[u].time;
-                  console.log("iterations[z].time" + iterations[z].time);
-                }
-                iterations[z].from = edges[u].task1;
-
-                console.log("iterations");
-                for(i = 0; i < iterations.length; i++){ //task, time, from, once
-                  console.log(iterations[i]);
-                }
-            }
-          }
-        }
-      }
-    }
-  }
-
-    console.log("iterations");
-    for(i = 0; i < iterations.length; i++){ //task, time, from, once
-      console.log(iterations[i]);
-    }
-
-
-   
-
-   /* d = [];
-    f = [];
-    f.push(c[0].task1);
-    f.push(c[0].task2);
-    d.push(f);
-    for(i = 0; i < c.length; i++){ 
-      f = [];
-      for(j = 0; j < c.length; j++){ 
-        if(c[i].task2 === c[j].task1){
-          f.push(c[j].task2);
-        }
-      }
-      d.push(f);
-    }
-
-    console.log("---");
-    for(i = 0; i < d.length; i++){ 
-      console.log(d[i]);
-    }
-
-    console.log("---");
-    for(i = 0; i < a.length; i++){ 
-      console.log(a[i]);
-    }
-
-    console.log("---");
-    for(i = 0; i < c.length; i++){ 
-      console.log(c[i]);
-    }
-
-   /* a = []; //task, count
-    a.push({task: this.allEdges[0].task1, count: 0});
-    a.push({task: this.allEdges[0].task2, count: 0});
-    t = this.allEdges[0].task2;
-
-    for(i = 1; i < this.allEdges.length; i++){ //task1, task2
-      if(t === this.allEdges[i].task1){
-        t = this.allEdges[i].task2;
-        a.push({task: this.allEdges[i].task2, count: 0});
-      }
-    }
-
-    for(i = 0; i < this.allEdges.length; i++){ //task1, task2
-      for(j = 0; j < a.length; j++){ //task, count
-        if(this.allEdges[i].task1 === a[j].task){
-          a[j].count++;
-        }
-      }
-    }
-
-    console.log("---");
-    for(i = 0; i < a.length; i++){ 
-      console.log(a[i].task + " " + a[i].count);
-    }*/
-
-
-
-  /*  for(i = 0; i < a.length; i++){ //task, count
-      if(a[i].count > 0){
-        b = []; //task, count
-        for(j = 0; j < this.allEdges.length; j++){ //task1, task2
-          if(a[i].task === this.allEdges[j].task1){
-            yes = true;
-            for(u = 0; u < a.length; u++){ //task, count
-              if(a[u].task === this.allEdges[j].task1){
-                yes = false;
+              if(yes){
+                this.circleTaskPairs.push({task1: tmpArr[i], task2: tmpArr[i + 1]});
               }
             }
-            if(yes){
-              b.push({task: this.allEdges[j].task1, count: 0});
+      
+          /*  console.log(".....this.circleTaskPairs..........");
+            for(i = 0; i < this.circleTaskPairs.length; i++){
+              console.log(this.circleTaskPairs[i].task1 + " " + this.circleTaskPairs[i].task2);
+            }
+            console.log("...............");*/
+
+          }
+          else{
+            end = false;
+            if(task2S.length > 0){
+              end = true;
+            }
+
+            circleArr.push({task: endTask[0].task2S[0], task2S: task2S, end: end});
+
+            tmpArr = [];
+            for(i = 1; i < endTask[0].task2S.length; i++){
+              tmpArr.push(endTask[0].task2S[i]);
+            }
+
+            endTask[0].task2S = tmpArr;
+
+            circleArr[circleArr.length - 2] = endTask[0];
+
+            for(i = 0; i < circleArr.length; i++){ //task, task2S, end
+              if(circleArr[i].task2S.length > 0){
+                circleArr[i].end = true;
+
+                for(j = 0; j < i; j++){ //task, task2S, end
+                  circleArr[j].end = false;
+                }
+              }
+            }
+
+            /*console.log("--circleArr--");
+            for(i = 0; i < circleArr.length; i++){ //task, task2S, end
+              console.log(circleArr[i].task + " | " + circleArr[i].task2S + " | " + circleArr[i].task2S.length + " | " + circleArr[i].end);
+            }*/
+
+            //el kell venni az end utániakat
+            tmpArr = []; //task, task2S, end
+            go = true;
+            for(i = 0; i < circleArr.length && go; i++){ //task, task2S, end
+              if(circleArr[i].end){
+                go = false;
+                tmpArr.push({task: circleArr[i].task, task2S: circleArr[i].task2S, end: circleArr[i].end});
+              }
+              else{
+                tmpArr.push({task: circleArr[i].task, task2S: circleArr[i].task2S, end: circleArr[i].end});
+              }
+            }
+
+            circleArr = [];//task, task2S, end
+            for(i = 0; i < tmpArr.length; i++){ //task, task2S, end
+              circleArr.push({task: tmpArr[i].task, task2S: tmpArr[i].task2S, end: tmpArr[i].end});
+            }
+          }
+          /*console.log("--circleArr vége--");
+          for(i = 0; i < circleArr.length; i++){ //task, task2S, end
+            console.log(circleArr[i].task + " | " + circleArr[i].task2S + " | " + circleArr[i].task2S.length + " | " + circleArr[i].end);
+          }*/
+        }
+      }
+   },
+
+   getLongestPath(schedGraphText){
+    this.circleCheck();
+
+    if(!this.circle){
+
+      /*for(i = 0; i < this.allEdges.length; i++){ //task1, task2
+        console.log(this.allEdges[i].task1 + " " + this.allEdges[i].task2);
+      }*/
+
+      //megkeresem a kezdő taszkokat
+      startTasks = [];
+      for(i = 0; i < this.allEdges.length; i++){ //task1, task2
+        yes = true;
+        for(j = 0; j < this.allEdges.length && yes; j++){ //task1, task2
+          if(this.allEdges[i].task1 === this.allEdges[j].task2){
+            yes = false;
+          }
+        }
+        if(yes){
+          //csak egyszer rakom bele őket
+          for(j = 0; j < startTasks.length && yes; j++){
+            if(this.allEdges[i].task1 === startTasks[j]){
+              yes = false;
+            }
+          }
+          if(yes){
+            startTasks.push(this.allEdges[i].task1);
+          }
+        }
+      }
+
+      longestPathTime = Number.MAX_SAFE_INTEGER;
+      longestPathEndTask = "";
+      longestPathStartTask = "";
+      tempLongestPath = []; //task1, task2
+    
+     for(startTaskIndex = 0; startTaskIndex < startTasks.length; startTaskIndex++){
+       
+
+        startTask = startTasks[startTaskIndex];
+        //beállítom az elejét
+        a = []; //a1-ből a másik 2 taszk ami jön
+        b = []; //segéd tömb
+        b.push(startTasks[startTaskIndex]);
+        a.push(b);
+        t = startTasks[startTaskIndex];
+
+        b = [];
+        for(i = 0; i < this.allEdges.length; i++){ //task1, task2
+          if(t === this.allEdges[i].task1){
+            b.push(this.allEdges[i].task2);
+          }
+        }
+        a.push(b);
+
+        for(i = 0; i < a.length; i++){ 
+          if(a[i].length > 1){
+            b = [];
+            for(j = 0; j < a[i].length; j++){ 
+              for(u = 0; u < this.allEdges.length; u++){ //task1, task2
+                if(a[i][j] === this.allEdges[u].task1){
+                  b.push(this.allEdges[u].task2);
+                }
+              }
+            }
+            if(b.length > 1){
+              a.push(b);
             }
           }
         }
-        console.log("---");
 
-        for(j= 0; j < b.length; j++){ //task, count
-          console.log(b[j].task + " " + b[j].count);
+      /*  console.log("---a---");
+        for(i = 0; i < a.length; i++){ 
+          console.log(a[i]);
+        }*/
+
+        edges = []; //task1, task2, time
+        for(i = 0; i < this.allEdges.length; i++){ //task1, task2
+          edges.push({task1: this.allEdges[i].task1, task2: this.allEdges[i].task2, time: 0});
         }
-      }
-    }*/
+        /*for(i = 0; i < a.length; i++){ 
+          for(j = 0; j < a[i].length; j++){ 
+            for(u = 0; u < this.allEdges.length; u++){ //task1, task2
+              if(a[i][j] === this.allEdges[u].task1){
+                yes = true;
+                for(z = 0; z < edges.length; z++){ //task1, task2, time
+                  if(true){
+                    if(edges[z].task1 === a[i][j] && edges[z].task2 === this.allEdges[u].task2){
+                      yes = false;
+                    }
+                  }
+                }
+                if(yes){
+                  edges.push({task1: a[i][j], task2: this.allEdges[u].task2, time: 0});
+                  console.log("task1: " + a[i][j] + " task2: " + this.allEdges[u].task2);
+                }
+              }
+            }
+          }
+        }*/
 
-    /*for(i = 0; i < a.length; i++){ //task, count
-      for(j = 0; j < a[i].count; j++){
-        branch = [];
-        for(u = 0; u < this.allEdges.length; u++){ //task1, task2
-          if(a[i].task === this.allEdges[u].task1){
-            branch.push({task: this.allEdges[u].task2, count: 0});
+        for(i = 0; i < edges.length; i++){ //task1, task2, time
+          for(j = 0; j < this.proctimes.length; j++){ //task, eq, proctime
+            if(this.proctimes[j].task === edges[i].task1){
+              edges[i].time = -this.proctimes[j].proctime;
+            }
           }
         }
-        console.log("---");
-        for(u = 0; u < branch.length; u++){
-          console.log(branch[u].task);
+
+        tasksWithProducts = this.tasks;
+        for(i = 0; i < this.products.length; i++){
+          yes = true;
+          for(j = 0; j < tasksWithProducts.length; j++){
+            if(tasksWithProducts[j] === this.products[i]){
+              yes = false;
+            }
+          }
+          if(yes){
+            tasksWithProducts.push(this.products[i]);
+          }
         }
-      }
-    }*/
+
+        iterations = []; //task, time, from, once
+        for(i = 0; i < tasksWithProducts.length; i++){
+          iterations.push({task: tasksWithProducts[i], time: Number.MAX_SAFE_INTEGER, from: "",once: false});
+        }
+
+        for(i = 0; i < iterations.length; i++){ //task, time, from, once
+          if(iterations[i].task === startTasks[startTaskIndex]){
+            iterations[i].time = +0;
+          }
+        }
+
+        
+      /*  console.log("---iterations - alap---");
+        for(i = 0; i < iterations.length; i++){ //task, time, from, once
+          console.log(iterations[i].task + " " + iterations[i].time + " " + iterations[i].from + " " + iterations[i].once);
+        }
+
+        console.log("---edges---");
+        for(i = 0; i < edges.length; i++){ //task1, task2, time
+          console.log(edges[i].task1 + " " + edges[i].task2 + " " + edges[i].time);
+        }*/
+
+
+        for(i = 0; i < iterations.length; i++){ //task, time, from, once
+          for(j = 0; j < edges.length; j++){ //task1, task2, time
+            prevIterations = [];
+
+            for(u = 0; u < iterations.length; u++){ //task, time, from, once
+              prevIterations.push({task: iterations[u].task, time: iterations[u].time,from: iterations[u].from, once: iterations[u].once});
+            }
+
+            tasksIn = []; //task, time
+            for(u = 0; u < iterations.length; u++){ //task, time, from, once
+              if(!iterations[u].once){
+                tasksIn.push({task: iterations[u].task, time: iterations[u].time});
+              }
+            }
+
+          /*  console.log("--tasksIn--");
+            for(u = 0; u < tasksIn.length; u++){ //task, time
+              console.log(tasksIn[u].task + " " + tasksIn[u].time);
+            }*/
+    
+
+            minTime = Number.MAX_SAFE_INTEGER;
+            k = "";
+            for(u = 0; u < tasksIn.length; u++){ //task, time
+              if(tasksIn[u].time < minTime){
+                minTime = tasksIn[u].time;
+                k = tasksIn[u].task;
+              }
+            }
+            for(u = 0; u < iterations.length; u++){ //task, time, from, once
+              if(k === iterations[u].task){
+                iterations[u].once = true;
+              }
+            }
+            //console.log("közelít: " + k);
+            for(u = 0; u < edges.length; u++){ //task1, task2, time
+              if(k === edges[u].task1){
+                for(z = 0; z < iterations.length; z++){ //task, time, from, once
+                  if(edges[u].task2 === iterations[z].task){
+                    plusTime = +0;
+                    for(r = 0; r < iterations.length; r++){ //task, time, from, once
+                      if(edges[u].task1 === iterations[r].task){
+                        plusTime = +iterations[r].time;
+                      }
+                    }
+                    iterations[z].time = +edges[u].time + +plusTime;
+                    iterations[z].from = edges[u].task1;
+                    iterations[z].once = false;
+                  }
+                }
+              }
+            }
+
+            /*console.log("--iterations--");
+            for(u = 0; u < iterations.length; u++){ //task, time, from, once
+              console.log(iterations[u].task + " " + iterations[u].time + " " + iterations[u].from + " " + iterations[u].once);
+            }*/
+          }
+
+        
+
+          minTime = iterations[0].time;
+          for(j = 1; j < iterations.length; j++){ //task, time, from, once
+            if(minTime > iterations[j].time){
+              minTime = iterations[j].time;
+            }
+          }
+          if(minTime < longestPathTime){
+            longestPathTime = minTime;
+            longestPathStartTask = startTask;
+
+            for(j = 0; j < iterations.length; j++){ //task, time, from, once
+              if(longestPathTime === iterations[j].time){
+                longestPathEndTask = iterations[j].task;
+              }
+            }
+
+            tempLongestPath = []; //task1, task2
+            //console.log("-iterations-");
+            for(j = 0; j < iterations.length; j++){ //task, time, from, once
+              //console.log(iterations[j].from + " " + iterations[j].task);
+              if(iterations[j].from !== ""){
+                yes = true;
+                for(u = 0; u < tempLongestPath.length; u++){ //task1, task2
+                  if(tempLongestPath[u].task1 === iterations[j].from && tempLongestPath[u].task2 === iterations[j].task){
+                    yes = false;
+                  }
+                }
+                if(yes){
+                  tempLongestPath.push({task1: iterations[j].from, task2: iterations[j].task});
+                }
+              }
+            }
+          }
+        }
+     }
+      //console.log(".............");
+     /*console.log("---tempLongestPath---");
+     for(i = 0; i < tempLongestPath.length; i++){ //task1, task2
+      console.log(tempLongestPath[i].task1 + " " + tempLongestPath[i].task2);
+    }*/ 
+   
+      tempArray = []; //task1, task2
+      lastLength = +0;
+      go = false;
+      do{
+        //balról
+        lastLength = tempArray.length;
+        tempArray = [];
+        for(i = 0; i < tempLongestPath.length; i++){ //task1, task2
+          yes = false;
+          if(tempLongestPath[i].task1 === longestPathStartTask){
+            yes = true;
+          }
+          for(j = 0; j < tempLongestPath.length && !yes; j++){ //task1, task2
+            if(tempLongestPath[i].task1 === tempLongestPath[j].task2){
+              yes = true;
+            }
+          }
+          if(yes){
+            tempArray.push({task1: tempLongestPath[i].task1, task2: tempLongestPath[i].task2});
+          }
+        }
+
+        if(lastLength === tempArray.length){
+          go = true;
+        }
+
+        tempLongestPath = [];
+        for(i = 0; i < tempArray.length; i++){ //task1, task2
+          tempLongestPath.push({task1: tempArray[i].task1, task2:tempArray[i].task2});
+        }
+
+        /*console.log("--tempLongestPath--");
+        for(i = 0; i < tempLongestPath.length; i++){ //task1, task2
+          console.log(tempLongestPath[i].task1 + " " + tempLongestPath[i].task2);
+        }*/
+  
+      }while(!go);
+
+
+      tempArray = []; //task1, task2
+      lastLength = +0;
+      go = false;
+      do{
+        //jobbról
+        lastLength = tempArray.length;
+        tempArray = [];
+        for(i = 0; i < tempLongestPath.length; i++){ //task1, task2
+          yes = false;
+          if(tempLongestPath[i].task2 === longestPathEndTask){
+            yes = true;
+          }
+          for(j = 0; j < tempLongestPath.length && !yes; j++){ //task1, task2
+            if(tempLongestPath[i].task2 === tempLongestPath[j].task1){
+              yes = true;
+            }
+          }
+          if(yes){
+            tempArray.push({task1: tempLongestPath[i].task1, task2: tempLongestPath[i].task2});
+          }
+        }
+
+        if(lastLength === tempArray.length){
+          go = true;
+        }
+
+        tempLongestPath = [];
+        for(i = 0; i < tempArray.length; i++){ //task1, task2
+          tempLongestPath.push({task1: tempArray[i].task1, task2:tempArray[i].task2});
+        }
+
+        /*console.log("--tempLongestPath--");
+        for(i = 0; i < tempLongestPath.length; i++){ //task1, task2
+          console.log(tempLongestPath[i].task1 + " " + tempLongestPath[i].task2);
+        }*/
+  
+      }while(!go);
 
    
+      this.longestPathStartTask = longestPathStartTask;
+      this.longestPathEndTask = longestPathEndTask;
+      this.longestPathTime = -longestPathTime;
+
+
+      this.longestPath = [];
+      for(i = 0; i < tempArray.length; i++){ //task1, task2
+        this.longestPath.push({task1: tempArray[i].task1, task2: tempArray[i].task2});
+      }
+
+      schedText = "";
+
+      text = schedGraphText.split("@");
+      for(i = 0; i < text.length; i++){ 
+        if(i % 2 === 0){
+          schedText += text[i];
+        }
+        else{
+          tempTasks = text[i].split(";");
+          for(j = 0; j < this.longestPath.length; j++){ //task1, task2
+            if(tempTasks[0] === this.longestPath[j].task1 && tempTasks[1] === this.longestPath[j].task2){
+              schedText += "5";
+            }
+          }
+        }
+      }
+    }
+    else{
+      schedText = "";
+
+      text = schedGraphText.split("@");
+      for(i = 0; i < text.length; i++){ 
+        if(i % 2 === 0){
+          schedText += text[i];
+        }
+        else{
+          tempTasks = text[i].split(";");
+          for(j = 0; j < this.circleTaskPairs.length; j++){ //task1, task2
+            if(tempTasks[0] === this.circleTaskPairs[j].task1 && tempTasks[1] === this.circleTaskPairs[j].task2){
+              schedText += "5";
+            }
+          }
+        }
+      }
+    }
+
+  //  console.log(schedText);
+
+  //console.log(schedText);
+
+    var viz = new Viz();
+    viz.renderSVGElement(schedText)
+    .then(function(element) {
+      document.getElementById('schedGraph').innerHTML="";
+      document.getElementById('schedGraph').appendChild(element);
+    })
+    .catch(error => {
+      viz = new Viz();
+      console.error(error);
+    });
+
    },
+
    schedGraphTxtOut(drag , uis){     
      if(!drag){
        this.schedTasks = this.taskEquipment;
@@ -890,7 +1232,7 @@ var vm = new Vue({
 
        p = "";
        for(u = 0; u < sortedProductWithTasks[i].tasks[j].length; u++){
-         if( sortedProductWithTasks[i].tasks[j][u] === "\""){
+         if(sortedProductWithTasks[i].tasks[j][u] === "\""){
            p += "\\" + sortedProductWithTasks[i].tasks[j][u];
          }
          else{
@@ -927,12 +1269,11 @@ var vm = new Vue({
      }
     }
 
-
-    for(j = 0; j < this.schedPrecedencesWithProducts.length; j++){ //task, product, schedEdge(true/false)
+   /* for(j = 0; j < this.schedPrecedencesWithProducts.length; j++){ //task, product, schedEdge(true/false)
       //if(this.schedPrecedencesWithProducts[j].schedEdge){
        // console.log(this.schedPrecedencesWithProducts[j].task + " " + this.schedPrecedencesWithProducts[j].product + " " + this.schedPrecedencesWithProducts[j].schedEdge);
      // }
-     }
+    }*/
 
     /* Search minimum proctime to task */
 
@@ -951,9 +1292,9 @@ var vm = new Vue({
        r.push(this.schedTasksArray[j].task);
      }
     }
-    for(j = 0; j < t.length; j++){
+  /*  for(j = 0; j < t.length; j++){
       //console.log(t[j]);
-    }
+    }*/
 
     for(i = 0; i < this.schedPrecedencesWithProducts.length; i++){ //task, product, schedEdge(true/false)
 
@@ -1021,7 +1362,6 @@ var vm = new Vue({
             }
           }
 
-
           if(!uis){
             tempT1 = "";
             for(j = 0; j < this.schedPrecedencesWithProducts.length; j++){ //task, product, schedEdge(true/false)
@@ -1035,17 +1375,25 @@ var vm = new Vue({
             minProctime = -1;
           }
 
-
           this.schedGraphTxt += "\"" + t1 + "\" -> \"" + t2 + "\"";
 
           this.allEdges.push({task1: t1, task2: t2});
       
           if(minProctime !== -1){
-            this.schedGraphTxt += " [ label = " + minProctime + ", style=\"dashed\" ]";
+            this.schedGraphTxt += " [ label = " + minProctime + ", style=\"dashed\"";
           }
           else{
-            this.schedGraphTxt += " [ style=\"dashed\" ]";
+            this.schedGraphTxt += " [ style=\"dashed\"";
           }
+
+         /* addPenWidth = false;
+          for(j = 0; j < this.longestPath.length; j++){ //task1, task2
+            if(t1 === this.longestPath[j].task1 && t1 === this.longestPath[j].task1){
+              addPenWidth = true;
+            }
+          }*/
+
+          this.schedGraphTxt += " penwidth=\"@" + t1 + ";" + t2 + "@\" ]";
         }
       }
       else{
@@ -1064,28 +1412,23 @@ var vm = new Vue({
           }
         }
 
-        this.schedGraphTxt += " [ label = " + minProctime + " ]";
+        this.schedGraphTxt += " [ label = " + minProctime + " penwidth=\"@" + t1 + ";" + t2 + "@\" ]";
+
+       /* addPenWidth = false;
+        for(j = 0; j < this.longestPath.length; j++){ //task1, task2
+          if(t1 === this.longestPath[j].task1 && t1 === this.longestPath[j].task1){
+            addPenWidth = true;
+          }
+        }*/
       }
     }
 
    this.schedGraphTxt += "layout=\"neato\"";
    this.schedGraphTxt += "}";
 
-   var viz = new Viz();
-   viz.renderSVGElement(this.schedGraphTxt)
-   .then(function(element) {
-     document.getElementById('schedGraph').innerHTML="";
-     document.getElementById('schedGraph').appendChild(element);
-   })
-   .catch(error => {
-     viz = new Viz();
-     console.error(error);
-   });
+   //console.log(this.schedGraphTxt);
 
-   this.longestPath();
-
-
- //  console.log(this.schedGraphTxt);
+   this.getLongestPath(this.schedGraphTxt);
    },
 
    /*---------------RECIPIE BUILDER---------------*/
@@ -1104,6 +1447,7 @@ var vm = new Vue({
       }
      }
      this.productName='';
+     this.updateProductsLength();
    },
    addTask(){ 
      if(this.taskName === "" || this.product === ""){
@@ -1118,18 +1462,28 @@ var vm = new Vue({
           this.showWarning("TASK: task name contains wrong characters: \\\"");
         }
         else{
-         add=true;
-         for(i=0; i< this.products.length; i++){
+         add = true;
+         for(i = 0; i < this.products.length && add; i++){
            if(this.taskName === this.products[i]){
-             add=false;
+             add = false;
            }
          }
-         if(add===true){
-           this.tasks.push(this.taskName);
-           this.precedencesWithProducts.push({task: this.taskName, product: this.product});
-
-           this.addTasksAndProducts(); 
-           this.deleteDuplicateTasks();
+         if(add === true){
+          yes = true;
+          for(i = 0; i < this.tasks.length && yes; i++){
+            if(this.taskName === this.tasks[i]){
+              yes = false;
+            }
+          }
+          if(yes){
+            this.tasks.push(this.taskName);
+            this.precedencesWithProducts.push({task: this.taskName, product: this.product});
+            this.addTasksAndProducts(); 
+            this.deleteDuplicateTasks();
+          }
+          else{
+            this.showWarning("TASK: Same task name");
+          }
          }
          else{
            this.showWarning("TASK: New task name equals to a product name");
@@ -1140,11 +1494,21 @@ var vm = new Vue({
      this.taskName='';
      this.product='';
 
+     this.updateTasksLength();
+
      this.recipieGraphTxtOut();
+
+     this.updateOnlyTasks();
+     this.addTmpTask12();
+
    },
    addTmpTask12(){
-     this.tmpTask1.push(this.taskName);
-     this.tmpTask2.push(this.taskName);
+     this.tmpTask1 = [];
+     this.tmpTask2 = [];
+     for(i = 0; i < this.onlyTasks.length; i++){
+      this.tmpTask1.push(this.onlyTasks[i]);
+      this.tmpTask2.push(this.onlyTasks[i]);
+     }
    },
    addEquipment(){
      if(this.equipmentName === ""){
@@ -1160,8 +1524,10 @@ var vm = new Vue({
       }
      }
      this.equipmentName='';
+
+     this.updateEqsLength();
    },
-   addPrecedence(){
+   addPrecedence(){ 
      if(this.task1 === "" || this.task2 === ""){
        if(this.task1 ===""){
          this.showWarning("PRECEDENCE: task1 is empty");
@@ -1194,6 +1560,8 @@ var vm = new Vue({
      this.deleteEmptyPrecedences();
 
      this.recipieGraphTxtOut();
+
+     this.updatePrecedencesLength();
    },
    addProctime(){ 
      if(this.proctime_task === "" || this.proctime_eq === "" || this.proctime === ""){
@@ -1222,6 +1590,8 @@ var vm = new Vue({
      this.deleteDuplicateProctimes();
 
      this.recipieGraphTxtOut();
+
+     this.updateProctimesLength();
    },
    addTasksAndProducts(){
      this.tasksAndProducts.push({name: this.taskName , product: this.product});
@@ -1274,21 +1644,49 @@ var vm = new Vue({
      this.updatePrecedencesWithProducts();
      this.updateProctimes();
      this.recipieGraphTxtOut();
+
+     this.updateTasksLength();
+     this.updateProductsLength();
+     this.updatePrecedencesLength();
+     this.updateProctimesLength();
+
+     this.updateOnlyTasks();
    },
    deleteTaskAndTasksAndProducts(id){
-     task="";
-     for(i=0; i < this.tasks.length; i++){
+     task = "";
+     for(i = 0; i < this.tasks.length; i++){
+     //  console.log(this.tasks[i]);
+       
        if(id === i){
+        p = false;
+        for(j = 0; j < this.products.length && !p; j++){
+          if(this.tasks[i] === this.products[j]){
+           p = true;
+          }
+        }
+        if(p){
+          id++;
+        }
+        else{
          task = this.tasks[i];
+        }
        }
      }
+
+    // console.log(id + " " + task);
      this.updatePrecedencesFromTask(task);
      this.updateProctimesFromProduct(task);
      this.tasks.splice(id,1);
+     this.updateOnlyTasks();
      this.deleteTasksAndProducts(id);
      this.updatePrecedences();
      this.updatePrecedencesWithProductsFromTasks(task);
      this.recipieGraphTxtOut();
+
+     this.updateTasksLength();
+     this.updatePrecedencesLength();
+     this.updateProctimesLength();
+
    },
    deleteTask(id){
      this.tasks.splice(id,1);
@@ -1307,6 +1705,8 @@ var vm = new Vue({
      this.updateProctimesFromEq();
      this.updateProctimes();
      this.recipieGraphTxtOut();
+
+     this.updateEqsLength();
    },
    deletePrecendence(id){
      this.precedences.splice(id,1);
@@ -1323,15 +1723,19 @@ var vm = new Vue({
      this.deletePrecendence(id);
      this.updatePrecedencesWithProductsFromPrecedence(task1, task2);
      this.recipieGraphTxtOut();
+
+     this.updatePrecedencesLength();
    },
    deleteProctimeFromHtml(id){
      this.proctimes.splice(id,1);
      this.updateProctimes();
      this.recipieGraphTxtOut();
+     this.updateProctimesLength();
    },
    deleteProctime(id){
      this.proctimes.splice(id,1);
      this.updateProctimes();
+     this.updateProctimesLength();
    },
    deleteEmptyPrecedences(){
      for(i=0; i < this.precedences.length; i++){
@@ -1559,6 +1963,120 @@ var vm = new Vue({
        }
      }
    },
+
+   updateEquimpents(){
+    tasks=[];
+    schedTable = document.getElementsByClassName("schedTable");
+    a = [];
+    for(i = 0; i < schedTable.length; i++){ 
+      a.push(schedTable[i].innerHTML);
+    }
+
+    s=[];
+    for(i = 0; i < a.length; i++){ 
+      s.push(a[i].split(">"));
+    }
+
+    for(i = 0; i < s.length; i++){ 
+      for(j = 0; j < s[i].length; j++){ 
+        if(s[i][j].indexOf("</span") !== -1){
+          ss = s[i][j].split('<');
+          taskWithEq = ss[0].split('/');
+          tasks.push(taskWithEq[0]);
+        }
+      }
+    }
+
+  
+
+    tmpEq = "";
+    tmpTasks = [];
+    eqWithTasks = []; //eq, tasks[]
+    //this.tasksToEq = []; //eq, tasks[]
+
+    for(i = 0; i < tasks.length; i++){ 
+      if(!yes){
+        eqWithTasks.push({eq: tmpEq, tasks: tmpTasks});
+      }
+      yes = true;
+      for(j = 0; j < this.equipments.length; j++){ 
+        if(this.equipments[j] === tasks[i]){
+          yes = false;
+        }
+      }
+      if(yes){
+        tmpTasks.push(tasks[i]);
+      }
+      else{
+        tmpTasks = [];
+        tmpEq = tasks[i];
+      }
+    }
+
+    for(i = 0; i < this.proctimes.length; i++){ //task, eq, proctime
+      for(j = 0; j < eqWithTasks.length; j++){ //eq, tasks
+        for(u = 0; u < eqWithTasks[j].tasks.length; u++){ 
+          if(eqWithTasks[j].tasks[u] === this.proctimes[i].task){
+            this.proctimes[i].eq = eqWithTasks[j].eq;
+          }
+        }
+      }
+    }
+
+
+    this.equipmentsToTask();
+
+    if(this.uisNisChk){
+      this.schedGraphTxtOut(true,false);
+    }
+    else{
+      this.schedGraphTxtOut(true,true);
+    }
+
+    /*for(i = 0; i < this.taskEquipment.length; i++){ //task, eq, proctime
+     // console.log(this.taskEquipment[i].task + " " + this.taskEquipment[i].eqs);
+    }*/
+   },
+
+   updateProductsLength(){
+    this.productsLength = this.products.length;
+    this.hideAlert();
+   },
+   updateTasksLength(){
+    this.tasksLength = this.tasks.length;
+    this.hideAlert();
+   },
+   updateEqsLength(){
+    this.eqsLength = this.equipments.length;
+    this.hideAlert();
+   },
+   updatePrecedencesLength(){
+    this.precedencesLength = this.precedences.length;
+    this.hideAlert();
+   },
+   updateProctimesLength(){
+    this.proctimesLength = this.proctimes.length;
+    this.hideAlert();
+   }, 
+
+   updateOnlyTasks(){
+    this.onlyTasks = [];
+    for(i = 0; i < this.tasks.length; i++){
+     add = true;
+     for(j = 0; j < this.products.length && add; j++){
+       if(this.tasks[i] === this.products[j]){
+         add = false;
+       }
+     }
+     if(add){
+       this.onlyTasks.push(this.tasks[i]);
+     }
+    }
+
+    for(i = 0; i < this.onlyTasks.length; i++){
+      console.log(this.onlyTasks[i]);
+    }
+   },
    /*-------------------------*/
 
    /*--------DELETE-DUPLICATE--------*/
@@ -1566,7 +2084,7 @@ var vm = new Vue({
      for(i=0; i < this.products.length; i++){
        for(j=i+1; j < this.products.length; j++){
          if(this.products[j] === this.products[i]){
-           this.deleteProduct(j);
+          this.products.splice(j,1);
            this.showWarning("Same products");
          }
        }
@@ -1650,6 +2168,7 @@ var vm = new Vue({
    showWarning(text){
      this.warningTxt = text;
      this.showWarningTxt = true;
+
    },
    equipmentsToTask(){
      this.taskEquipment=[];

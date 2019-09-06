@@ -6,40 +6,44 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>RecipeBuilder</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
 
     <!--VUE-->
     <!--<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>-->
 
-    <script src="vue.js"></script>
-    <script src="vizGraphRender.js"></script>
-    <script src="viz.js"></script>
-    <script src="full.render.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/viz.js"></script>
+    <script src="js/full.render.js"></script>
 
     <!--BOOTSTRAP-->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-
     <!--drag and drop-->
     <script src="https://unpkg.com/vue-draggable@1.0.9/lib/vue-draggable.js"></script>
 
 </head>
 <body>
   <div id="content">
+    <div class="alert-box error" v-if="showWarningTxt">
+      <span>Error: </span>
+      {{warningTxt}}
+    </div>
+
     <div class="tables" class="container">
       <div id="RecipieBuilder" v-if="seenForms">
         <div class="row">
           <div class="col-"><!--PRODUCTS-->
             <table>
-                <th >
-                  Add new product
+                <th type="button" data-toggle="collapse" data-target="#products" v-on:click="changeArrowImg_products()">
+                  Products ({{productsLength}}) <img :src="arrowImg_products">
                 </th>
                 <tr>
                   <td class="title">
                     Product name
                   </td>
                 </tr>
-                <tr>
+                <tr id="products" class="collapse show" >
                   <td>
                     <form>
                       <input type="text" v-model="productName" id="productname" placeholder="Product name">
@@ -47,13 +51,13 @@
                   </td>
                   <td >
                     <form>
-                        <button type="button" v-on:click="addProduct()" class="addBtn">Add</button>
+                      <button type="button" v-on:click="addProduct()" class="addBtn">Add</button>
                     </form>
                   </td>
                 </tr>
-                <tr v-for="(product, index) in products" :key="index">
-                  <td>
-                      {{product}}
+                <tr id="products" class="collapse show" v-for="(product, index) in products" :key="index">
+                  <td >
+                    {{product}}
                   </td>
                   <td>
                     <button type="button" v-on:click="deleteProduct(index)" class="deleteBtn">Delete</button>
@@ -63,8 +67,8 @@
           </div>
           <div class="col-"><!--TASKS-->
             <table> 
-                <th>
-                  Add new task
+                <th colspan="2" type="button" data-toggle="collapse" data-target="#tasks" v-on:click="changeArrowImg_tasks()">
+                  Tasks ({{tasksLength}}) <img :src="arrowImg_tasks">
                 </th>
                 <tr>
                   <td class="title">
@@ -74,7 +78,7 @@
                       Product
                     </td>
                 </tr>
-                <tr>
+                <tr id="tasks" class="collapse show">
                   <td>
                     <form>
                       <input type="text" v-model="taskName" id="taskname" placeholder="Task name">
@@ -91,7 +95,7 @@
                     </form>
                   </td>
                 </tr>
-                <tr v-for="(t, index) in tasksAndProducts" :key="index">
+                <tr id="tasks" class="collapse show" v-for="(t, index) in tasksAndProducts" :key="index">
                   <td>
                       {{t.name}}
                   </td>
@@ -106,15 +110,15 @@
           </div>
           <div class="col-"><!--EQUIPMENTS-->
             <table> 
-              <th>
-                Add new equipment
+              <th type="button" data-toggle="collapse" data-target="#eqs"  v-on:click="changeArrowImg_eqs()">
+                Equipments ({{eqsLength}}) <img :src="arrowImg_eqs">
               </th>
               <tr>
                 <td class="title">
                   Equipment name
                 </td>
               </tr>
-              <tr>
+              <tr id="eqs" class="collapse show" >
                 <td>
                   <form>
                     <input type="text" v-model="equipmentName" id="equipmentname" placeholder="Equipment name">
@@ -126,7 +130,7 @@
                   </form>
                 </td>
               </tr>
-              <tr v-for="(eq, index) in equipments" :key="index">
+              <tr id="eqs" class="collapse show" v-for="(eq, index) in equipments" :key="index">
                 <td>
                     {{eq}}
                 </td>
@@ -138,8 +142,8 @@
           </div>
           <div class="col-"><!--PRECEDENCES-->
             <table>
-              <th>
-                Precedence
+              <th colspan="2" type="button" data-toggle="collapse" data-target="#precedences" v-on:click="changeArrowImg_precedences()">
+                Precedences ({{precedencesLength}}) <img :src="arrowImg_precedences">
               </th>
               <tr>
                 <td class="title">
@@ -149,8 +153,8 @@
                   Task2
                 </td>
               </tr>
-              <tr>
-              <td>
+              <tr id="precedences" class="collapse show" >
+                <td>
                   <select id="task_id" v-model="task1">
                     <option v-for="(task, index) in tmpTask1" :key="index" :value="task" v-on:click="removeTmpTask2()">{{task}}</option>
                   </select>
@@ -164,7 +168,7 @@
                   <button type="button" v-on:click="addPrecedence()" class="addBtn">Add</button>
                 </td>
               </tr>
-              <tr v-for="(precedence, index) in precedences" :key="index">
+              <tr id="precedences" class="collapse show" v-for="(precedence, index) in precedences" :key="index">
                 <td>
                     {{precedence.task1}}
                 </td>
@@ -179,8 +183,8 @@
           </div>
           <div class="col-"><!--PROCTIMES-->
             <table>
-              <th>
-                Proctimes
+              <th colspan="3" type="button" data-toggle="collapse" data-target="#proctimes" v-on:click="changeArrowImg_proctimes()">
+                Proctimes ({{proctimesLength}}) <img :src="arrowImg_proctimes">
               </th>
               <tr>
                 <td class="title">
@@ -193,10 +197,10 @@
                   Proctime
                 </td>
               </tr>
-              <tr>
+              <tr id="proctimes" class="collapse show">
                 <td>
                   <select id="task_id" v-model="proctime_task">
-                    <option v-for="(task, index) in tasks" :key="index" :value="task">{{task}}</option>
+                    <option v-for="(task, index) in onlyTasks" :key="index" :value="task">{{task}}</option>
                   </select>
                 </td>
                 <td>
@@ -215,7 +219,7 @@
                   </form>
                 </td>
               </tr>
-              <tr v-for="(proctime, index) in proctimes" :key="index">
+              <tr id="proctimes" class="collapse show" v-for="(proctime, index) in proctimes" :key="index">
                 <td>
                     {{proctime.task}}
                 </td>
@@ -231,13 +235,19 @@
               </tr>
             </table>
           </div>
+        </div>
+        <div class="row">
           <div id="recipieGraph" class="col-"></div>
         </div>
-      <div>{{warningTxt}}</div>
+      <!--<div>{{warningTxt}}</div>-->
       </div>
       <div id="SchedGraphBuilder" v-if="!seenForms">
         <div class="row">
-          <div class="radio-btn-group col-">
+          <div class="UIS_NIS_btns col-">
+            <button type="button" class="btn" v-bind:class="{ 'btn-outline-info': uisNisChk, 'btn-info': !uisNisChk }" v-on:click="uisNisSwitch()">UIS</button>
+            <button type="button" class="btn" v-bind:class="{ 'btn-outline-info': !uisNisChk, 'btn-info': uisNisChk}" v-on:click="uisNisSwitch()">NIS</button>
+          </div>
+          <!--<div class="radio-btn-group btn-dark col-">
             <div class="radio">
               <input type="radio" name="radio" value="UIS" uisNisChk="uisNisChk" v-model="uisNisChk" id="uis" v-on:click="uisNisSwitch()"/>
               <label for="uis">UIS</label>
@@ -246,14 +256,14 @@
               <input type="radio" name="radio" value="NIS" v-model="uisNisChk" id="nis" v-on:click="uisNisSwitch()"/>
               <label for="nis">NIS</label>
             </div>
-          </div>
+          </div>-->
         </div>
 
         <div class="col- dragAndDrop">        
           <div v-for="(item, index) in tasksToEq" :key="index">
             <div v-drag-and-drop:options="options">
                 <ul class="schedTable">
-                  <div style="background: rgb(94, 94, 94); color: white; text-align: center;  font-weight: bold"><span>{{item.eq}}</span></div>
+                  <div style="background: rgb(94, 94, 94); color: white; text-align: center; font-weight: bold; padding-bottom:3px"><span>{{item.eq}}</span></div>
                   <li v-for="(item, index) in item.tasks" :key="index">
                     <span>{{item}}</span>
                   </li>
@@ -262,11 +272,53 @@
           </div>
         </div>
 
+        <div v-if="!circle" class="col- longestPathProperties">
+            <table>
+              <th colspan="2">
+                Longest path
+              </th>
+              <tr>
+                <td class="title">
+                  Start task
+                </td>
+                <td style="font-weight: bold"> 
+                  {{longestPathStartTask}}
+                </td>
+              </tr>
+              <tr>
+                <td class="title">
+                    End product
+                </td>
+                <td style="font-weight: bold"> 
+                  {{longestPathEndTask}}
+                </td>
+              </tr>
+              <tr>
+                <td class="title">
+                    Time
+                </td>
+                <td style="font-weight: bold"> 
+                  {{longestPathTime}}
+                </td>
+              </tr>
+            </table>
+          </div>
+          <div v-if="circle" class="col- longestPathProperties">
+            <table>
+              <th>
+                Circle
+              </th>
+            </table>
+          </div>
+        
+
         <div id="schedGraph"></div>
+
+       
       </div>
-      <button type="button" class="switchBtn" v-on:click="switchForms()">Switch</button>
     </div>
+    <button type="button" class="switchBtn" v-on:click="switchForms()"  style="float:left">Switch</button>
   </div>
 </body>
-<script src="RecipeBuilder.js"></script>
+<script src="js/RecipeBuilder.js"></script>
 </html>
