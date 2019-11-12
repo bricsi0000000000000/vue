@@ -7,791 +7,571 @@ var schedGraphBuilder = new Vue({
         schedTasksArray:[], 
         lastInCol:[],
         allEdges:[], //task1, task2
+        //longestPathD:[], //task1, task2
         longestPath:[], //task1, task2
         circleTaskPairs: [], //task1, task2
+        gantt: [], //eq, tasks -> task, start_time, end_time
       }
   },
   methods:{
-    makeGantDiagram(){
-      console.clear();
+    getProctime(task){
+      proctime = -1;
+      recipieBuilder.proctimes.forEach(p =>{
+        if(p.task === task){
+          proctime = p.proctime;
+        }
+      });
+      return proctime;
+    },
+    getTask2DijkstraTime(iterations, task2){
+      time = -1;
+      iterations.forEach(i =>{
+        if(i.task === task2){
+          time = i.time;
+        }
+      });
+      return time;
+    },
+    getEquipment(task){
+      equipment = "";
+      recipieBuilder.taskEquipment.forEach(eq => { //task, eqs
+        if(eq.task === task){
+          equipment = eq.eqs[0];
+        }
+      });
+
+      return equipment;
+    },
+    dijkstra(){
+      this.circleCheck();
       if(!recipieBuilder.circle){
+        
+        longest_path_times = []; //product, time
+        recipieBuilder.products.forEach(p => {
+          longest_path_times.push({product: p, time: this.getLongestPath(p, +0)});
+        });
 
-      /*  console.log("--precedences---");
-        //UIS
-        for(i = 0; i < recipieBuilder.precedences.length; i++){ //task1, task2
-          console.log(recipieBuilder.precedences[i].task1 + " " + recipieBuilder.precedences[i].task2);
-        }
-*/
-      /*  console.log("--tasksToEq---");
-        for(i = 0; i < recipieBuilder.tasksToEq.length; i++){ //eq, tasks
-          console.log(recipieBuilder.tasksToEq[i].eq + " " + recipieBuilder.tasksToEq[i].tasks);
-        }
-
-       /* console.log("--proctimes---");
-        for(i = 0; i < recipieBuilder.proctimes.length; i++){ //task, eq, proctime
-          console.log(recipieBuilder.proctimes[i].task + " " + recipieBuilder.proctimes[i].eq + " " + recipieBuilder.proctimes[i].proctime);
-        }*/
-      //  console.log("----------------------");
-
-    
-       /* act_tasks = []; //eq, tasks -> task, proctime
-
-        for(i = 0; i < recipieBuilder.tasksToEq.length; i++){ //eq, tasks
-          cur_eq = recipieBuilder.tasksToEq[i].eq;
-          tasks = []; //task, proctime
-          for(j = 0; j < recipieBuilder.tasksToEq[i].tasks.length; j++){
-            cur_task = recipieBuilder.tasksToEq[i].tasks[j];
-
-            yes = false;
-            for(u = 0; u < act_tasks.length && yes; u++){ //eq, task, proctime
-              if(cur_task === act_tasks[u].task){
-                yes = true;
-              }
-            }
-            if(!yes){
-              cur_proctime = -1;
-              for(u = 0; u < recipieBuilder.proctimes.length && cur_proctime === -1; u++){ //task, eq, proctime
-                if(cur_task === recipieBuilder.proctimes[u].task){
-                  cur_proctime = recipieBuilder.proctimes[u].proctime;
-                }
-              }
-            
-              tasks.push({task: cur_task, proctime: cur_proctime});
-            }
+        max_time = -1;
+        max_product = "";
+        longest_path_times.forEach(l => {
+          if(l.time > max_time){
+            max_time = l.time;
+            max_product = l.product;
           }
+        });
+        recipieBuilder.longestPathTime = max_time;
+        recipieBuilder.ganttWidth = max_time * 40 + 41;
 
-          act_tasks.push({eq: cur_eq, tasks: tasks});
-        }
-
-        console.log("-----act_tasks---");
-        for(i = 0; i < act_tasks.length; i++){ //eq, tasks -> task, proctime
-          console.log(act_tasks[i].eq);
-          for(j = 0; j < act_tasks[i].tasks.length; j++){ 
-            console.log(act_tasks[i].tasks[j].task + " " + act_tasks[i].tasks[j].proctime);
-          }
-        }
-
-        console.log("--------");
-
-        recipieBuilder.gant = []; //eq; tasks -> task, proctime, endTime(meddig)
-
-        //ALAPHELYZET AZ ELSŐ PRODUCTAL
-       // for(act_product_index = 0; act_product_index < recipieBuilder.products.length; act_product_index++){ 
-         // cur_product = recipieBuilder.products[act_product_index];
-        for(i = 0; i < act_tasks.length; i++){ //eq, tasks -> task, proctime
-          cur_eq = act_tasks[i].eq;
-
-          for(j = 0; j < act_tasks[i].tasks.length; j++){
-            cur_task = act_tasks[i].tasks[j].task;
-            cur_proctime = act_tasks[i].tasks[j].proctime;
-
-            //console.log("cur_task: " + cur_task);
-
-            first_product = false;
-            for(u = 0; u < recipieBuilder.tasksAndProducts.length && !first_product; u++){ //name, product
-              if(cur_task === recipieBuilder.tasksAndProducts[u].name){
-                if(recipieBuilder.tasksAndProducts[u].product === recipieBuilder.products[0]){
-                  first_product = true;
-                }
-              }
-            }
-
-            prev_task = "";
-
-            start_task = true;
-            for(u = 0; u < recipieBuilder.precedences.length && start_task; u++){ //task1, task2
-              if(cur_task === recipieBuilder.precedences[u].task2){
-                start_task = false;
-                prev_task = recipieBuilder.precedences[u].task1;
-              }
-            }
-
-            // console.log("prev_task: " + prev_task);
-
-            if(first_product){
-              if(start_task){
-                tasks = [];
-                tasks.push({task: cur_task, proctime: cur_proctime, endTime: cur_proctime});
-                recipieBuilder.gant.push({eq: cur_eq, tasks: tasks});
-              }
-              else{
-                tasks = [];
-
-                current_row_proctime = +0;
-                for(u = 0; u < recipieBuilder.gant.length; u++){ //eq; tasks -> task, proctime, endTime(meddig)
-                  for(z = 0; z < recipieBuilder.gant[u].tasks.length; z++){ //task, proctime, endTime(meddig)
-                    if(prev_task === recipieBuilder.gant[u].tasks[z].task){
-                      current_row_proctime += +recipieBuilder.gant[u].tasks[z].endTime;
-                      tasks.push({task: "üres", proctime: current_row_proctime, endTime: current_row_proctime + cur_proctime});
-                      current_row_proctime += +cur_proctime;
-                    }
-                  }
-                }
-
-                tasks.push({task: cur_task, proctime: cur_proctime, endTime: current_row_proctime});
-                recipieBuilder.gant.push({eq: cur_eq, tasks: tasks});
-              }
-            }
-          }
-        }
-        //}
-
-        console.log("----------recipieBuilder.gant------------");
-        for(i = 0; i < recipieBuilder.gant.length; i++){ //eq; tasks -> task, proctime, endTime(meddig)
-          console.log(recipieBuilder.gant[i].eq);
-          for(j = 0; j < recipieBuilder.gant[i].tasks.length; j++){ //eq; tasks -> task, proctime, endTime(meddig)
-            console.log(recipieBuilder.gant[i].tasks[j].task + " " + recipieBuilder.gant[i].tasks[j].proctime + " " + recipieBuilder.gant[i].tasks[j].endTime);
-          }
-        }
-        console.log("----------------------");
-
-        recipieBuilder.gant = []; //eq; tasks -> task, proctime, endTime(meddig)
-
-        //ALAPHELYZET AZ ELSŐ PRODUCTAL
-       // for(act_product_index = 0; act_product_index < recipieBuilder.products.length; act_product_index++){ 
-         // cur_product = recipieBuilder.products[act_product_index];
-        for(i = 0; i < act_tasks.length; i++){ //eq, tasks -> task, proctime
-          cur_eq = act_tasks[i].eq;
-
-          for(j = 0; j < act_tasks[i].tasks.length; j++){
-            cur_task = act_tasks[i].tasks[j].task;
-            cur_proctime = act_tasks[i].tasks[j].proctime;
-
-            //console.log("cur_task: " + cur_task);
-
-            first_product = false;
-            for(u = 0; u < recipieBuilder.tasksAndProducts.length && !first_product; u++){ //name, product
-              if(cur_task === recipieBuilder.tasksAndProducts[u].name){
-                if(recipieBuilder.tasksAndProducts[u].product === recipieBuilder.products[0]){
-                  first_product = true;
-                }
-              }
-            }
-
-            prev_task = "";
-
-            start_task = true;
-            for(u = 0; u < recipieBuilder.precedences.length && start_task; u++){ //task1, task2
-              if(cur_task === recipieBuilder.precedences[u].task2){
-                start_task = false;
-                prev_task = recipieBuilder.precedences[u].task1;
-              }
-            }
-
-            // console.log("prev_task: " + prev_task);
-
-            if(first_product){
-              if(start_task){
-                tasks = [];
-                tasks.push({task: cur_task, proctime: cur_proctime, endTime: cur_proctime});
-                recipieBuilder.gant.push({eq: cur_eq, tasks: tasks});
-              }
-              else{
-                tasks = [];
-
-                current_row_proctime = +0;
-                for(u = 0; u < recipieBuilder.gant.length; u++){ //eq; tasks -> task, proctime, endTime(meddig)
-                  for(z = 0; z < recipieBuilder.gant[u].tasks.length; z++){ //task, proctime, endTime(meddig)
-                    if(prev_task === recipieBuilder.gant[u].tasks[z].task){
-                      current_row_proctime += +recipieBuilder.gant[u].tasks[z].endTime;
-                      tasks.push({task: "üres", proctime: current_row_proctime, endTime: current_row_proctime + cur_proctime});
-                      current_row_proctime += +cur_proctime;
-                    }
-                  }
-                }
-
-                tasks.push({task: cur_task, proctime: cur_proctime, endTime: current_row_proctime});
-                recipieBuilder.gant.push({eq: cur_eq, tasks: tasks});
-              }
-            }
-          }
-        }
-        //}
-
-        console.log("----------recipieBuilder.gant------------");
-        for(i = 0; i < recipieBuilder.gant.length; i++){ //eq; tasks -> task, proctime, endTime(meddig)
-          console.log(recipieBuilder.gant[i].eq);
-          for(j = 0; j < recipieBuilder.gant[i].tasks.length; j++){ //eq; tasks -> task, proctime, endTime(meddig)
-            console.log(recipieBuilder.gant[i].tasks[j].task + " " + recipieBuilder.gant[i].tasks[j].proctime + " " + recipieBuilder.gant[i].tasks[j].endTime);
-          }
-        }
-        console.log("----------------------");*/
-        //A TÖBBI PRODUCT TASZKJAIT HELYRE RAKNI
-       /* new_gantt = [];
-
-        for(i = 0; i < recipieBuilder.gant.length; i++){ //eq; tasks -> task, proctime, endTime(meddig)
-          for(j = 0; j < recipieBuilder.gant[i].tasks.length; j++){ //task, proctime, endTime(meddig)
-
-          }
-        }*/
-
-        /*for(i = 0; i < act_tasks.length; i++){ //eq, tasks -> task, proctime
-          cur_eq = act_tasks[i].eq;
-          tasks = []; //task, proctime, endTime
-
-          for(j = 0; j < act_tasks[i].tasks.length; j++){
-            cur_task = act_tasks[i].tasks[j].task;
-            cur_proctime = act_tasks[i].tasks[j].proctime;
-
-            cur_product = "";
-            for(u = 0; u < recipieBuilder.tasksAndProducts.length && cur_product === ""; u++){ //name, product
-              if(cur_task === recipieBuilder.tasksAndProducts[u].name){
-                cur_product = recipieBuilder.tasksAndProducts[u].product;
-              }
-            }
-
-            prev_task = "";
-            start_task = true;
-            for(r = 0; r < recipieBuilder.precedences.length && start_task; r++){ //task1, task2
-              if(cur_task === recipieBuilder.precedences[r].task2){
-                start_task = false;
-                prev_task = recipieBuilder.precedences[r].task1;
-              }
-            }
-
-            current_row_proctime = +0;
-            for(u = 0; u < recipieBuilder.gant.length; u++){ //eq; tasks -> task, proctime, endTime(meddig)
-              for(z = 0; z < recipieBuilder.gant[u].tasks.length; z++){ //task, proctime, endTime(meddig)
-                if(prev_task === recipieBuilder.gant[u].tasks[z].task){
-                  current_row_proctime = +recipieBuilder.gant[u].tasks[z].endTime;
-                }
-              }
-            }
-
-            if(cur_product === recipieBuilder.products[0]){
-              console.log("cur_task: " + cur_task);
-              tasks.push({task: cur_task, proctime: cur_proctime, endTime: current_row_proctime});
-            }
-            else{
-              /*current_row_proctime += +cur_proctime;
-
-              if(start_task){
-                tasks.push({task: cur_task, proctime: cur_proctime, endTime: current_row_proctime});
-              }
-              else{
-
-              }*/
-
-             /* prev_gantt_task = "";
-              for(u = 0; u < recipieBuilder.tasksToEq.length; u++){ //eq, tasks
-                for(z = 1; z < recipieBuilder.tasksToEq.length; z++){
-                  if(cur_task === recipieBuilder.tasksToEq[z]){
-                    prev_gantt_task = recipieBuilder.tasksToEq[z - 1];
-                  }
-                }
-              }*/
-
-            /*  console.log("cur_task: " + cur_task + "\tcur_product: " + cur_product + "\tprev_task: " + prev_task + "\tstart_task: " + start_task/* + "\tprev_gantt_task: " + prev_gantt_task*///);
-           // }
-           
-           
-
-            /*if(not_first_product){
-              console.log("cur_task: " + cur_task);
-              prev_gantt_task = "";
-              for(u = 0; u < recipieBuilder.tasksToEq.length; u++){ //eq, tasks
-                for(z = 1; z < recipieBuilder.tasksToEq.length; z++){
-                  if(cur_task === recipieBuilder.tasksToEq[z]){
-                    prev_gantt_task = recipieBuilder.tasksToEq[z - 1];
-                  }
-                }
-              }
-
-              current_row_proctime = +0;
-
-              for(u = 0; u < recipieBuilder.gant.length; u++){ //eq; tasks -> task, proctime, endTime(meddig)
-                for(z = 0; z < recipieBuilder.gant[u].tasks.length; z++){ //task, proctime, endTime(meddig)
-                  if(prev_gantt_task === recipieBuilder.gant[u].tasks[z].task){
-                    current_row_proctime += +recipieBuilder.gant[u].tasks[z].endTime;
-                    tasks.push({task: "üres", proctime: current_row_proctime, endTime: current_row_proctime + cur_proctime});
-                    current_row_proctime += +cur_proctime;
-                  }
-                  else{
-                    tasks.push({task: recipieBuilder.gant[u].tasks[z].task, proctime: recipieBuilder.gant[u].tasks[z].proctime, endTime: recipieBuilder.gant[u].tasks[z].endTime});
-                  }
-                }
-              }
-            }
-            new_gantt.push({eq: cur_eq, tasks: tasks});
-          }*/
-         // new_gantt.push({eq: cur_eq, tasks: tasks});
-
-       // }
-
-        /*recipieBuilder.gant = [];
-        for(u = 0; u < new_gantt.length; u++){ //eq; tasks -> task, proctime, endTime(meddig)
-          recipieBuilder.gant.push({eq: new_gantt[u].eq, tasks: new_gantt[u].tasks});
-        }
-
-        console.log("----------recipieBuilder.gant------------");
-        for(i = 0; i < recipieBuilder.gant.length; i++){ //eq; tasks -> task, proctime, endTime(meddig)
-          console.log(recipieBuilder.gant[i].eq);
-          for(j = 0; j < recipieBuilder.gant[i].tasks.length; j++){ //eq; tasks -> task, proctime, endTime(meddig)
-            console.log(recipieBuilder.gant[i].tasks[j].task + " " + recipieBuilder.gant[i].tasks[j].proctime + " " + recipieBuilder.gant[i].tasks[j].endTime);
-          }
-        }
-        console.log("----------------------");
-*/
-
-
+       /* longest_path_times.forEach(l => {
+          console.log(l.product + " " + l.time);
+        });*/
 
         startTasks = [];
-        for(i = 0; i < recipieBuilder.precedencesWithProducts.length; i++){ //task, product
+        for(i = 0; i < this.allEdges.length; i++){ //task1, task2
           yes = true;
-          for(j = 0; j < recipieBuilder.precedencesWithProducts.length && yes; j++){ //task, product
-            if(recipieBuilder.precedencesWithProducts[i].task === recipieBuilder.precedencesWithProducts[j].product){
+          for(j = 0; j < this.allEdges.length && yes; j++){ //task1, task2
+            if(this.allEdges[i].task1 === this.allEdges[j].task2){
               yes = false;
             }
           }
           if(yes){
-            startTasks.push(recipieBuilder.precedencesWithProducts[i].task);
-          }
-        }
-
-        console.log("--startTasks---");
-        for(i = 0; i < startTasks.length; i++){ 
-          console.log(startTasks[i]);
-        }
-
-        console.log("--precedences---");
-        for(i = 0; i < recipieBuilder.precedences.length; i++){ //task1, task2
-          console.log(recipieBuilder.precedences[i].task1 + " " + recipieBuilder.precedences[i].task2);
-        }
-
-        console.log("--tasksToEq---");
-        for(i = 0; i < recipieBuilder.tasksToEq.length; i++){ //eq, tasks
-          console.log(recipieBuilder.tasksToEq[i].eq + " " + recipieBuilder.tasksToEq[i].tasks);
-        }
-        console.log("----------------------");
-
-        recipieBuilder.gant = []; //eq; tasks -> task, proctime, endTime(meddig)
-
-        for(i = 0; i < recipieBuilder.tasksToEq2.length; i++){ //eq, tasks
-          currentEq = recipieBuilder.tasksToEq2[i].eq;
-          tmpTasks = []; //task, proctime, endTime
-          currentRowEndTime = +0;
-          for(j = 0; j < recipieBuilder.tasksToEq2[i].tasks.length; j++){ 
-            currentTask = recipieBuilder.tasksToEq2[i].tasks[j];
-            
-            start = false;
-            for(u = 0; u < startTasks.length && !start; u++){ 
-              if(startTasks[u] === currentTask){
-                start = true;
+            for(j = 0; j < startTasks.length && yes; j++){
+              if(this.allEdges[i].task1 === startTasks[j]){
+                yes = false;
               }
             }
-
-            proctime = "";
-            for(u = 0; u < recipieBuilder.proctimes.length && proctime === ""; u++){ //task, eq, proctime
-              if(recipieBuilder.proctimes[u].task === currentTask){
-                proctime = recipieBuilder.proctimes[u].proctime;
-              }
-            }
-
-            currentRowEndTime += +proctime;
-
-            prevTask = "";
-            for(precedencesIndex = 0; precedencesIndex < recipieBuilder.precedences.length; precedencesIndex++){ //task1, task2
-              if(recipieBuilder.precedences[precedencesIndex].task2 === currentTask){
-                prevTask = recipieBuilder.precedences[precedencesIndex].task1;
-              }
-            }
-
-            maxProctime = +0;
-            for(gantIndex = 0; gantIndex < recipieBuilder.gant.length; gantIndex++){ //eq; tasks -> task, proctime, endTime
-              for(gantTaskIndex = 0; gantTaskIndex < recipieBuilder.gant[gantIndex].tasks.length; gantTaskIndex++){ //task, proctime, endTime
-                if(prevTask === recipieBuilder.gant[gantIndex].tasks[gantTaskIndex].task){
-                  //console.log("\t\t" + recipieBuilder.gant[gantIndex].tasks[gantTaskIndex].task + " " + recipieBuilder.gant[gantIndex].tasks[gantTaskIndex].endTime);
-                  maxProctime = recipieBuilder.gant[gantIndex].tasks[gantTaskIndex].endTime;
-                  console.log("\t\tcur_task: " + currentTask + "\t\t" + maxProctime + "\t\t" + currentRowEndTime);
-                }
-              }
-            }
-
-            if(start){
-              tmpTasks.push({task: currentTask, proctime: proctime, endTime: currentRowEndTime});
-            }
-            else{
-              if(j === 0){
-                tmpTasks.push({task: "", proctime: maxProctime, endTime: maxProctime});
-                currentRowEndTime += +maxProctime;
-                tmpTasks.push({task: currentTask, proctime: proctime, endTime: currentRowEndTime});
-              }
-              else{
-                tmpTasks.push({task: currentTask, proctime: proctime, endTime: currentRowEndTime});
-              }
+            if(yes){
+              startTasks.push(this.allEdges[i].task1);
             }
           }
-          recipieBuilder.gant.push({eq: currentEq, tasks: tmpTasks});
         }
-      
-        console.log("---gant1---");
-        for(i = 0; i < recipieBuilder.gant.length; i++){ //task, eq
-          console.log(recipieBuilder.gant[i].eq);
-          for(j = 0; j < recipieBuilder.gant[i].tasks.length; j++){ //task, eq
-            console.log("\t" + recipieBuilder.gant[i].tasks[j].task + " " + recipieBuilder.gant[i].tasks[j].proctime + " " + recipieBuilder.gant[i].tasks[j].endTime);
-          }
-        }
-        console.log("-----");
 
+        iterations = []; //task, time, from_task, once
+        //setup
+        recipieBuilder.tasks.forEach(p => {
+          iterations.push({task: p, time: Number.MAX_SAFE_INTEGER, from_task: "", once: false});
+        }); 
+        recipieBuilder.products.forEach(p => {
+          iterations.push({task: p, time: Number.MAX_SAFE_INTEGER, from_task: "", once: false});
+        }); 
 
-//assdfghjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj
-
-        again = true;
-        
-        //while(again)
-        for(ii = 0; ii < 3; ii++)
-        {
-          tmpGant = []; //eq; tasks -> task, proctime, endTime
-
-          for(gantIndex = 0; gantIndex < recipieBuilder.gant.length; gantIndex++){ //eq; tasks -> task, proctime, endTime
-            tmpTasks = []; //task, proctime, endTime
-            currentEq = recipieBuilder.gant[gantIndex].eq;
-            currentRowEndTime = +0;
-
-            for(gantTaskIndex = 0; gantTaskIndex < recipieBuilder.gant[gantIndex].tasks.length; gantTaskIndex++){ //task, proctime, endTime
-              //console.log("index: " + gantTaskIndex);
-              currentTask = recipieBuilder.gant[gantIndex].tasks[gantTaskIndex].task;
-              currentProctime = recipieBuilder.gant[gantIndex].tasks[gantTaskIndex].proctime;
-            
-              console.log("-------------");
-              console.log("current Task: |" + currentTask + "|");
-              start = false;
-              for(u = 0; u < startTasks.length && !start; u++){ 
-                if(startTasks[u] === currentTask){
-                  start = true;
-                }
-              }
-
-              currentRowEndTime += +currentProctime;
-
-              if(!start && gantTaskIndex > 0){
-                prevTasks = [];
-                for(precedencesIndex = 0; precedencesIndex < recipieBuilder.precedences.length; precedencesIndex++){ //task1, task2
-                  if(recipieBuilder.precedences[precedencesIndex].task2 === currentTask){
-                    prevTasks.push(recipieBuilder.precedences[precedencesIndex].task1);
-                  }
-                }
-
-                
-               /*endTime = +0;
-                for(i = 0; i < tmpGant.length; i++){ //eq; tasks -> task, proctime, endTime
-                  for(j = 0; j < tmpGant[i].tasks.length; j++){ //task, proctime, endTime
-                    if(prevTask === tmpGant[i].tasks[j].task){
-                      endTime = +tmpGant[i].tasks[j].endTime;
-                    }
-                  }
-                }
-              // console.log(endTime);
-                if(endTime === +0){
-                  for(i = 0; i < recipieBuilder.gant.length; i++){ //eq; tasks -> task, proctime, endTime
-                    for(j = 0; j < recipieBuilder.gant[i].tasks.length; j++){ //task, proctime, endTime
-                      if(prevTask === recipieBuilder.gant[i].tasks[j].task){
-                        endTime = +recipieBuilder.gant[i].tasks[j].endTime;
-                      }
-                    }
-                  }
-                }*/
-
-                prevGantTask = "";
-
-               /* for(i = 0; i < tmpGant.length; i++){ //eq; tasks -> task, proctime, endTime
-                  for(j = 0; j < tmpGant[i].tasks.length; j++){ //task, proctime, endTime
-                    if(j > 0){
-                      if(currentTask === tmpGant[i].tasks[j].task){
-                        prevGantTask = tmpGant[i].tasks[j - 1].task;
-                        prevGantTaskEndTime = tmpGant[i].tasks[j - 1].endTime;
-                      }
-                    }
-                  }
-                }*/
-              // console.log("prevGantTask1: " + prevGantTask);
-                if(prevGantTask === ""){
-                  for(i = 0; i < recipieBuilder.gant.length; i++){ //eq; tasks -> task, proctime, endTime
-                    for(j = 0; j < recipieBuilder.gant[i].tasks.length; j++){ //task, proctime, endTime
-                      if(j > 0){
-                        if(currentTask === recipieBuilder.gant[i].tasks[j].task){
-                          prevGantTask = recipieBuilder.gant[i].tasks[j - 1].task;
-                        }
-                      }
-                    }
-                  }
-                }
-
-                /*if(prevGantTaskEndTime === ""){
-                  for(i = 0; i < recipieBuilder.gant.length; i++){ //eq; tasks -> task, proctime, endTime
-                    for(j = 0; j < recipieBuilder.gant[i].tasks.length; j++){ //task, proctime, endTime
-                      if(j > 0){
-                        if(currentTask === recipieBuilder.gant[i].tasks[j].task){
-                          prevGantTaskEndTime = recipieBuilder.gant[i].tasks[j - 1].endTime;
-                        }
-                      }
-                    }
-                  }
-                }*/
-              // console.log("prevGantTask2: " + prevGantTask);
-
-
-                currentEndtime = recipieBuilder.gant[gantIndex].tasks[gantTaskIndex].endTime;
-                prevTaskEndTime = "";
-               /* prevGantTaskEndTimes = [];
-
-                for(i = 0; i < tmpGant.length; i++){ //eq; tasks -> task, proctime, endTime
-                  for(j = 0; j < tmpGant[i].tasks.length; j++){ //task, proctime, endTime
-                    if(j > 0){
-                      for(u = 0; u < prevTasks.length; u++){
-                        if(prevTasks[u] === tmpGant[i].tasks[j].task){
-                          prevGantTaskEndTimes.push(tmpGant[i].tasks[j - 1].endTime);
-                        }
-                      }
-                    }
-                  }
-                }
-                if(currentTask === "a4"){
-                  console.log("\t\t\telőtte\tprevGantTaskEndTimes: " + prevGantTaskEndTimes);
-                }
-                if(prevGantTaskEndTimes.length === +0){
-                  for(i = 0; i < recipieBuilder.gant.length; i++){ //eq; tasks -> task, proctime, endTime
-                    for(j = 0; j < recipieBuilder.gant[i].tasks.length; j++){ //task, proctime, endTime
-                      if(j > 0){
-                        for(u = 0; u < prevTasks.length; u++){
-                          if(prevTasks[u] === recipieBuilder.gant[i].tasks[j].task){
-                            prevGantTaskEndTimes.push(recipieBuilder.gant[i].tasks[j - 1].endTime);
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-                if(currentTask === "a4"){
-                  console.log("\t\t\tutána\tprevGantTaskEndTimes: " + prevGantTaskEndTimes);
-                }*/
-
-
-
-                prevGantTaskEndTime = "";
-                for(i = 0; i < tmpGant.length; i++){ //eq; tasks -> task, proctime, endTime
-                  for(j = 0; j < tmpGant[i].tasks.length; j++){ //task, proctime, endTime
-                    if(j > 0){
-                      if(currentTask === tmpGant[i].tasks[j].task){
-                        prevGantTaskEndTime = tmpGant[i].tasks[j - 1].endTime;
-                      }
-                    }
-                  }
-                }
-                if(currentTask === "a4"){
-                  console.log("\t\t\telőtte\tprevGantTaskEndTime: " + prevGantTaskEndTime);
-                }
-                if(prevGantTaskEndTime === ""){
-                  for(i = 0; i < recipieBuilder.gant.length; i++){ //eq; tasks -> task, proctime, endTime
-                    for(j = 0; j < recipieBuilder.gant[i].tasks.length; j++){ //task, proctime, endTime
-                      if(j > 0){
-                        if(currentTask === recipieBuilder.gant[i].tasks[j].task){
-                          prevGantTaskEndTime = recipieBuilder.gant[i].tasks[j - 1].endTime;
-                        }
-                      }
-                    }
-                  }
-                }
-                if(currentTask === "a4"){
-                  console.log("\t\t\tutána\tprevGantTaskEndTime: " + prevGantTaskEndTime);
-                }
-
-
-
-
-
-
-
-                prevProduct = "";
-                currentProduct = "";
-
-                for(i = 0; i < recipieBuilder.tasksAndProducts.length; i++){ //name, product
-                  if(recipieBuilder.tasksAndProducts[i].name === prevTask){
-                    prevProduct = recipieBuilder.tasksAndProducts[i].product;
-                  }
-                  if(recipieBuilder.tasksAndProducts[i].name === currentTask){
-                    currentProduct = recipieBuilder.tasksAndProducts[i].product;
-                  }
-                }
-
-
-                //console.log("currentTask: " + currentTask + "\tprevTask: " + prevTask + "\tprevGantTask: |" + prevGantTask+"|");
-                //console.log("currentProduct: " + currentProduct + "\tprevProduct: " + prevProduct);
-               // console.log("currentEndtime: " + currentEndtime + "\tgantEndTime: " + endTime + "\tcurrentProctime: " + currentProctime);
-              // console.log(/*"endTime: " + endTime +*/// "prevGantTaskEndTime: " + prevGantTaskEndTime);
-              // console.log("currentRowEndTime: " + currentRowEndTime);
-
-                //SORBAN KÉBNE VÉGIGMENNI NEM PEDIG FENTRŐL LE
-
-                //ha ez előtte lévő pl.: a2 -> a3 taszknak az endTime-ja (a2) kisebb mint az akt taszknak a kezdőtime-ja (a3) akkor
-              /* if(prevGantTask === ""){
-                  console.log("---------ÜRES--------");
-                  console.log("currentTask: " + currentTask);
-                  console.log("prevTask: " + prevTask);
-                  console.log("currentEndtime: " + currentEndtime);
-                  console.log("currentProctime: " + currentProctime);
-                  console.log("gantEndTime: " + endTime);
-                  console.log("---------ÜRESVÉGE--------");
-                }
-                else{*/
-                  //if(prevProduct === currentProduct){
-
-               // prevTasks = [];
-                prevGanttTask = "";
-                //prevGanttEndTime = +0;
-                prevEndTimes = [];
-
-                //prevTask
-               /* for(precedencesIndex = 0; precedencesIndex < recipieBuilder.precedences.length; precedencesIndex++){ //task1, task2
-                  if(recipieBuilder.precedences[precedencesIndex].task2 === currentTask){
-                    prevTasks.push(recipieBuilder.precedences[precedencesIndex].task1);
-                  }
-                }*/
-
-                //prevGanttTask
-                for(i = 0; i < tmpGant.length; i++){ //eq; tasks -> task, proctime, endTime
-                  for(j = 0; j < tmpGant[i].tasks.length; j++){ //task, proctime, endTime
-                    if(j > 0){
-                      if(currentTask === tmpGant[i].tasks[j].task){
-                        prevGanttTask = tmpGant[i].tasks[j - 1].task;
-                      }
-                    }
-                  }
-                }
-                if(prevGanttTask === ""){
-                  for(i = 0; i < recipieBuilder.gant.length; i++){ //eq; tasks -> task, proctime, endTime
-                    for(j = 0; j < recipieBuilder.gant[i].tasks.length; j++){ //task, proctime, endTime
-                      if(j > 0){
-                        if(currentTask === recipieBuilder.gant[i].tasks[j].task){
-                          prevGanttTask = recipieBuilder.gant[i].tasks[j - 1].task;
-                        }
-                      }
-                    }
-                  }
-                }
-
-                //prevEndTime
-                for(i = 0; i < tmpGant.length; i++){ //eq; tasks -> task, proctime, endTime
-                  for(j = 0; j < tmpGant[i].tasks.length; j++){ //task, proctime, endTime
-                    for(u = 0; u < prevTasks.length; u++){ 
-                      if(prevTasks[u] === tmpGant[i].tasks[j].task){
-                        prevEndTimes.push(+tmpGant[i].tasks[j].endTime);
-                      }
-                    }
-                    /*if(prevTask === tmpGant[i].tasks[j].task){
-                      prevEndTime = +tmpGant[i].tasks[j].endTime;
-                    }*/
-                  }
-                }
-                if(prevEndTimes.length === +0){
-                  for(i = 0; i < recipieBuilder.gant.length; i++){ //eq; tasks -> task, proctime, endTime
-                    for(j = 0; j < recipieBuilder.gant[i].tasks.length; j++){ //task, proctime, endTime
-                      for(u = 0; u < prevTasks.length; u++){ 
-                        if(prevTasks[u] === recipieBuilder.gant[i].tasks[j].task){
-                          prevEndTimes.push(+ recipieBuilder.gant[i].tasks[j].endTime);
-                        }
-                      }
-                    }
-                  }
-                }
-
-                endTime = -1;
-                for(i = 0; i < prevEndTimes.length; i++){ 
-                  if(prevEndTimes[i] > endTime){
-                    endTime = prevEndTimes[i];
-                  }
-                }
-
-                /*prevGantTaskEndTime = -1;
-                for(i = 0; i < prevGantTaskEndTimes.length; i++){ 
-                  if(prevGantTaskEndTimes[i] > prevGantTaskEndTime){
-                    prevGantTaskEndTime = prevGantTaskEndTimes[i];
-                  }
-                }*/
-
-                console.log("-----------------");
-                console.log("currentTask: " + currentTask);
-                console.log("prevTasks: " + prevTasks);
-                console.log("prevGanttTask: |" + prevGanttTask + "|");
-                //console.log("prevGanttEndTime: " + prevGanttEndTime);
-                console.log("prevEndTimes: " + prevEndTimes);
-                console.log("endTime: " + endTime);
-                console.log("currentRowEndTime: " + currentRowEndTime);
-                console.log("currentProctime: " + currentProctime);
-                console.log("prevGantTaskEndTime: " + prevGantTaskEndTime);
-
-                if(currentTask !== ""){
-                  if((currentRowEndTime - currentProctime) < endTime){
-                    console.log("(currentRowEndTime - currentProctime) < endTime");
-                    
-                    currentRowEndTime += +(endTime - prevGantTaskEndTime);
-                    tmpTasks.push({task: "", proctime: (endTime  - prevGantTaskEndTime) , endTime: currentRowEndTime  - currentProctime});
-                  }
-                  else if (currentEndtime === endTime){
-                    console.log("currentEndtime === endTime");
-                    tmpTasks.push({task: "", proctime: currentProctime, endTime: currentRowEndTime});
-                    currentRowEndTime += currentProctime;
-                  }
-                }
-                tmpTasks.push({task: currentTask, proctime: currentProctime, endTime: currentRowEndTime});
-
-                console.log("-----" + currentEq + "----");
-                  for(i = 0; i < tmpTasks.length; i++){ 
-                    console.log(tmpTasks[i].task + " " + tmpTasks[i].proctime + " " + tmpTasks[i].endTime);
-                  }
-                console.log("---------");
-                //meg kell néznem a sorban az aktuális előtti taszkot, majd ki kell vonni
-                //pl.: a1,b11,b3 -> a1,b11,üres,b3
-
-                //recipieBuilder.gant[gantIndex].tasks[gantTaskIndex].endTime = endTime;
-              }
-              else{
-                //console.log("\telse: " + currentTask + " " + start + " " + currentProctime);
-                tmpTasks.push({task: currentTask, proctime: currentProctime, endTime: currentRowEndTime});
-              }
+        saved_iterations = [];
+        startTasks.forEach(start_task =>{
+          /*iterations.forEach(i => {
+            saved_iterations.push(i);
+          });*/
+          //console.log(start_task);
+          //kezdő taszkot beállítom
+          iterations.forEach(i =>{ //task, time, from_task, once
+            if(i.task === start_task){
+              i.time = +0;
             }
+          });
 
-            // EGY KÜLÖN TÖMBE KELL RAKNI MERT VÉGTELEN CIKLUS
-            tmpGant.push({eq: currentEq, tasks: tmpTasks});
-          }
-
+          go = false;
+          k = 0;
+          do{
+            k++;
           
-          if(tmpGant.length === recipieBuilder.gant){
-            again = false;
+            changes = []; //iterations
+            iterations.forEach(i =>{ //task, time, from_task, once
+              approximate = "";
+              min_time = Number.MAX_SAFE_INTEGER;
+              iterations.forEach(j => {
+                if(!j.once){
+                  if(j.time < min_time){
+                    min_time = j.time;
+                    approximate = j;
+                  }
+                }
+              });
+              this.allEdges.forEach(edge =>{ //task1, task2
+                if(approximate.task === edge.task1){
+                  tmp_time = (approximate.time + -this.getProctime(approximate.task));
+                  if (tmp_time < this.getTask2DijkstraTime(iterations, edge.task2)) {
+                    changes.push({task: edge.task2, time: tmp_time, from_task: approximate.task, once: false});
+                  }
+                }
+              });
+              
+              changes.push({task: approximate.task, time: approximate.time, from_task: approximate.from_task, once: true});
+
+              changes.forEach(c =>{
+                iterations.forEach(i =>{
+                  if(c.task === i.task){
+                    i.time = c.time;
+                    i.from_task = c.from_task;
+                    i.once = c.once;
+                  }
+                });
+              });
+            });
+
+            go = false;
+            iterations.forEach(i => {
+              longest_path_times.forEach(l => {
+                if(i.task === l.product){
+                //  console.log(i.task + " " + -i.time + " | " + l.product + " " + l.time);
+                  if(-i.time !== l.time){
+                    go = true;
+                  }
+                }
+              });
+            });
+
+          // console.log(go + " " + k);
           }
-          console.log(ii);
-          console.log("--tmpGant---");
-          for(i = 0; i < tmpGant.length; i++){ //task, eq
-            console.log(tmpGant[i].eq);
-            for(j = 0; j < tmpGant[i].tasks.length; j++){ //task, eq
-              console.log("\t" + tmpGant[i].tasks[j].task + " " + tmpGant[i].tasks[j].proctime + " " + tmpGant[i].tasks[j].endTime);
+          while(k < 3);
+
+          max_time = 0;
+          max_product = "";
+
+          iterations.forEach(i => {
+            if(max_time > i.time){
+              max_time = i.time;
+              max_product = i;
+            }
+          });
+
+          saved_max_time = 0;
+          saved_max_product = "";
+
+          saved_iterations.forEach(i => {
+            if(saved_max_time > i.time){
+              saved_max_time = i.time;
+              saved_max_product = i;
+            }
+          });
+
+          if(saved_max_time < max_time){
+            saved_iterations = [];
+            iterations.forEach(i => {
+              saved_iterations.push(i);
+            });
+          }
+        });
+
+
+        task_pairs = []; //task1, task2
+        iterations.forEach(i => {
+          if(i.from_task !== ""){
+            task_pairs.push({task1: i.from_task, task2: i.task});
+          }
+        });
+
+        tmp_tasks = [];
+        tmp_tasks1 = [];
+        prev_tasks = []; //task1, task2
+        go = true;
+        do{
+          tmp_tasks = [];
+          task_pairs.forEach(i => { //task1, task2
+            add = true;
+            startTasks.forEach(s => {
+              if(i.task1 === s){
+                add = false;
+                tmp_tasks.push(i);
+              }
+            });
+
+            if(add){
+              add = false;
+              task_pairs.forEach(j => {
+                if(i.task1 === j.task2){
+                  add = true;
+                }
+              });
+
+              if(add){
+                tmp_tasks.push(i);
+              }
+            }
+          });
+
+          tmp_tasks1 = []; //task1, task2
+          tmp_tasks.forEach(i => { //task1, task2
+            add = true;
+            if(i.task2 === max_product.task){
+              add = false;
+              tmp_tasks1.push(i);
+            }
+
+            if(add){
+              add = false;
+              tmp_tasks.forEach(j => {
+                if(i.task2 === j.task1){
+                  add = true;
+                }
+              });
+
+              if(add){
+                tmp_tasks1.push(i);
+              }
+            }
+          });
+
+          task_pairs = []; //task1, task2
+          tmp_tasks1.forEach(t => {
+            task_pairs.push(t);
+          });
+
+          if(prev_tasks.length === tmp_tasks1.length){
+            go = false;
+          }
+
+          prev_tasks = [];
+          tmp_tasks1.forEach(t => {
+            prev_tasks.push(t);
+          });
+        }
+        while(go);
+
+        this.longestPath = []; //task1, task2
+        prev_tasks.forEach(i => {
+          this.longestPath.push(i);
+        });
+
+        /*this.longestPath.forEach(l => {
+          console.log(l.task1 + " " +  this.getLongestPath(l.task1, +0) + " | " + l.task2 + " " + this.getLongestPath(l.task2, +0));
+        });*/
+      }
+
+      this.longestPath.forEach(l =>{
+        startTasks.forEach(s =>{
+          if(l.task1 === s){
+            recipieBuilder.longestPathStartTask = s;
+          }
+        });
+      });
+      recipieBuilder.longestPathEndTask = max_product.task;
+
+      this.drawLongestPath();
+    },
+    getLongestPath(task, max){
+      prev_tasks = []; //task, n
+      this.schedPrecedencesWithProducts.forEach(element =>{ //task, product
+        if(task === element.product){
+          prev_tasks.push({task: element.task, n: +0});
+        }
+      });
+  
+      recipieBuilder.proctimes.forEach(p =>{
+        prev_tasks.forEach(element =>{
+          if(element.task === p.task){
+            element.n = p.proctime;
+          }
+        });
+      });
+
+      prev_tasks.forEach(element => {
+        longest_path_hier = this.getLongestPath(element.task, +0) + +element.n;
+        if(longest_path_hier > max){
+          max = longest_path_hier;
+        //  max_task = element.task;
+        }
+      });
+      //this.longestPath.push(max_task);
+    
+      return max;
+    },
+    drawLongestPath(){
+      this.circleCheck();
+      if(!recipieBuilder.circle){
+        schedText = "";
+        text = this.schedGraphTxt.split("@");
+        
+        for(i = 0; i < text.length; i++){ 
+          if(i % 2 === 0){
+            schedText += text[i];
+          }
+          else{
+            tempTasks = text[i].split(";");
+           // console.log(tempTasks[0] + " " + tempTasks[1]);
+            for(j = 0; j < this.longestPath.length; j++){ //task1, task2
+              if(tempTasks[0] === this.longestPath[j].task1 && tempTasks[1] === this.longestPath[j].task2){
+                schedText += "5";
+              }
             }
           }
-          console.log(tmpGant.length);
-          console.log("-----");
-  
-          recipieBuilder.gant = [];
-          for(i = 0; i < tmpGant.length; i++){ //task, eq
-            recipieBuilder.gant.push({eq: tmpGant[i].eq, tasks: tmpGant[i].tasks});
+        }
+       // console.log(schedText);
+      }
+      else{
+        schedText = "";
+        text = this.schedGraphTxt.split("@");
+        for(i = 0; i < text.length; i++){ 
+          if(i % 2 === 0){
+            schedText += text[i];
           }
-  
-          console.log("--gant---");
-          for(i = 0; i < recipieBuilder.gant.length; i++){ //task, eq
-            console.log(recipieBuilder.gant[i].eq);
-            for(j = 0; j < recipieBuilder.gant[i].tasks.length; j++){ //task, eq
-              console.log("\t" + recipieBuilder.gant[i].tasks[j].task + " " + recipieBuilder.gant[i].tasks[j].proctime + " " + recipieBuilder.gant[i].tasks[j].endTime);
+          else{
+            tempTasks = text[i].split(";");
+            for(j = 0; j < this.circleTaskPairs.length; j++){ //task1, task2
+              if(tempTasks[0] === this.circleTaskPairs[j].task1 && tempTasks[1] === this.circleTaskPairs[j].task2){
+                schedText += "5";
+              }
             }
           }
-          console.log(recipieBuilder.gant.length);
-          console.log("-----");
+        }
+      }
+
+      var viz = new Viz();
+      viz.renderSVGElement(schedText)
+      .then(function(element) {
+        document.getElementById('schedGraph').innerHTML="";
+        document.getElementById('schedGraph').appendChild(element);
+      })
+      .catch(error => {
+        viz = new Viz();
+        console.error(error);
+      });
+    },
+    async makeGantDiagram(){
+      if(!recipieBuilder.circle){
+        this.gantt = [];
+        recipieBuilder.equipments.forEach(equipment => {
+          this.gantt.push({eq: equipment, tasks: []});
+        });
+
+       /* this.longestPath.forEach(l => {
+          console.log(l.task1 + " " + l.task2);
+        });*/
+
+        add_task = "";
+
+        //kezdő taszkokat lerakom
+        this.longestPath.forEach(path => {
+          if(this.getLongestPath(path.task1, +0) === +0){
+            act_eq = this.getEquipment(path.task1);
+            this.gantt.forEach(g => {
+              if(g.eq === act_eq){
+                add_task = {task: path.task1, start_time: +0, end_time: this.getProctime(path.task1)};
+                g.tasks.push(add_task);
+              }
+            });
+          }
+        });
+
+        /*console.log("kezdő taszkok");
+        this.gantt.forEach(g => {
+          console.log(g.eq);
+          g.tasks.forEach(t => {
+            console.log("\t" + t.task + " " + t.start_time + " " + t.end_time);
+          });
+        });*/
+
+        
+        prev_gantt = [];
+        go = true;
+        r = 0;
+        do{
+          r++;
+          //console.log("eltőte: add_task: " + add_task.task);
+
+          added = false;
+          for(i = 0; i < this.longestPath.length && !added; i++){
+            if(this.longestPath[i].task1 === add_task.task){
+              add_task = {task: this.longestPath[i].task2, start_time: add_task.end_time, end_time: (+add_task.end_time + +this.getProctime(this.longestPath[i].task2))};
+              added = true;
+            }
+          }
+        // add_empty = "";
+        // add_empty_eq = "";
+         // this.gantt.forEach(g => {
+           // g.tasks.forEach(task => {
+              /*this.longestPath.forEach(l => {
+                if(l.task1 === add_task.task){
+                  console.log(l.task1 + " " + add_task.task + " " + l.task2);
+                  start_time = +this.getLongestPath(l.task2, +0);
+                 //if(start_time === +task.end_time){
+                  add_task = {task: l.task2, start_time: add_task.end_time, end_time: (+add_task.end_time + +this.getProctime(l.task2))};
+                  //}
+                  /*else{
+                    add_empty = {task: "", start_time: +task.end_time, end_time: (start_time - +task.end_time)};
+                    add_task = {task: l.task2, start_time: (start_time - +task.end_time), end_time: ((start_time - +task.end_time) + +this.getProctime(l.task2))};
+                  }*/
+               /* }
+              });*/
+            //});
+          //});
+
+          //console.log("utána: add_task: " + add_task.task);
+
+          this.gantt.forEach(g => {
+            act_eq = this.getEquipment(add_task.task);
+            if(act_eq === g.eq){
+              /*if(add_empty !== ""){
+                g.tasks.push(add_empty);
+              }*/
+              add = true;
+              g.tasks.forEach(t =>{
+                if(t.task === add_task.task){
+                  add = false;
+                }
+              });
+              if(add){
+                g.tasks.push(add_task);
+              }
+            }
+          });
+
+         /* console.log("------------");
+          this.gantt.forEach(g => {
+            console.log(g.eq);
+            g.tasks.forEach(t => {
+              console.log("\t" + t.task + " " + t.start_time + " " + t.end_time);
+            });
+          });
+          console.log("------------");
+          go = false;
+          this.gantt.forEach(g => {
+            prev_gantt.forEach(p =>{
+              if(g.tasks.length !== p.tasks.length){
+                go = true;
+              }
+            });
+          });*/
+
+          prev_gantt = [];
+          this.gantt.forEach(g => {
+            prev_gantt.push(g);
+          });
+
+        /* prev_gantt.forEach(p => {
+            console.log("\t" + p.eq + " " + p.tasks.length);
+          });*/
 
         }
-        //fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+        while(r < 10);
 
-       // console.log("----------------------");
-      
-      
-     
+        
+
+        color = "black";
+        x = 0;
+        y = 0;
+        width = 0;
+        const height = 40;
+        font_size = 15;
+        font_family = "Verdana";
+        
+        width_unit = 40;
+        y_unit = height;
+
+        text_x = 10;
+        text_y = -15;
+
+        document.getElementById("ganttDiagram").innerHTML = "";
+        svgNS = "http://www.w3.org/2000/svg";  
+        for(i = 0; i < this.gantt.length; i++){
+          width = 40;
+          y = y_unit * i;
+          color = "black";
+          
+          rect = document.createElementNS(svgNS,"rect");
+          rect.setAttributeNS(null,"x",x);
+          rect.setAttributeNS(null,"y",y);
+          rect.setAttributeNS(null,"width",width);
+          rect.setAttributeNS(null,"height", height);
+          rect.setAttributeNS(null,"fill",color);
+          rect.setAttributeNS(null,"stroke", "black");
+          rect.setAttributeNS(null,"stroke-width", "2px");
+          document.getElementById("ganttDiagram").appendChild(rect);
+
+          text_y += 40;
+          color = "white";
+          txt = document.createElementNS(svgNS,"text");
+          txt.setAttributeNS(null,"x",text_x);
+          txt.setAttributeNS(null,"y",text_y);
+          txt.setAttributeNS(null,"font-family",font_family);
+          txt.setAttributeNS(null,"font-size", font_size);
+          txt.setAttributeNS(null,"fill",color);
+          text_node = document.createTextNode(this.gantt[i].eq);
+          txt.appendChild(text_node);
+          document.getElementById("ganttDiagram").appendChild(txt);
+        }
+
+        x = +40;
+        text_y = -15;
+        for(j = 0; j < this.gantt.length; j++){
+          for(i = 0; i < this.gantt[j].tasks.length; i++){
+            width = (this.gantt[j].tasks[i].end_time - this.gantt[j].tasks[i].start_time) * width_unit;
+            y =  y_unit * j;
+            x = 40 + this.gantt[j].tasks[i].start_time * 40;
+            color = "grey";
+
+            rect = document.createElementNS(svgNS,"rect");
+            rect.setAttributeNS(null,"x",x);
+            rect.setAttributeNS(null,"y",y);
+            rect.setAttributeNS(null,"width",width);
+            rect.setAttributeNS(null,"height", height);
+            rect.setAttributeNS(null,"fill",color);
+            rect.setAttributeNS(null,"stroke", "black");
+            rect.setAttributeNS(null,"stroke-width", "2px");
+            document.getElementById("ganttDiagram").appendChild(rect);
+          
+            text_y = y + 25;
+            text_x = x + 10;
+            color = "white";
+            txt = document.createElementNS(svgNS,"text");
+            txt.setAttributeNS(null,"x",text_x);
+            txt.setAttributeNS(null,"y",text_y);
+            txt.setAttributeNS(null,"font-family",font_family);
+            txt.setAttributeNS(null,"font-size", font_size);
+            txt.setAttributeNS(null,"fill",color);
+            text_node = document.createTextNode(this.gantt[j].tasks[i].task);
+            txt.appendChild(text_node);
+            document.getElementById("ganttDiagram").appendChild(txt);
+          }
+        }
+
+        /*this.gantt.forEach(g => {
+          console.log(g.eq);
+          g.tasks.forEach(t => {
+            console.log("\t" + t.task + " " + t.start_time + " " + t.end_time);
+          });
+        });*/
+      }
+      else{
+        document.getElementById("ganttDiagram").innerHTML = "";
       }
     },
     getTasks(first){
@@ -860,7 +640,7 @@ var schedGraphBuilder = new Vue({
   
        //this.lastInCol.push(tasks[tasks.length-1]);
   
-      /* console.log("-----------");
+       /*console.log("-----schedTasksArray-----");
        for(i=0; i< this.schedTasksArray.length; i++){ 
         console.log(this.schedTasksArray[i].task);
        }*/
@@ -869,39 +649,30 @@ var schedGraphBuilder = new Vue({
        }*/
   
        if(recipieBuilder.uisNisChk){
-        this.schedGraphTxtOut(true,false);
+        this.waitForIt(true,false);
        }
        else{
-        this.schedGraphTxtOut(true,true);
+        this.waitForIt(true,true);
        }
     },
     makeSchedPrecedencesWithProducts(){
-    this.schedPrecedencesWithProducts=[];
-    for(i=0; i< this.schedTasks.length; i++){ //task
-      for(j=0; j< recipieBuilder.precedencesWithProducts.length; j++){  //task, product
-        if(this.schedTasks[i].task === recipieBuilder.precedencesWithProducts[j].task){
-          this.schedPrecedencesWithProducts.push({task: recipieBuilder.precedencesWithProducts[j].task, product: recipieBuilder.precedencesWithProducts[j].product, schedEdge:false});
+      this.schedPrecedencesWithProducts = [];
+      for(i = 0; i < recipieBuilder.precedencesWithProducts.length; i++){  //task, product
+        this.schedPrecedencesWithProducts.push({task: recipieBuilder.precedencesWithProducts[i].task, product: recipieBuilder.precedencesWithProducts[i].product, schedEdge:false});
+      }
+
+      addThese = []; //task1, task2
+      for(i = 0; i < this.schedTasksArray.length - 1; i++){ //task
+        if(this.schedTasksArray[i].task !== "--"){
+          if(this.schedTasksArray[i + 1].task !== "--"){
+            addThese.push({task1: this.schedTasksArray[i].task, task2: this.schedTasksArray[i + 1].task});
+          }
         }
       }
-    }
 
-    addThis=[];
-    for(i = 0; i < this.schedTasks.length - 1; i++){ //task
-      yes = true;
-      for(j = 0; j < this.schedPrecedencesWithProducts.length - 1; j++){ //task, product, schedEdge(true/false)
-        if(this.schedTasks[i].task === this.schedPrecedencesWithProducts[j].task &&
-          this.schedTasks[i + 1].task === this.schedPrecedencesWithProducts[j].product){
-              yes = false;
-          }
+      for(i = 0; i < addThese.length; i++){ //task1, task2
+        this.schedPrecedencesWithProducts.push({task: addThese[i].task1, product: addThese[i].task2, schedEdge:true});
       }
-      if(yes){
-        addThis.push({task: this.schedTasks[i].task, product: this.schedTasks[i + 1].task, schedEdge:true});
-      }
-    }
-
-    for(i=0; i< addThis.length; i++){
-      this.schedPrecedencesWithProducts.push({task: addThis[i].task, product: addThis[i].product, schedEdge: addThis[i].schedEdge});
-    }
     },
     circleCheck(){
       recipieBuilder.circle = false;
@@ -1079,394 +850,7 @@ var schedGraphBuilder = new Vue({
         }
       }
     },
-    getLongestPath(schedGraphText){
-      this.circleCheck();
-  
-      if(!recipieBuilder.circle){
-  
-        /*for(i = 0; i < this.allEdges.length; i++){ //task1, task2
-          console.log(this.allEdges[i].task1 + " " + this.allEdges[i].task2);
-        }*/
-  
-        //megkeresem a kezdő taszkokat
-        startTasks = [];
-        for(i = 0; i < this.allEdges.length; i++){ //task1, task2
-          yes = true;
-          for(j = 0; j < this.allEdges.length && yes; j++){ //task1, task2
-            if(this.allEdges[i].task1 === this.allEdges[j].task2){
-              yes = false;
-            }
-          }
-          if(yes){
-            //csak egyszer rakom bele őket
-            for(j = 0; j < startTasks.length && yes; j++){
-              if(this.allEdges[i].task1 === startTasks[j]){
-                yes = false;
-              }
-            }
-            if(yes){
-              startTasks.push(this.allEdges[i].task1);
-            }
-          }
-        }
-  
-        longestPathTime = Number.MAX_SAFE_INTEGER;
-        longestPathEndTask = "";
-        longestPathStartTask = "";
-        tempLongestPath = []; //task1, task2
-      
-       for(startTaskIndex = 0; startTaskIndex < startTasks.length; startTaskIndex++){
-         
-  
-          startTask = startTasks[startTaskIndex];
-          //beállítom az elejét
-          a = []; //a1-ből a másik 2 taszk ami jön //piramis
-          b = []; //segéd tömb
-          b.push(startTasks[startTaskIndex]);
-          a.push(b);
-          t = startTasks[startTaskIndex];
-  
-          b = [];
-          for(i = 0; i < this.allEdges.length; i++){ //task1, task2
-            if(t === this.allEdges[i].task1){
-              b.push(this.allEdges[i].task2);
-            }
-          }
-          a.push(b);
-  
-          for(i = 0; i < a.length; i++){ 
-            if(a[i].length > 1){
-              b = [];
-              for(j = 0; j < a[i].length; j++){ 
-                for(u = 0; u < this.allEdges.length; u++){ //task1, task2
-                  if(a[i][j] === this.allEdges[u].task1){
-                    b.push(this.allEdges[u].task2);
-                  }
-                }
-              }
-              if(b.length > 1){
-                a.push(b);
-              }
-            }
-          }
-  
-        /*  console.log("---a---");
-          for(i = 0; i < a.length; i++){ 
-            console.log(a[i]);
-          }*/
-  
-          edges = []; //task1, task2, time
-          for(i = 0; i < this.allEdges.length; i++){ //task1, task2
-            edges.push({task1: this.allEdges[i].task1, task2: this.allEdges[i].task2, time: 0});
-          }
-          /*for(i = 0; i < a.length; i++){ 
-            for(j = 0; j < a[i].length; j++){ 
-              for(u = 0; u < this.allEdges.length; u++){ //task1, task2
-                if(a[i][j] === this.allEdges[u].task1){
-                  yes = true;
-                  for(z = 0; z < edges.length; z++){ //task1, task2, time
-                    if(true){
-                      if(edges[z].task1 === a[i][j] && edges[z].task2 === this.allEdges[u].task2){
-                        yes = false;
-                      }
-                    }
-                  }
-                  if(yes){
-                    edges.push({task1: a[i][j], task2: this.allEdges[u].task2, time: 0});
-                    console.log("task1: " + a[i][j] + " task2: " + this.allEdges[u].task2);
-                  }
-                }
-              }
-            }
-          }*/
-  
-          for(i = 0; i < edges.length; i++){ //task1, task2, time
-            for(j = 0; j < recipieBuilder.proctimes.length; j++){ //task, eq, proctime
-              if(recipieBuilder.proctimes[j].task === edges[i].task1){
-                edges[i].time = -recipieBuilder.proctimes[j].proctime;
-              }
-            }
-          }
-  
-          tasksWithProducts = recipieBuilder.tasks;
-          for(i = 0; i < recipieBuilder.products.length; i++){
-            yes = true;
-            for(j = 0; j < tasksWithProducts.length; j++){
-              if(tasksWithProducts[j] === recipieBuilder.products[i]){
-                yes = false;
-              }
-            }
-            if(yes){
-              tasksWithProducts.push(recipieBuilder.products[i]);
-            }
-          }
-  
-          iterations = []; //task, time, from, once
-          for(i = 0; i < tasksWithProducts.length; i++){
-            iterations.push({task: tasksWithProducts[i], time: Number.MAX_SAFE_INTEGER, from: "",once: false});
-          }
-  
-          for(i = 0; i < iterations.length; i++){ //task, time, from, once
-            if(iterations[i].task === startTasks[startTaskIndex]){
-              iterations[i].time = +0;
-            }
-          }
-  
-          
-        /*  console.log("---iterations - alap---");
-          for(i = 0; i < iterations.length; i++){ //task, time, from, once
-            console.log(iterations[i].task + " " + iterations[i].time + " " + iterations[i].from + " " + iterations[i].once);
-          }
-  
-          console.log("---edges---");
-          for(i = 0; i < edges.length; i++){ //task1, task2, time
-            console.log(edges[i].task1 + " " + edges[i].task2 + " " + edges[i].time);
-          }*/
-  
-  
-          for(i = 0; i < iterations.length; i++){ //task, time, from, once
-            for(j = 0; j < edges.length; j++){ //task1, task2, time
-              prevIterations = [];
-  
-              for(u = 0; u < iterations.length; u++){ //task, time, from, once
-                prevIterations.push({task: iterations[u].task, time: iterations[u].time,from: iterations[u].from, once: iterations[u].once});
-              }
-  
-              tasksIn = []; //task, time
-              for(u = 0; u < iterations.length; u++){ //task, time, from, once
-                if(!iterations[u].once){
-                  tasksIn.push({task: iterations[u].task, time: iterations[u].time});
-                }
-              }
-  
-            /*  console.log("--tasksIn--");
-              for(u = 0; u < tasksIn.length; u++){ //task, time
-                console.log(tasksIn[u].task + " " + tasksIn[u].time);
-              }*/
-      
-  
-              minTime = Number.MAX_SAFE_INTEGER;
-              k = "";
-              for(u = 0; u < tasksIn.length; u++){ //task, time
-                if(tasksIn[u].time < minTime){
-                  minTime = tasksIn[u].time;
-                  k = tasksIn[u].task;
-                }
-              }
-              for(u = 0; u < iterations.length; u++){ //task, time, from, once
-                if(k === iterations[u].task){
-                  iterations[u].once = true;
-                }
-              }
-              //console.log("közelít: " + k);
-              for(u = 0; u < edges.length; u++){ //task1, task2, time
-                if(k === edges[u].task1){
-                  for(z = 0; z < iterations.length; z++){ //task, time, from, once
-                    if(edges[u].task2 === iterations[z].task){
-                      plusTime = +0;
-                      for(r = 0; r < iterations.length; r++){ //task, time, from, once
-                        if(edges[u].task1 === iterations[r].task){
-                          plusTime = +iterations[r].time;
-                        }
-                      }
-                      iterations[z].time = +edges[u].time + +plusTime;
-                      iterations[z].from = edges[u].task1;
-                      iterations[z].once = false;
-                    }
-                  }
-                }
-              }
-  
-              /*console.log("--iterations--");
-              for(u = 0; u < iterations.length; u++){ //task, time, from, once
-                console.log(iterations[u].task + " " + iterations[u].time + " " + iterations[u].from + " " + iterations[u].once);
-              }*/
-            }
-  
-          
-  
-            minTime = iterations[0].time;
-            for(j = 1; j < iterations.length; j++){ //task, time, from, once
-              if(minTime > iterations[j].time){
-                minTime = iterations[j].time;
-              }
-            }
-            if(minTime < longestPathTime){
-              longestPathTime = minTime;
-              longestPathStartTask = startTask;
-  
-              for(j = 0; j < iterations.length; j++){ //task, time, from, once
-                if(longestPathTime === iterations[j].time){
-                  longestPathEndTask = iterations[j].task;
-                }
-              }
-  
-              tempLongestPath = []; //task1, task2
-              //console.log("-iterations-");
-              for(j = 0; j < iterations.length; j++){ //task, time, from, once
-                //console.log(iterations[j].from + " " + iterations[j].task);
-                if(iterations[j].from !== ""){
-                  yes = true;
-                  for(u = 0; u < tempLongestPath.length; u++){ //task1, task2
-                    if(tempLongestPath[u].task1 === iterations[j].from && tempLongestPath[u].task2 === iterations[j].task){
-                      yes = false;
-                    }
-                  }
-                  if(yes){
-                    tempLongestPath.push({task1: iterations[j].from, task2: iterations[j].task});
-                  }
-                }
-              }
-            }
-          }
-       }
-        //console.log(".............");
-       /*console.log("---tempLongestPath---");
-       for(i = 0; i < tempLongestPath.length; i++){ //task1, task2
-        console.log(tempLongestPath[i].task1 + " " + tempLongestPath[i].task2);
-      }*/ 
-     
-        tempArray = []; //task1, task2
-        lastLength = +0;
-        go = false;
-        do{
-          //balról
-          lastLength = tempArray.length;
-          tempArray = [];
-          for(i = 0; i < tempLongestPath.length; i++){ //task1, task2
-            yes = false;
-            if(tempLongestPath[i].task1 === longestPathStartTask){
-              yes = true;
-            }
-            for(j = 0; j < tempLongestPath.length && !yes; j++){ //task1, task2
-              if(tempLongestPath[i].task1 === tempLongestPath[j].task2){
-                yes = true;
-              }
-            }
-            if(yes){
-              tempArray.push({task1: tempLongestPath[i].task1, task2: tempLongestPath[i].task2});
-            }
-          }
-  
-          if(lastLength === tempArray.length){
-            go = true;
-          }
-  
-          tempLongestPath = [];
-          for(i = 0; i < tempArray.length; i++){ //task1, task2
-            tempLongestPath.push({task1: tempArray[i].task1, task2:tempArray[i].task2});
-          }
-  
-          /*console.log("--tempLongestPath--");
-          for(i = 0; i < tempLongestPath.length; i++){ //task1, task2
-            console.log(tempLongestPath[i].task1 + " " + tempLongestPath[i].task2);
-          }*/
-    
-        }while(!go);
-  
-  
-        tempArray = []; //task1, task2
-        lastLength = +0;
-        go = false;
-        do{
-          //jobbról
-          lastLength = tempArray.length;
-          tempArray = [];
-          for(i = 0; i < tempLongestPath.length; i++){ //task1, task2
-            yes = false;
-            if(tempLongestPath[i].task2 === longestPathEndTask){
-              yes = true;
-            }
-            for(j = 0; j < tempLongestPath.length && !yes; j++){ //task1, task2
-              if(tempLongestPath[i].task2 === tempLongestPath[j].task1){
-                yes = true;
-              }
-            }
-            if(yes){
-              tempArray.push({task1: tempLongestPath[i].task1, task2: tempLongestPath[i].task2});
-            }
-          }
-  
-          if(lastLength === tempArray.length){
-            go = true;
-          }
-  
-          tempLongestPath = [];
-          for(i = 0; i < tempArray.length; i++){ //task1, task2
-            tempLongestPath.push({task1: tempArray[i].task1, task2:tempArray[i].task2});
-          }
-  
-          /*console.log("--tempLongestPath--");
-          for(i = 0; i < tempLongestPath.length; i++){ //task1, task2
-            console.log(tempLongestPath[i].task1 + " " + tempLongestPath[i].task2);
-          }*/
-    
-        }while(!go);
-  
-     
-        recipieBuilder.longestPathStartTask = longestPathStartTask;
-        recipieBuilder.longestPathEndTask = longestPathEndTask;
-        recipieBuilder.longestPathTime = -longestPathTime;
-  
-  
-        this.longestPath = [];
-        for(i = 0; i < tempArray.length; i++){ //task1, task2
-          this.longestPath.push({task1: tempArray[i].task1, task2: tempArray[i].task2});
-        }
-  
-        schedText = "";
-  
-        text = schedGraphText.split("@");
-        for(i = 0; i < text.length; i++){ 
-          if(i % 2 === 0){
-            schedText += text[i];
-          }
-          else{
-            tempTasks = text[i].split(";");
-            for(j = 0; j < this.longestPath.length; j++){ //task1, task2
-              if(tempTasks[0] === this.longestPath[j].task1 && tempTasks[1] === this.longestPath[j].task2){
-                schedText += "5";
-              }
-            }
-          }
-        }
-      }
-      else{
-        schedText = "";
-  
-        text = schedGraphText.split("@");
-        for(i = 0; i < text.length; i++){ 
-          if(i % 2 === 0){
-            schedText += text[i];
-          }
-          else{
-            tempTasks = text[i].split(";");
-            for(j = 0; j < this.circleTaskPairs.length; j++){ //task1, task2
-              if(tempTasks[0] === this.circleTaskPairs[j].task1 && tempTasks[1] === this.circleTaskPairs[j].task2){
-                schedText += "5";
-              }
-            }
-          }
-        }
-      }
-  
-    //  console.log(schedText);
-  
-    //console.log(schedText);
-  
-      var viz = new Viz();
-      viz.renderSVGElement(schedText)
-      .then(function(element) {
-        document.getElementById('schedGraph').innerHTML="";
-        document.getElementById('schedGraph').appendChild(element);
-      })
-      .catch(error => {
-        viz = new Viz();
-        console.error(error);
-      });
-  
-    },
-    schedGraphTxtOut(drag , uis){     
+    async schedGraphTxtOut(drag , uis){     
       if(!drag){
         this.schedTasks = recipieBuilder.taskEquipment;
       }
@@ -1986,10 +1370,12 @@ var schedGraphBuilder = new Vue({
      this.schedGraphTxt += "layout=\"neato\"";
      this.schedGraphTxt += "}";
  
-    //console.log(this.schedGraphTxt);
- 
-    this.getLongestPath(this.schedGraphTxt);
-    this.makeGantDiagram();
+      this.dijkstra();
+      
     },
+    async waitForIt(drag , uis){
+      await this.schedGraphTxtOut(drag , uis);
+      this.makeGantDiagram();
+    }
   }
 });

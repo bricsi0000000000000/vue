@@ -28,7 +28,7 @@
 </head>
 <body>
   <div id="content">
-    
+              
     <div class="alert-box error" v-if="showWarningTxt">
       <span>Error: </span>
       {{warningTxt}}
@@ -215,7 +215,7 @@
                 </td>
                 <td>
                   <form>
-                    <input type="number" v-model="proctime" id="proctime" placeholder="Proctime">
+                    <input type="number" v-model="proctime" id="proctime" placeholder="Proctime" step="0.01">
                   </form>
                 </td>
                 <td >
@@ -245,7 +245,6 @@
        
       </div>
     </div>
-
     <div id="SchedGraphBuilder" v-if="!seenForms">
       <table class="container">
         <tr>
@@ -260,17 +259,7 @@
         </tr>
 
         <tr>
-
           <td> 
-           <!-- <div v-for="(item, index) in tasksToEq">
-              <div style="background: rgb(94, 94, 94); color: white; text-align: center; font-weight: bold; padding-bottom:3px">
-                <span>{{item.eq}}</span>
-              </div>
-              <div v-for="(i, index) in item.tasks">
-                  <span>{{i}}</span>
-              </div>
-            </div>
--->
             <div class="col- dragAndDrop">        
               <div v-for="(tasks, index) in tasksToEq">
                 <div v-drag-and-drop:options="dragAndDropOptions">
@@ -294,7 +283,6 @@
         </tr>
 
         <tr>
-
           <td class="RecipieBuilderTables">
             <div v-if="!circle" class="col- longestPathProperties">
               <table>
@@ -338,92 +326,7 @@
           </td>
 
           <td>
-            <div id="gantDiagram" class="ganttEmptyCell">
-              <table>
-                <!--<tr v-for="item in tasksToEqWithProctimes">
-                  <th>
-                    {{item.eq}}
-                  </th>
-                  <td v-for="task in item.tasks" v-bind:colspan="task.time">
-                    {{task.task}}
-                  </td>
-                </tr>-->
-                <tr v-for="item in gant">
-                  <th>
-                    {{item.eq}}
-                  </th>
-                  <td v-for="task in item.tasks" v-bind:colspan="task.proctime"  v-bind:class="{'ganttEmptyCell': task.task=='', 'ganttNotEmptyCell': task.task!=''}">
-                    <span>{{task.task}}</span>
-                    
-                  </td>
-                </tr>
-                <tr class="ganttNumberEmptyCell">
-                    <td>0</td>
-                    <td>1</td>
-                    <td>2</td>
-                    <td>3</td>
-                    <td>4</td>
-                    <td>5</td>
-                    <td>6</td>
-                    <td>7</td>
-                    <td>8</td>
-                    <td>9</td>
-                    <td>10</td>
-                    <td>11</td>
-                    <td>12</td>
-                    <td>13</td>
-                    <td>14</td>
-                    <td>15</td>
-                    <td>16</td>
-                    <td>17</td>
-                    <td>18</td>
-                    <td>19</td>
-                    <td>20</td>
-                    <td>21</td>
-                    <td>22</td>
-                    <td>23</td>
-                    <td>24</td>
-           
-                </tr>
-              </table>
-             <!-- <table>
-                <tr>
-                  <td>E1</td>
-                  <td colspan="2">B11</td>
-                  <td colspan="3">A1</td>
-                  <td colspan="3"></td>
-                  <td>B3</td>
-                  <td colspan="3"></td>
-                </tr>
-                <tr>
-                  <td>E2</td>
-                  <td colspan="4">B12</td>
-                  <td></td>
-                  <td colspan="2">A2</td>
-                  <td colspan="5"></td>
-                </tr>
-                <tr>
-                  <td>E3</td>
-                  <td colspan="5"></td>
-                  <td colspan="3">B2</td>
-                  <td colspan="4">A3</td>
-                </tr>
-                <tr>
-                  <td>0</td>
-                  <td>1</td>
-                  <td>2</td>
-                  <td>3</td>
-                  <td>4</td>
-                  <td>5</td>
-                  <td>6</td>
-                  <td>7</td>
-                  <td>8</td>
-                  <td>9</td>
-                  <td>10</td>
-                  <td>11</td>
-                </tr>
-              </table>-->
-            </div>
+            <svg id="ganttDiagram" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" v-bind:style="{ width : ganttWidth + 'px' }"/>
           </td>
 
         </tr>

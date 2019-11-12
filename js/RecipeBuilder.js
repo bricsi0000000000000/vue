@@ -112,7 +112,9 @@ var recipieBuilder = new Vue({
      longestPathStartTask:"",
      longestPathEndTask:"",
      circle:false,
-     gant:[], //eq; tasks -> task, proctime
+     svg_text: "",
+     ganttWidth: 0,
+     //gant:[], //eq; tasks -> task, proctime
    }
   }, 
   methods:{
@@ -197,10 +199,10 @@ var recipieBuilder = new Vue({
     },
     uisNisSwitch(){
       if(this.uisNisChk){
-        schedGraphBuilder.schedGraphTxtOut(true,true);
+        schedGraphBuilder.waitForIt(true,true);
       }
       else{
-      schedGraphBuilder.schedGraphTxtOut(true,false);
+        schedGraphBuilder.waitForIt(true,false);
       }
 
       this.uisNisChk = !this.uisNisChk;
@@ -389,28 +391,44 @@ var recipieBuilder = new Vue({
           this.tmpTask2.push(this.tasks[i]);
         }
       }
-     /* for(i=0; i< this.tasks.length; i++){
-        this.taskName=this.tasks[i];
-        this.addTmpTask12();
-      }*/
-      this.taskName="";
+    
+      this.taskName = "";
     },
     /*-------------------*/
 
     /*------REMOVE-------*/
     removeTmpTask1(){
-      this.fillUpTmpTaks12();
-      for(i=0; i< this.tmpTask1.length; i++){
-        if(this.tmpTask1[i] === this.task2){
-          this.tmpTask1.splice(i,1);
+      this.tmpTask1 = [];
+      cur_product = "";
+      for(i = 0; i < this.tasksAndProducts.length && cur_product === ""; i++){
+        if(this.task2 === this.tasksAndProducts[i].name){
+          cur_product = this.tasksAndProducts[i].product;
+        }
+      }
+      tmp_tasks = [];
+      for(i = 0; i < this.tasksAndProducts.length; i++){
+        if(this.tasksAndProducts[i].product === cur_product){
+          if(this.tasksAndProducts[i].name !== this.task2){
+            this.tmpTask1.push(this.tasksAndProducts[i].name);
+          }
         }
       }
     },
     removeTmpTask2(){
-      this.fillUpTmpTaks12();
-      for(i=0; i< this.tmpTask2.length; i++){
-        if(this.tmpTask2[i] === this.task1){
-          this.tmpTask2.splice(i,1);
+      this.tmpTask2 = [];
+      cur_product = "";
+      for(i = 0; i < this.tasksAndProducts.length && cur_product === ""; i++){
+        if(this.task1 === this.tasksAndProducts[i].name){
+          cur_product = this.tasksAndProducts[i].product;
+        }
+      }
+
+      tmp_tasks = [];
+      for(i = 0; i < this.tasksAndProducts.length; i++){
+        if(this.tasksAndProducts[i].product === cur_product){
+          if(this.tasksAndProducts[i].name !== this.task1){
+            this.tmpTask2.push(this.tasksAndProducts[i].name);
+          }
         }
       }
     },
@@ -910,8 +928,8 @@ var recipieBuilder = new Vue({
     this.hideAlert();
     },
     updateProctimesLength(){
-    this.proctimesLength = this.proctimes.length;
-    this.hideAlert();
+      this.proctimesLength = this.proctimes.length;
+      this.hideAlert();
     }, 
 
     updateOnlyTasks(){
@@ -1175,7 +1193,8 @@ var recipieBuilder = new Vue({
       }
 
       for(i=0; i < this.proctimes.length; i++){
-        if(this.proctimes[i].proctime[0] === '0'){
+        if(this.proctimes[i].proctime[0] === '0' &&
+           this.proctimes[i].proctime[1] !== '.'){
           this.deleteProctime(i);
           this.showWarning("0 proctime");
         }
@@ -1186,7 +1205,6 @@ var recipieBuilder = new Vue({
     showWarning(text){
       this.warningTxt = text;
       this.showWarningTxt = true;
-
     },
     equipmentsToTask(){
       this.taskEquipment=[];
