@@ -372,118 +372,27 @@ var schedGraphBuilder = new Vue({
           this.gantt.push({eq: equipment, tasks: []});
         });
 
-       /* this.longestPath.forEach(l => {
-          console.log(l.task1 + " " + l.task2);
+       /* this.schedPrecedencesWithProducts.forEach(l => {
+          console.log(l.task + " " + l.product + " " + this.getLongestPath(l.task, +0));
         });*/
 
-        add_task = "";
-
-        //kezdő taszkokat lerakom
-        this.longestPath.forEach(path => {
-          if(this.getLongestPath(path.task1, +0) === +0){
-            act_eq = this.getEquipment(path.task1);
-            this.gantt.forEach(g => {
-              if(g.eq === act_eq){
-                add_task = {task: path.task1, start_time: +0, end_time: this.getProctime(path.task1)};
-                g.tasks.push(add_task);
-              }
-            });
-          }
+        this.schedPrecedencesWithProducts.forEach(s => {
+          act_eq = this.getEquipment(s.task);
+          this.gantt.forEach(g => {
+            if(g.eq === act_eq){
+              start_time = +this.getLongestPath(s.task, +0);
+              g.tasks.push({task: s.task, start_time: start_time, end_time: (start_time + +this.getProctime(s.task))});
+            }
+          });
         });
 
-        /*console.log("kezdő taszkok");
+       /* console.log("-------gantt----------");
         this.gantt.forEach(g => {
           console.log(g.eq);
           g.tasks.forEach(t => {
             console.log("\t" + t.task + " " + t.start_time + " " + t.end_time);
           });
         });*/
-
-        
-        prev_gantt = [];
-        go = true;
-        r = 0;
-        do{
-          r++;
-          //console.log("eltőte: add_task: " + add_task.task);
-
-          added = false;
-          for(i = 0; i < this.longestPath.length && !added; i++){
-            if(this.longestPath[i].task1 === add_task.task){
-              add_task = {task: this.longestPath[i].task2, start_time: add_task.end_time, end_time: (+add_task.end_time + +this.getProctime(this.longestPath[i].task2))};
-              added = true;
-            }
-          }
-        // add_empty = "";
-        // add_empty_eq = "";
-         // this.gantt.forEach(g => {
-           // g.tasks.forEach(task => {
-              /*this.longestPath.forEach(l => {
-                if(l.task1 === add_task.task){
-                  console.log(l.task1 + " " + add_task.task + " " + l.task2);
-                  start_time = +this.getLongestPath(l.task2, +0);
-                 //if(start_time === +task.end_time){
-                  add_task = {task: l.task2, start_time: add_task.end_time, end_time: (+add_task.end_time + +this.getProctime(l.task2))};
-                  //}
-                  /*else{
-                    add_empty = {task: "", start_time: +task.end_time, end_time: (start_time - +task.end_time)};
-                    add_task = {task: l.task2, start_time: (start_time - +task.end_time), end_time: ((start_time - +task.end_time) + +this.getProctime(l.task2))};
-                  }*/
-               /* }
-              });*/
-            //});
-          //});
-
-          //console.log("utána: add_task: " + add_task.task);
-
-          this.gantt.forEach(g => {
-            act_eq = this.getEquipment(add_task.task);
-            if(act_eq === g.eq){
-              /*if(add_empty !== ""){
-                g.tasks.push(add_empty);
-              }*/
-              add = true;
-              g.tasks.forEach(t =>{
-                if(t.task === add_task.task){
-                  add = false;
-                }
-              });
-              if(add){
-                g.tasks.push(add_task);
-              }
-            }
-          });
-
-         /* console.log("------------");
-          this.gantt.forEach(g => {
-            console.log(g.eq);
-            g.tasks.forEach(t => {
-              console.log("\t" + t.task + " " + t.start_time + " " + t.end_time);
-            });
-          });
-          console.log("------------");
-          go = false;
-          this.gantt.forEach(g => {
-            prev_gantt.forEach(p =>{
-              if(g.tasks.length !== p.tasks.length){
-                go = true;
-              }
-            });
-          });*/
-
-          prev_gantt = [];
-          this.gantt.forEach(g => {
-            prev_gantt.push(g);
-          });
-
-        /* prev_gantt.forEach(p => {
-            console.log("\t" + p.eq + " " + p.tasks.length);
-          });*/
-
-        }
-        while(r < 10);
-
-        
 
         color = "black";
         x = 0;
@@ -649,10 +558,10 @@ var schedGraphBuilder = new Vue({
        }*/
   
        if(recipieBuilder.uisNisChk){
-        this.waitForIt(true,false);
+         this.waitForIt(true,false);
        }
        else{
-        this.waitForIt(true,true);
+         this.waitForIt(true,true);
        }
     },
     makeSchedPrecedencesWithProducts(){
