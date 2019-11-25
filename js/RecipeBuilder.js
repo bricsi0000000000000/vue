@@ -182,7 +182,6 @@ var recipieBuilder = new Vue({
         this.updateTasksToEq();
   
         schedGraphBuilder.getTasks(true);
-        //this.schedGraphTxtOut(false,false);
         document.title = "Schedule graph builder";
       }
       else{
@@ -204,8 +203,9 @@ var recipieBuilder = new Vue({
       else{
         schedGraphBuilder.waitForIt(true,false);
       }
-
+      //console.log("\t" + this.uisNisChk);
       this.uisNisChk = !this.uisNisChk;
+
     },
 
     /*---------------RECIPIE BUILDER---------------*/
@@ -827,16 +827,7 @@ var recipieBuilder = new Vue({
 
       this.equipmentsToTask();
 
-     /* if(this.uisNisChk){
-        schedGraphBuilder.schedGraphTxtOut(true,false);
-      }
-      else{
-        schedGraphBuilder.schedGraphTxtOut(true,true);
-      }*/
-
-      /*for(i = 0; i < this.taskEquipment.length; i++){ //task, eq, proctime
-        console.log(this.taskEquipment[i].task + " " + this.taskEquipment[i].eqs);
-      }*/
+   
     },
 
     /*updateTasksToEqOnDrop(tasks){

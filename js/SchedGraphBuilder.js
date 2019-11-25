@@ -11,6 +11,7 @@ var schedGraphBuilder = new Vue({
         longestPath:[], //task1, task2
         circleTaskPairs: [], //task1, task2
         gantt: [], //eq, tasks -> task, start_time, end_time
+        nisSchedPrecedences: [], //task1, task2, proctime
       }
   },
   methods:{
@@ -289,16 +290,16 @@ var schedGraphBuilder = new Vue({
     },
     getLongestPath(task, max){
       prev_tasks = []; //task, n
-      this.schedPrecedencesWithProducts.forEach(element =>{ //task, product
-        if(task === element.product){
-          prev_tasks.push({task: element.task, n: +0});
+      this.nisSchedPrecedences.forEach(element =>{ //task1, task2
+        if(task === element.task2){
+          prev_tasks.push({task: element.task1, n: +0});
         }
       });
   
-      recipieBuilder.proctimes.forEach(p =>{
+      this.nisSchedPrecedences.forEach(p =>{
         prev_tasks.forEach(element =>{
-          if(element.task === p.task){
-            element.n = p.proctime;
+          if(element.task === p.task1){
+            element.n = this.getProctime(p.task1);
           }
         });
       });
@@ -307,10 +308,8 @@ var schedGraphBuilder = new Vue({
         longest_path_hier = this.getLongestPath(element.task, +0) + +element.n;
         if(longest_path_hier > max){
           max = longest_path_hier;
-        //  max_task = element.task;
         }
       });
-      //this.longestPath.push(max_task);
     
       return max;
     },
@@ -365,34 +364,35 @@ var schedGraphBuilder = new Vue({
         console.error(error);
       });
     },
-    async makeGantDiagram(){
+    async makeGantDiagram(uis){
       if(!recipieBuilder.circle){
+
         this.gantt = [];
         recipieBuilder.equipments.forEach(equipment => {
           this.gantt.push({eq: equipment, tasks: []});
         });
 
-       /* this.schedPrecedencesWithProducts.forEach(l => {
-          console.log(l.task + " " + l.product + " " + this.getLongestPath(l.task, +0));
-        });*/
+        
 
         this.schedPrecedencesWithProducts.forEach(s => {
           act_eq = this.getEquipment(s.task);
+          add_task = "";
           this.gantt.forEach(g => {
             if(g.eq === act_eq){
               start_time = +this.getLongestPath(s.task, +0);
               g.tasks.push({task: s.task, start_time: start_time, end_time: (start_time + +this.getProctime(s.task))});
             }
           });
-        });
 
-       /* console.log("-------gantt----------");
+        
+        });
+        console.log("-------gantt----------");
         this.gantt.forEach(g => {
           console.log(g.eq);
           g.tasks.forEach(t => {
             console.log("\t" + t.task + " " + t.start_time + " " + t.end_time);
           });
-        });*/
+        });
 
         color = "black";
         x = 0;
@@ -570,11 +570,24 @@ var schedGraphBuilder = new Vue({
         this.schedPrecedencesWithProducts.push({task: recipieBuilder.precedencesWithProducts[i].task, product: recipieBuilder.precedencesWithProducts[i].product, schedEdge:false});
       }
 
-      addThese = []; //task1, task2
-      for(i = 0; i < this.schedTasksArray.length - 1; i++){ //task
-        if(this.schedTasksArray[i].task !== "--"){
-          if(this.schedTasksArray[i + 1].task !== "--"){
-            addThese.push({task1: this.schedTasksArray[i].task, task2: this.schedTasksArray[i + 1].task});
+      if(recipieBuilder.uisNisChk){
+        addThese = []; //task1, task2
+        for(i = 0; i < this.schedTasksArray.length - 1; i++){ //task
+          if(this.schedTasksArray[i].task !== "--"){
+            if(this.schedTasksArray[i + 1].task !== "--"){
+
+              addThese.push({task1: this.schedTasksArray[i].task, task2: this.schedTasksArray[i + 1].task});
+            }
+          }
+        }
+      }
+      else{
+        addThese = []; //task1, task2
+        for(i = 0; i < this.schedTasksArray.length - 1; i++){ //task
+          if(this.schedTasksArray[i].task !== "--"){
+            if(this.schedTasksArray[i + 1].task !== "--"){
+              addThese.push({task1: this.schedTasksArray[i].task, task2: this.schedTasksArray[i + 1].task});
+            }
           }
         }
       }
@@ -582,6 +595,11 @@ var schedGraphBuilder = new Vue({
       for(i = 0; i < addThese.length; i++){ //task1, task2
         this.schedPrecedencesWithProducts.push({task: addThese[i].task1, product: addThese[i].task2, schedEdge:true});
       }
+
+     /* this.schedPrecedencesWithProducts.forEach(l => {
+        console.log(l.task + " " + l.product);
+      });*/
+
     },
     circleCheck(){
       recipieBuilder.circle = false;
@@ -760,6 +778,7 @@ var schedGraphBuilder = new Vue({
       }
     },
     async schedGraphTxtOut(drag , uis){     
+
       if(!drag){
         this.schedTasks = recipieBuilder.taskEquipment;
       }
@@ -802,6 +821,7 @@ var schedGraphBuilder = new Vue({
         }
         productWithPrecedence.push({product: productWithTasks[i].product, precedences: add});
       }
+     
  
       /* Sort the productWithPrecedence array */
       /* Add first task to array */
@@ -843,7 +863,7 @@ var schedGraphBuilder = new Vue({
           }
         }
       }
- 
+
       /* To which task goes multiple edges */
       multipleTasksToOneProduct=[]; //task, product, count
       for(i=0; i< recipieBuilder.precedencesWithProducts.length; i++){  //task, product
@@ -1122,9 +1142,9 @@ var schedGraphBuilder = new Vue({
       }
      }
  
-    /* for(j = 0; j < this.schedPrecedencesWithProducts.length; j++){ //task, product, schedEdge(true/false)
+    /*for(j = 0; j < this.schedPrecedencesWithProducts.length; j++){ //task, product, schedEdge(true/false)
        //if(this.schedPrecedencesWithProducts[j].schedEdge){
-        // console.log(this.schedPrecedencesWithProducts[j].task + " " + this.schedPrecedencesWithProducts[j].product + " " + this.schedPrecedencesWithProducts[j].schedEdge);
+         console.log(this.schedPrecedencesWithProducts[j].task + " " + this.schedPrecedencesWithProducts[j].product + " " + this.schedPrecedencesWithProducts[j].schedEdge);
       // }
      }*/
  
@@ -1148,6 +1168,7 @@ var schedGraphBuilder = new Vue({
    /*  for(j = 0; j < t.length; j++){
        //console.log(t[j]);
      }*/
+
  
      for(i = 0; i < this.schedPrecedencesWithProducts.length; i++){ //task, product, schedEdge(true/false)
  
@@ -1183,7 +1204,7 @@ var schedGraphBuilder = new Vue({
  
         this.allEdges.push({task1: t1, task2: t2});
        }
- 
+
  
       if(this.schedPrecedencesWithProducts[i].schedEdge){
          i1 = -1;
@@ -1215,6 +1236,7 @@ var schedGraphBuilder = new Vue({
              }
            }
  
+           added_proctime = minProctime;
            if(!uis){
              tempT1 = "";
              for(j = 0; j < this.schedPrecedencesWithProducts.length; j++){ //task, product, schedEdge(true/false)
@@ -1226,18 +1248,20 @@ var schedGraphBuilder = new Vue({
              }
              t1 = tempT1;
              minProctime = -1;
-           }
+            }
  
-           this.schedGraphTxt += "\"" + t1 + "\" -> \"" + t2 + "\"";
+
+            this.schedGraphTxt += "\"" + t1 + "\" -> \"" + t2 + "\"";
  
-           this.allEdges.push({task1: t1, task2: t2});
+            this.allEdges.push({task1: t1, task2: t2});
        
-           if(minProctime !== -1){
-            this.schedGraphTxt += " [ label = " + minProctime + ", style=\"dashed\"";
-           }
-           else{
-            this.schedGraphTxt += " [ style=\"dashed\"";
-           }
+            if(minProctime !== -1){
+              this.schedGraphTxt += " [ label = " + minProctime + ", style=\"dashed\"";
+            }
+            else{
+             this.schedGraphTxt += " [ style=\"dashed\"";
+            }
+            this.nisSchedPrecedences.push({task1: t1, task2: t2, proctime: added_proctime});
  
           /* addPenWidth = false;
            for(j = 0; j < this.longestPath.length; j++){ //task1, task2
@@ -1283,8 +1307,20 @@ var schedGraphBuilder = new Vue({
       
     },
     async waitForIt(drag , uis){
+      this.nisSchedPrecedences = []; //task1, task2, proctime
+
+      recipieBuilder.precedencesWithProducts.forEach(s => {
+        this.nisSchedPrecedences.push({task1: s.task, task2: s.product, proctime: this.getProctime(s.task)});
+      });
       await this.schedGraphTxtOut(drag , uis);
-      this.makeGantDiagram();
+
+      this.nisSchedPrecedences.forEach(n => {
+        console.log(n.task1 + " " + n.task2 + " " + n.proctime);
+      });
+      console.log(this.getLongestPath("a1", +0));
+
+
+      this.makeGantDiagram(uis);
     }
   }
 });

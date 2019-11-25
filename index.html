@@ -251,8 +251,11 @@
 
           <td>
             <div class="UIS_NIS_btns_container col-">
+              <!--<input type="radio" name="uisNis" value="uis" v-on:click="uisNisSwitch()" checked>UIS <br>
+              <input type="radio" name="uisNis" value="nis" v-on:click="uisNisSwitch()">NIS <br>-->
               <button type="button" v-bind:class="{ 'UIS_NIS_btns_inactive': uisNisChk, 'UIS_NIS_btns_active': !uisNisChk }" v-on:click="uisNisSwitch()">UIS</button>
               <button type="button" v-bind:class="{ 'UIS_NIS_btns_inactive': !uisNisChk, 'UIS_NIS_btns_active': uisNisChk }" v-on:click="uisNisSwitch()">NIS</button>
+             
             </div>
           </td>
 
