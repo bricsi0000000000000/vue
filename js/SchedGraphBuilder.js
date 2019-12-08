@@ -1117,6 +1117,9 @@ var schedGraphBuilder = new Vue({
       this.longestPath.push({task1: this.longestPath[this.longestPath.length - 1].task2, task2: max_product});
 
       recipieBuilder.ganttWidth = path.max_time * 40 + 41;
+      recipieBuilder.longestPathTime = path.max_time;
+      recipieBuilder.longestPathStartTask = path.tasks[1];
+      recipieBuilder.longestPathEndTask = max_product;
 
       this.drawLongestPath();
     },
