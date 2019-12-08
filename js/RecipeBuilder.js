@@ -203,9 +203,7 @@ var recipieBuilder = new Vue({
       else {
         schedGraphBuilder.waitForIt(true, false);
       }
-      //console.log("\t" + this.uisNisChk);
       this.uisNisChk = !this.uisNisChk;
-
     },
 
     /*---------------RECIPIE BUILDER---------------*/
@@ -240,14 +238,14 @@ var recipieBuilder = new Vue({
           }
           else {
             var add = true;
-            for (i = 0; i < this.products.length && add; i++) {
+            for (var i = 0; i < this.products.length && add; i++) {
               if (this.taskName === this.products[i]) {
                 add = false;
               }
             }
             if (add === true) {
               var yes = true;
-              for (i = 0; i < this.tasks.length && yes; i++) {
+              for (var i = 0; i < this.tasks.length && yes; i++) {
                 if (this.taskName === this.tasks[i]) {
                   yes = false;
                 }
@@ -282,7 +280,7 @@ var recipieBuilder = new Vue({
     addTmpTask12() {
       this.tmpTask1 = [];
       this.tmpTask2 = [];
-      for (i = 0; i < this.onlyTasks.length; i++) {
+      for (var i = 0; i < this.onlyTasks.length; i++) {
         this.tmpTask1.push(this.onlyTasks[i]);
         this.tmpTask2.push(this.onlyTasks[i]);
       }
@@ -317,7 +315,7 @@ var recipieBuilder = new Vue({
         if (this.task1 !== "" && this.task2 !== "") {
           this.precedences.push({ task1: this.task1, task2: this.task2 });
 
-          for (i = 0; i < this.precedencesWithProducts.length; i++) {
+          for (var i = 0; i < this.precedencesWithProducts.length; i++) {
             if (this.precedencesWithProducts[i].task === this.task1) {
               this.deletePrecedencesWithProducts(i);
               this.precedencesWithProducts.push({ task: this.task1, product: this.task2 });
@@ -378,9 +376,9 @@ var recipieBuilder = new Vue({
     fillUpTmpTaks12() {
       this.tmpTask1 = [];
       this.tmpTask2 = [];
-      for (i = 0; i < this.tasks.length; i++) {
+      for (var i = 0; i < this.tasks.length; i++) {
         notProduct = true;
-        for (j = 0; j < this.products.length; j++) {
+        for (var j = 0; j < this.products.length; j++) {
           if (this.tasks[i] === this.products[j]) {
             notProduct = false;
           }
@@ -399,13 +397,13 @@ var recipieBuilder = new Vue({
     removeTmpTask1() {
       this.tmpTask1 = [];
       var cur_product = "";
-      for (i = 0; i < this.tasksAndProducts.length && cur_product === ""; i++) {
+      for (var i = 0; i < this.tasksAndProducts.length && cur_product === ""; i++) {
         if (this.task2 === this.tasksAndProducts[i].name) {
           cur_product = this.tasksAndProducts[i].product;
         }
       }
       var tmp_tasks = [];
-      for (i = 0; i < this.tasksAndProducts.length; i++) {
+      for (var i = 0; i < this.tasksAndProducts.length; i++) {
         if (this.tasksAndProducts[i].product === cur_product) {
           if (this.tasksAndProducts[i].name !== this.task2) {
             this.tmpTask1.push(this.tasksAndProducts[i].name);
@@ -416,13 +414,13 @@ var recipieBuilder = new Vue({
     removeTmpTask2() {
       this.tmpTask2 = [];
       var cur_product = "";
-      for (i = 0; i < this.tasksAndProducts.length && cur_product === ""; i++) {
+      for (var i = 0; i < this.tasksAndProducts.length && cur_product === ""; i++) {
         if (this.task1 === this.tasksAndProducts[i].name) {
           cur_product = this.tasksAndProducts[i].product;
         }
       }
 
-      for (i = 0; i < this.tasksAndProducts.length; i++) {
+      for (var i = 0; i < this.tasksAndProducts.length; i++) {
         if (this.tasksAndProducts[i].product === cur_product) {
           if (this.tasksAndProducts[i].name !== this.task1) {
             this.tmpTask2.push(this.tasksAndProducts[i].name);
@@ -435,7 +433,7 @@ var recipieBuilder = new Vue({
     /*--------DELETE-ID--------*/
     deleteProduct(id) {
       var productName = "";
-      for (i = 0; i < this.products.length; i++) {
+      for (var i = 0; i < this.products.length; i++) {
         if (id === i) {
           productName = this.products[i];
         }
@@ -457,11 +455,11 @@ var recipieBuilder = new Vue({
     },
     deleteTaskAndTasksAndProducts(id) {
       var task = "";
-      for (i = 0; i < this.tasks.length; i++) {
+      for (var i = 0; i < this.tasks.length; i++) {
         console.log(this.tasks[i]);
         if (id === i) {
           var ok = false;
-          for (j = 0; j < this.products.length && !ok; j++) {
+          for (var j = 0; j < this.products.length && !ok; j++) {
             if (this.tasks[i] === this.products[j]) {
               ok = true;
             }
@@ -515,7 +513,7 @@ var recipieBuilder = new Vue({
     deletePrecedenceFromHtml(id) {
       var task1 = "";
       var task2 = "";
-      for (i = 0; i < this.precedences.length; i++) {
+      for (var i = 0; i < this.precedences.length; i++) {
         if (i === id) {
           task1 = this.precedences[i].task1;
           task2 = this.precedences[i].task2;
@@ -539,7 +537,7 @@ var recipieBuilder = new Vue({
       this.updateProctimesLength();
     },
     deleteEmptyPrecedences() {
-      for (i = 0; i < this.precedences.length; i++) {
+      for (var i = 0; i < this.precedences.length; i++) {
         if (this.precedences[i].task1 === undefined || this.precedences[i].task2 === undefined) {
           this.deletePrecendence(i);
         }
@@ -553,9 +551,9 @@ var recipieBuilder = new Vue({
     /*----------UPDATE---------*/
     updateTasks() {
       var deleteThis = [];
-      for (i = 0; i < this.tasks.length; i++) {
+      for (var i = 0; i < this.tasks.length; i++) {
         var add = true;
-        for (j = 0; j < this.tasksAndProducts.length; j++) {//name, product 
+        for (var j = 0; j < this.tasksAndProducts.length; j++) {//name, product 
           if (this.tasks[i] === this.tasksAndProducts[j].name) {
             add = false;
           }
@@ -565,8 +563,8 @@ var recipieBuilder = new Vue({
         }
       }
 
-      for (i = 0; i < deleteThis.length; i++) {
-        for (j = 0; j < this.tasks.length; j++) {
+      for (var i = 0; i < deleteThis.length; i++) {
+        for (var j = 0; j < this.tasks.length; j++) {
           if (deleteThis[i] === this.tasks[j]) {
             this.deleteTask(j);
           }
@@ -575,14 +573,14 @@ var recipieBuilder = new Vue({
     },
     updateTasksAndProducts(productName) {
       var deleteThis = [];
-      for (i = 0; i < this.tasksAndProducts.length; i++) {
+      for (var i = 0; i < this.tasksAndProducts.length; i++) {
         if (productName === this.tasksAndProducts[i].product) {
           deleteThis.push({ name: this.tasksAndProducts[i].name, product: this.tasksAndProducts[i].product });
         }
       }
 
-      for (i = 0; i < deleteThis.length; i++) {
-        for (j = 0; j < this.tasksAndProducts.length; j++) {
+      for (var i = 0; i < deleteThis.length; i++) {
+        for (var j = 0; j < this.tasksAndProducts.length; j++) {
           if (deleteThis[i].name === this.tasksAndProducts[j].name) {
             this.deleteTasksAndProducts(j);
           }
@@ -591,9 +589,9 @@ var recipieBuilder = new Vue({
     },
     updatePrecedences() {
       var deleteThis = [];
-      for (i = 0; i < this.precedences.length; i++) {
+      for (var i = 0; i < this.precedences.length; i++) {
         var add = true;
-        for (j = 0; j < this.tasks.length; j++) {
+        for (var j = 0; j < this.tasks.length; j++) {
           if (this.precedences[i].task1 === this.tasks[j] ||
             this.precedences[i].task2 === this.tasks[j]) {
             add = false;
@@ -604,8 +602,8 @@ var recipieBuilder = new Vue({
         }
       }
 
-      for (i = 0; i < deleteThis.length; i++) {
-        for (j = 0; j < this.precedences.length; j++) {
+      for (var i = 0; i < deleteThis.length; i++) {
+        for (var j = 0; j < this.precedences.length; j++) {
           if (deleteThis[i] === this.precedences[j].task1) {
             this.deletePrecendence(j);
           }
@@ -616,15 +614,15 @@ var recipieBuilder = new Vue({
     },
     updatePrecedencesFromTask(task) {
       var deleteThis = [];
-      for (i = 0; i < this.precedences.length; i++) {
+      for (var i = 0; i < this.precedences.length; i++) {
         if (task === this.precedences[i].task1 ||
           task === this.precedences[i].task2) {
           deleteThis.push({ task1: this.precedences[i].task1, task2: this.precedences[i].task2 });
         }
       }
 
-      for (i = 0; i < deleteThis.length; i++) {
-        for (j = 0; j < this.precedences.length; j++) {
+      for (var i = 0; i < deleteThis.length; i++) {
+        for (var j = 0; j < this.precedences.length; j++) {
           if (deleteThis[i].task1 === this.precedences[j].task1 &&
             deleteThis[i].task2 === this.precedences[j].task2) {
             this.deletePrecendence(j);
@@ -636,9 +634,9 @@ var recipieBuilder = new Vue({
     },
     updateProctimes() {
       var deleteThis = [];
-      for (i = 0; i < this.proctimes.length; i++) {//task, eq, proctime
+      for (var i = 0; i < this.proctimes.length; i++) {//task, eq, proctime
         var add = true;
-        for (j = 0; j < this.tasks.length; j++) {
+        for (var j = 0; j < this.tasks.length; j++) {
           if (this.proctimes[i].task === this.tasks[j]) {
             add = false;
           }
@@ -648,8 +646,8 @@ var recipieBuilder = new Vue({
         }
       }
 
-      for (i = 0; i < deleteThis.length; i++) {
-        for (j = 0; j < this.proctimes.length; j++) {
+      for (var i = 0; i < deleteThis.length; i++) {
+        for (var j = 0; j < this.proctimes.length; j++) {
           if (deleteThis[i] === this.proctimes[j].task) {
             this.proctimes.splice(j, 1);
           }
@@ -658,14 +656,14 @@ var recipieBuilder = new Vue({
     },
     updateProctimesFromProduct(task) {
       var deleteThis = [];
-      for (i = 0; i < this.proctimes.length; i++) {
+      for (var i = 0; i < this.proctimes.length; i++) {
         if (task === this.proctimes[i].task) {
           deleteThis.push(this.proctimes[i].task);
         }
       }
 
-      for (i = 0; i < deleteThis.length; i++) {
-        for (j = 0; j < this.proctimes.length; j++) {
+      for (var i = 0; i < deleteThis.length; i++) {
+        for (var j = 0; j < this.proctimes.length; j++) {
           if (deleteThis[i] === this.proctimes[j].task) {
             this.deleteProctime(j);
           }
@@ -674,9 +672,9 @@ var recipieBuilder = new Vue({
     },
     updateProctimesFromEq() {
       var deleteThis = [];
-      for (i = 0; i < this.proctimes.length; i++) { //task, eq, proctime
+      for (var i = 0; i < this.proctimes.length; i++) { //task, eq, proctime
         var add = true;
-        for (j = 0; j < this.equipments.length; j++) {
+        for (var j = 0; j < this.equipments.length; j++) {
           if (this.proctimes[i].eq === this.equipments[j]) {
             add = false;
           }
@@ -686,8 +684,8 @@ var recipieBuilder = new Vue({
         }
       }
 
-      for (i = 0; i < deleteThis.length; i++) {
-        for (j = 0; j < this.proctimes.length; j++) {
+      for (var i = 0; i < deleteThis.length; i++) {
+        for (var j = 0; j < this.proctimes.length; j++) {
           if (deleteThis[i] === this.proctimes[j].eq) {
             this.deleteProctime(j);
           }
@@ -696,9 +694,9 @@ var recipieBuilder = new Vue({
     },
     updatePrecedencesWithProducts() {
       var deleteThis = [];
-      for (i = 0; i < this.precedencesWithProducts.length; i++) { //task, product
+      for (var i = 0; i < this.precedencesWithProducts.length; i++) { //task, product
         var add = true;
-        for (j = 0; j < this.tasks.length; j++) {
+        for (var j = 0; j < this.tasks.length; j++) {
           if (this.precedencesWithProducts[i].task === this.tasks[j] ||
             this.precedencesWithProducts[i].product === this.tasks[j]) {
             add = false;
@@ -709,8 +707,8 @@ var recipieBuilder = new Vue({
         }
       }
 
-      for (i = 0; i < deleteThis.length; i++) {
-        for (j = 0; j < this.precedencesWithProducts.length; j++) {
+      for (var i = 0; i < deleteThis.length; i++) {
+        for (var j = 0; j < this.precedencesWithProducts.length; j++) {
           if (deleteThis[i] === this.precedencesWithProducts[j].task) {
             this.deletePrecedencesWithProducts(j);
           }
@@ -719,15 +717,15 @@ var recipieBuilder = new Vue({
     },
     updatePrecedencesWithProductsFromTasks(task) {
       var deleteThis = [];
-      for (i = 0; i < this.precedencesWithProducts.length; i++) { //task, product
+      for (var i = 0; i < this.precedencesWithProducts.length; i++) { //task, product
         if (task === this.precedencesWithProducts[i].task ||
           task === this.precedencesWithProducts[i].product) {
           deleteThis.push({ task: this.precedencesWithProducts[i].task, product: this.precedencesWithProducts[i].product });
         }
       }
 
-      for (i = 0; i < deleteThis.length; i++) {
-        for (j = 0; j < this.precedencesWithProducts.length; j++) {
+      for (var i = 0; i < deleteThis.length; i++) {
+        for (var j = 0; j < this.precedencesWithProducts.length; j++) {
           if (deleteThis[i].task === this.precedencesWithProducts[j].task ||
             deleteThis[i].product === this.precedencesWithProducts[j].product) {
             this.deletePrecedencesWithProducts(j);
@@ -735,28 +733,27 @@ var recipieBuilder = new Vue({
         }
       }
 
-      for (i = 0; i < this.tasks.length; i++) {
+      for (var i = 0; i < this.tasks.length; i++) {
         var add = true;
-        for (j = 0; j < this.precedencesWithProducts.length; j++) { //task, product
+        for (var j = 0; j < this.precedencesWithProducts.length; j++) { //task, product
           if (this.tasks[i] === this.precedencesWithProducts[j].task) {
             add = false;
           }
         }
         if (add == true) {
-          for (j = 0; j < this.tasksAndProducts.length; j++) {
+          for (var j = 0; j < this.tasksAndProducts.length; j++) {
             if (this.tasks[i] === this.tasksAndProducts[j].name) {
               this.precedencesWithProducts.push({ task: this.tasks[i], product: this.tasksAndProducts[j].product });
             }
           }
         }
       }
-
     },
     updatePrecedencesWithProductsFromPrecedence(task1) {
-      for (i = 0; i < this.precedencesWithProducts.length; i++) { //task, product
+      for (var i = 0; i < this.precedencesWithProducts.length; i++) { //task, product
         if (task1 === this.precedencesWithProducts[i].task) {
           this.deletePrecedencesWithProducts(i);
-          for (j = 0; j < this.tasksAndProducts.length; j++) {
+          for (var j = 0; j < this.tasksAndProducts.length; j++) {
             if (task1 === this.tasksAndProducts[j].name) {
               this.precedencesWithProducts.push({ task: task1, product: this.tasksAndProducts[j].product });
             }
@@ -768,17 +765,17 @@ var recipieBuilder = new Vue({
       var tasks = [];
       var schedTable = document.getElementsByClassName("schedTable");
       var splited_elements = [];
-      for (i = 0; i < schedTable.length; i++) {
+      for (var i = 0; i < schedTable.length; i++) {
         splited_elements.push(schedTable[i].innerHTML);
       }
 
       var datas = [];
-      for (i = 0; i < splited_elements.length; i++) {
+      for (var i = 0; i < splited_elements.length; i++) {
         datas.push(splited_elements[i].split(">"));
       }
 
-      for (i = 0; i < datas.length; i++) {
-        for (j = 0; j < datas[i].length; j++) {
+      for (var i = 0; i < datas.length; i++) {
+        for (var j = 0; j < datas[i].length; j++) {
           if (datas[i][j].indexOf("</span") !== -1) {
             var final_datas = datas[i][j].split('<');
             taskWithEq = final_datas[0].split('/');
@@ -791,12 +788,12 @@ var recipieBuilder = new Vue({
       var tmpTasks = [];
       var eqWithTasks = []; //eq, tasks[]
 
-      for (i = 0; i < tasks.length; i++) {
+      for (var i = 0; i < tasks.length; i++) {
         if (!yes) {
           eqWithTasks.push({ eq: tmpEq, tasks: tmpTasks });
         }
         var yes = true;
-        for (j = 0; j < this.equipments.length; j++) {
+        for (var j = 0; j < this.equipments.length; j++) {
           if (this.equipments[j] === tasks[i]) {
             yes = false;
           }
@@ -810,9 +807,9 @@ var recipieBuilder = new Vue({
         }
       }
 
-      for (i = 0; i < this.proctimes.length; i++) { //task, eq, proctime
-        for (j = 0; j < eqWithTasks.length; j++) { //eq, tasks
-          for (u = 0; u < eqWithTasks[j].tasks.length; u++) {
+      for (var i = 0; i < this.proctimes.length; i++) { //task, eq, proctime
+        for (var j = 0; j < eqWithTasks.length; j++) { //eq, tasks
+          for (var u = 0; u < eqWithTasks[j].tasks.length; u++) {
             if (eqWithTasks[j].tasks[u] === this.proctimes[i].task) {
               this.proctimes[i].eq = eqWithTasks[j].eq;
             }
@@ -822,7 +819,6 @@ var recipieBuilder = new Vue({
 
       this.equipmentsToTask();
     },
-
     updateProductsLength() {
       this.productsLength = this.products.length;
       this.hideAlert();
@@ -843,12 +839,11 @@ var recipieBuilder = new Vue({
       this.proctimesLength = this.proctimes.length;
       this.hideAlert();
     },
-
     updateOnlyTasks() {
       this.onlyTasks = [];
-      for (i = 0; i < this.tasks.length; i++) {
+      for (var i = 0; i < this.tasks.length; i++) {
         var add = true;
-        for (j = 0; j < this.products.length && add; j++) {
+        for (var j = 0; j < this.products.length && add; j++) {
           if (this.tasks[i] === this.products[j]) {
             add = false;
           }
@@ -858,13 +853,12 @@ var recipieBuilder = new Vue({
         }
       }
     },
-
     updateTasksToEq() {
       this.tasksToEq = []; //eq, tasks
-      for (i = 0; i < this.equipments.length; i++) {
+      for (var i = 0; i < this.equipments.length; i++) {
         var tasks = [];
-        for (j = 0; j < this.taskEquipment.length; j++) { //task, eqs[]
-          for (u = 0; u < this.taskEquipment[j].eqs.length; u++) {
+        for (var j = 0; j < this.taskEquipment.length; j++) { //task, eqs[]
+          for (var u = 0; u < this.taskEquipment[j].eqs.length; u++) {
             if (this.equipments[i] === this.taskEquipment[j].eqs[u]) {
               tasks.push(this.taskEquipment[j].task);
             }
@@ -879,10 +873,10 @@ var recipieBuilder = new Vue({
     updateTasksToEq2(tasks) {
       if (tasks === "") {
         this.tasksToEq2 = []; //eq, tasks
-        for (i = 0; i < this.equipments.length; i++) {
+        for (var i = 0; i < this.equipments.length; i++) {
           var tasks = [];
-          for (j = 0; j < this.taskEquipment.length; j++) { //task, eqs[]
-            for (u = 0; u < this.taskEquipment[j].eqs.length; u++) {
+          for (var j = 0; j < this.taskEquipment.length; j++) { //task, eqs[]
+            for (var u = 0; u < this.taskEquipment[j].eqs.length; u++) {
               if (this.equipments[i] === this.taskEquipment[j].eqs[u]) {
                 tasks.push(this.taskEquipment[j].task);
               }
@@ -898,12 +892,12 @@ var recipieBuilder = new Vue({
         this.tasksToEq2 = []; //eq, tasks
         var yes = true;
 
-        for (i = 0; i < tasks.length; i++) {
+        for (var i = 0; i < tasks.length; i++) {
           if (!yes) {
             this.tasksToEq2.push({ eq: tmpEq, tasks: tmpTasks });
           }
           yes = true;
-          for (j = 0; j < this.equipments.length; j++) {
+          for (var j = 0; j < this.equipments.length; j++) {
             if (this.equipments[j] === tasks[i]) {
               yes = false;
             }
@@ -919,16 +913,15 @@ var recipieBuilder = new Vue({
       }
       this.updateTasksToEqWithProctimes2();
     },
-
     updateTasksToEqWithProctimes() {
       this.tasksToEqWithProctimes = []; //eq, tasks[] //task, time
 
-      for (i = 0; i < this.tasksToEq.length; i++) {
+      for (var i = 0; i < this.tasksToEq.length; i++) {
         var eq = this.tasksToEq[i].eq;
         var tmpTasks = []; //task, time
-        for (j = 0; j < this.tasksToEq[i].tasks.length; j++) {
+        for (var j = 0; j < this.tasksToEq[i].tasks.length; j++) {
           var time = "";
-          for (u = 0; u < this.proctimes.length; u++) {
+          for (var u = 0; u < this.proctimes.length; u++) {
             if (this.tasksToEq[i].tasks[j] === this.proctimes[u].task &&
               this.tasksToEq[i].eq === this.proctimes[u].eq) {
               time = this.proctimes[u].proctime;
@@ -943,12 +936,12 @@ var recipieBuilder = new Vue({
     updateTasksToEqWithProctimes2() {
       this.tasksToEqWithProctimes = []; //eq, tasks[] //task, time
 
-      for (i = 0; i < this.tasksToEq2.length; i++) {
+      for (var i = 0; i < this.tasksToEq2.length; i++) {
         var eq = this.tasksToEq2[i].eq;
         var tmpTasks = []; //task, time
-        for (j = 0; j < this.tasksToEq2[i].tasks.length; j++) {
+        for (var j = 0; j < this.tasksToEq2[i].tasks.length; j++) {
           var time = "";
-          for (u = 0; u < this.proctimes.length; u++) {
+          for (var u = 0; u < this.proctimes.length; u++) {
             if (this.tasksToEq2[i].tasks[j] === this.proctimes[u].task &&
               this.tasksToEq2[i].eq === this.proctimes[u].eq) {
               time = this.proctimes[u].proctime;
@@ -965,8 +958,8 @@ var recipieBuilder = new Vue({
 
     /*--------DELETE-DUPLICATE--------*/
     deleteDuplicateProducts() {
-      for (i = 0; i < this.products.length; i++) {
-        for (j = i + 1; j < this.products.length; j++) {
+      for (var i = 0; i < this.products.length; i++) {
+        for (var j = i + 1; j < this.products.length; j++) {
           if (this.products[j] === this.products[i]) {
             this.products.splice(j, 1);
             this.showWarning("Same products");
@@ -976,8 +969,8 @@ var recipieBuilder = new Vue({
     },
     deleteDuplicateTasks() {
       var yes = true;
-      for (i = 0; i < this.tasksAndProducts.length; i++) {
-        for (j = i + 1; j < this.tasksAndProducts.length; j++) {
+      for (var i = 0; i < this.tasksAndProducts.length; i++) {
+        for (var j = i + 1; j < this.tasksAndProducts.length; j++) {
           if (this.tasksAndProducts[j].name === this.tasksAndProducts[i].name &&
             this.tasksAndProducts[j].product === this.tasksAndProducts[i].product) {
             yes = false;
@@ -998,8 +991,8 @@ var recipieBuilder = new Vue({
       }
     },
     deleteDuplicateEquipments() {
-      for (i = 0; i < this.equipments.length; i++) {
-        for (j = i + 1; j < this.equipments.length; j++) {
+      for (var i = 0; i < this.equipments.length; i++) {
+        for (var j = i + 1; j < this.equipments.length; j++) {
           if (this.equipments[j] === this.equipments[i]) {
             this.deleteEq(j);
             this.showWarning("Same equipments");
@@ -1008,8 +1001,8 @@ var recipieBuilder = new Vue({
       }
     },
     deleteDuplicatePrecedence() {
-      for (i = 0; i < this.precedences.length; i++) {
-        for (j = i + 1; j < this.precedences.length; j++) {
+      for (var i = 0; i < this.precedences.length; i++) {
+        for (var j = i + 1; j < this.precedences.length; j++) {
           if (this.precedences[j].task1 === this.precedences[i].task1 &&
             this.precedences[j].task2 === this.precedences[i].task2) {
             this.deletePrecendence(j);
@@ -1019,8 +1012,8 @@ var recipieBuilder = new Vue({
       }
     },
     deleteDuplicateProctimes() {
-      for (i = 0; i < this.proctimes.length; i++) {
-        for (j = i + 1; j < this.proctimes.length; j++) {
+      for (var i = 0; i < this.proctimes.length; i++) {
+        for (var j = i + 1; j < this.proctimes.length; j++) {
           if (this.proctimes[j].task === this.proctimes[i].task &&
             this.proctimes[j].eq === this.proctimes[i].eq &&
             this.proctimes[j].proctime === this.proctimes[i].proctime) {
@@ -1030,8 +1023,8 @@ var recipieBuilder = new Vue({
         }
       }
 
-      for (i = 0; i < this.proctimes.length; i++) {
-        for (j = i + 1; j < this.proctimes.length; j++) {
+      for (var i = 0; i < this.proctimes.length; i++) {
+        for (var j = i + 1; j < this.proctimes.length; j++) {
           if (this.proctimes[j].task === this.proctimes[i].task &&
             this.proctimes[j].eq === this.proctimes[i].eq) {
             this.deleteProctime(j);
@@ -1040,7 +1033,7 @@ var recipieBuilder = new Vue({
         }
       }
 
-      for (i = 0; i < this.proctimes.length; i++) {
+      for (var i = 0; i < this.proctimes.length; i++) {
         if (this.proctimes[i].proctime[0] === '0' &&
           this.proctimes[i].proctime[1] !== '.') {
           this.deleteProctime(i);
@@ -1056,17 +1049,17 @@ var recipieBuilder = new Vue({
     },
     equipmentsToTask() {
       this.taskEquipment = [];
-      for (i = 0; i < this.proctimes.length; i++) {
+      for (var i = 0; i < this.proctimes.length; i++) {
         var taskTemp = this.proctimes[i].task;
         var eqTemp = [];
-        for (j = 0; j < this.proctimes.length; j++) {
+        for (var j = 0; j < this.proctimes.length; j++) {
           if (this.proctimes[j].task === taskTemp) {
             eqTemp.push(this.proctimes[j].eq);
           }
         }
 
         var yes = true;
-        for (j = 0; j < this.taskEquipment.length; j++) {
+        for (var j = 0; j < this.taskEquipment.length; j++) {
           if (this.taskEquipment[j].task === taskTemp) {
             yes = false;
           }
@@ -1080,10 +1073,10 @@ var recipieBuilder = new Vue({
       this.equipmentsToTask();
 
       this.recipieGraphTxt = "digraph SGraph { rankdir=LR 	node [shape=circle,fixedsize=true,width=0.9,label=<<B>\\N</B>>]"
-      for (i = 0; i < this.taskEquipment.length; i++) {
+      for (var i = 0; i < this.taskEquipment.length; i++) {
         this.recipieGraphTxt += " \"";
         var cur_task = "";
-        for (j = 0; j < this.taskEquipment[i].task.length; j++) {
+        for (var j = 0; j < this.taskEquipment[i].task.length; j++) {
           if (this.taskEquipment[i].task[j] === "\"") {
             cur_task += "\\" + this.taskEquipment[i].task[j];
           }
@@ -1098,17 +1091,17 @@ var recipieBuilder = new Vue({
 
         this.recipieGraphTxt += cur_task + "\" [ " + "label = < <B>\\N</B><BR/>{";
 
-        for (j = 0; j < this.taskEquipment[i].eqs.length; j++) {
+        for (var j = 0; j < this.taskEquipment[i].eqs.length; j++) {
           this.recipieGraphTxt += this.taskEquipment[i].eqs[j] + ",";
         }
         this.recipieGraphTxt = this.recipieGraphTxt.substring(0, this.recipieGraphTxt.length - 1);
         this.recipieGraphTxt += "}> ]";
       }
 
-      for (i = 0; i < this.precedencesWithProducts.length; i++) {
+      for (var i = 0; i < this.precedencesWithProducts.length; i++) {
         this.recipieGraphTxt += "\"";
         var cur_task = "";
-        for (j = 0; j < this.precedencesWithProducts[i].task.length; j++) {
+        for (var j = 0; j < this.precedencesWithProducts[i].task.length; j++) {
           if (this.precedencesWithProducts[i].task[j] === "\"") {
             cur_task += "\\" + this.precedencesWithProducts[i].task[j];
           }
@@ -1124,7 +1117,7 @@ var recipieBuilder = new Vue({
         this.recipieGraphTxt += cur_task + "\" -> \"";
 
         cur_task = "";
-        for (j = 0; j < this.precedencesWithProducts[i].product.length; j++) {
+        for (var j = 0; j < this.precedencesWithProducts[i].product.length; j++) {
           if (this.precedencesWithProducts[i].product[j] === "\"") {
             cur_task += "\\" + this.precedencesWithProducts[i].product[j];
           }
@@ -1141,14 +1134,14 @@ var recipieBuilder = new Vue({
 
         var tempProctimes = [];
         var tempTask = this.precedencesWithProducts[i].task;
-        for (j = 0; j < this.proctimes.length; j++) {
+        for (var j = 0; j < this.proctimes.length; j++) {
           if (this.proctimes[j].task === tempTask) {
             tempProctimes.push(this.proctimes[j].proctime);
           }
         }
 
         var minProctime = tempProctimes[0];
-        for (j = 0; j < tempProctimes.length; j++) {
+        for (var j = 0; j < tempProctimes.length; j++) {
           if (tempProctimes[j] < minProctime) {
             minProctime = tempProctimes[j];
           }
@@ -1169,6 +1162,7 @@ var recipieBuilder = new Vue({
           viz = new Viz();
           console.error(error);
         });
+      // console.log(this.recipieGraphTxt);
     },
   },
 }).$mount("#content");

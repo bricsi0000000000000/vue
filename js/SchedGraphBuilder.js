@@ -11,6 +11,7 @@ var schedGraphBuilder = new Vue({
       circleTaskPairs: [], //task1, task2
       gantt: [], //eq, tasks -> task, start_time, end_time
       nisSchedPrecedences: [], //task1, task2, proctime
+      longestPathMembers: [],
     }
   },
   methods: {
@@ -55,15 +56,6 @@ var schedGraphBuilder = new Vue({
 
       return proctime;
     },
-    getTask2DijkstraTime(iterations, task2) {
-      var time = -1;
-      iterations.forEach(i => {
-        if (i.task === task2) {
-          time = i.time;
-        }
-      });
-      return time;
-    },
     getEquipment(task) {
       var equipment = "";
       recipieBuilder.taskEquipment.forEach(eq => { //task, eqs
@@ -74,235 +66,9 @@ var schedGraphBuilder = new Vue({
 
       return equipment;
     },
-    dijkstra() {
-      this.circleCheck();
-      if (!recipieBuilder.circle) {
-        var longest_path_times = []; //product, time
-        recipieBuilder.products.forEach(p => {
-          longest_path_times.push({ product: p, time: this.getLongestPath(p, +0) });
-        });
-
-        var max_time = -1;
-        max_product = "";
-        longest_path_times.forEach(l => {
-          if (l.time > max_time) {
-            max_time = l.time;
-            max_product = l.product;
-          }
-        });
-        recipieBuilder.longestPathTime = max_time;
-        recipieBuilder.ganttWidth = max_time * 40 + 41;
-
-        startTasks = [];
-        for (i = 0; i < this.allEdges.length; i++) { //task1, task2
-          var yes = true;
-          for (j = 0; j < this.allEdges.length && yes; j++) { //task1, task2
-            if (this.allEdges[i].task1 === this.allEdges[j].task2) {
-              yes = false;
-            }
-          }
-          if (yes) {
-            for (j = 0; j < startTasks.length && yes; j++) {
-              if (this.allEdges[i].task1 === startTasks[j]) {
-                yes = false;
-              }
-            }
-            if (yes) {
-              startTasks.push(this.allEdges[i].task1);
-            }
-          }
-        }
-
-        var iterations = []; //task, time, from_task, once
-        //setup
-        recipieBuilder.tasks.forEach(p => {
-          iterations.push({ task: p, time: Number.MAX_SAFE_INTEGER, from_task: "", once: false });
-        });
-        recipieBuilder.products.forEach(p => {
-          iterations.push({ task: p, time: Number.MAX_SAFE_INTEGER, from_task: "", once: false });
-        });
-
-        var saved_iterations = [];
-        startTasks.forEach(start_task => {
-          //kezdő taszkot beállítom
-          iterations.forEach(i => { //task, time, from_task, once
-            if (i.task === start_task) {
-              i.time = +0;
-            }
-          });
-
-          var go = false;
-          var k = 0;
-          do {
-            k++;
-            var changes = []; //iterations
-            iterations.forEach(i => { //task, time, from_task, once
-              var approximate = "";
-              var min_time = Number.MAX_SAFE_INTEGER;
-              iterations.forEach(j => {
-                if (!j.once) {
-                  if (j.time < min_time) {
-                    min_time = j.time;
-                    approximate = j;
-                  }
-                }
-              });
-              this.allEdges.forEach(edge => { //task1, task2
-                if (approximate.task === edge.task1) {
-                  var tmp_time = (approximate.time + -this.getProctimeForDijkstra(approximate.task, edge.task2));
-                  if (tmp_time < this.getTask2DijkstraTime(iterations, edge.task2)) {
-                    changes.push({ task: edge.task2, time: tmp_time, from_task: approximate.task, once: false });
-                  }
-                }
-              });
-
-              changes.push({ task: approximate.task, time: approximate.time, from_task: approximate.from_task, once: true });
-
-              changes.forEach(c => {
-                iterations.forEach(i => {
-                  if (c.task === i.task) {
-                    i.time = c.time;
-                    i.from_task = c.from_task;
-                    i.once = c.once;
-                  }
-                });
-              });
-            });
-
-            go = false;
-            iterations.forEach(i => {
-              longest_path_times.forEach(l => {
-                if (i.task === l.product) {
-                  if (-i.time !== l.time) {
-                    go = true;
-                  }
-                }
-              });
-            });
-          }
-          while (k < 3);
-
-          max_time = 0;
-          max_product = "";
-
-          iterations.forEach(i => {
-            if (max_time > i.time) {
-              max_time = i.time;
-              max_product = i;
-            }
-          });
-
-          var saved_max_time = 0;
-          var saved_max_product = "";
-
-          saved_iterations.forEach(i => {
-            if (saved_max_time > i.time) {
-              saved_max_time = i.time;
-              saved_max_product = i;
-            }
-          });
-
-          if (saved_max_time < max_time) {
-            saved_iterations = [];
-            iterations.forEach(i => {
-              saved_iterations.push(i);
-            });
-          }
-        });
-
-
-        var task_pairs = []; //task1, task2
-        iterations.forEach(i => {
-          if (i.from_task !== "") {
-            task_pairs.push({ task1: i.from_task, task2: i.task });
-          }
-        });
-
-        var tmp_tasks = [];
-        var tmp_tasks1 = [];
-        var prev_tasks = []; //task1, task2
-        go = true;
-        do {
-          tmp_tasks = [];
-          task_pairs.forEach(i => { //task1, task2
-            add = true;
-            startTasks.forEach(s => {
-              if (i.task1 === s) {
-                add = false;
-                tmp_tasks.push(i);
-              }
-            });
-
-            if (add) {
-              add = false;
-              task_pairs.forEach(j => {
-                if (i.task1 === j.task2) {
-                  add = true;
-                }
-              });
-
-              if (add) {
-                tmp_tasks.push(i);
-              }
-            }
-          });
-
-          tmp_tasks1 = []; //task1, task2
-          tmp_tasks.forEach(i => { //task1, task2
-            add = true;
-            if (i.task2 === max_product.task) {
-              add = false;
-              tmp_tasks1.push(i);
-            }
-
-            if (add) {
-              add = false;
-              tmp_tasks.forEach(j => {
-                if (i.task2 === j.task1) {
-                  add = true;
-                }
-              });
-
-              if (add) {
-                tmp_tasks1.push(i);
-              }
-            }
-          });
-
-          task_pairs = []; //task1, task2
-          tmp_tasks1.forEach(t => {
-            task_pairs.push(t);
-          });
-
-          if (prev_tasks.length === tmp_tasks1.length) {
-            go = false;
-          }
-
-          prev_tasks = [];
-          tmp_tasks1.forEach(t => {
-            prev_tasks.push(t);
-          });
-        }
-        while (go);
-
-        this.longestPath = []; //task1, task2
-        prev_tasks.forEach(i => {
-          this.longestPath.push(i);
-        });
-      }
-
-      this.longestPath.forEach(l => {
-        startTasks.forEach(s => {
-          if (l.task1 === s) {
-            recipieBuilder.longestPathStartTask = s;
-          }
-        });
-      });
-      recipieBuilder.longestPathEndTask = max_product.task;
-
-      this.drawLongestPath();
-    },
     getLongestPath(task, max) {
+      var path = []; //max_time, tasks[]
+
       var prev_tasks = []; //task1, task2, n
       this.nisSchedPrecedences.forEach(element => { //task1, task2
         if (task === element.task2) {
@@ -318,14 +84,23 @@ var schedGraphBuilder = new Vue({
         });
       });
 
+      var tasks = [];
+      var max_task = "";
+      var longest_path_hier;
+      var max = 0;
       prev_tasks.forEach(element => {
-        var longest_path_hier = this.getLongestPath(element.task1, +0) + +element.n;
-        if (longest_path_hier > max) {
-          max = longest_path_hier;
+        longest_path_hier = this.getLongestPath(element.task1, +0);
+        if ((longest_path_hier[0].max_time  + +element.n) > max) {
+          max = longest_path_hier[0].max_time  + +element.n;
+          tasks = longest_path_hier[0].tasks;
+          max_task = element.task1;
         }
       });
+      tasks.push(max_task);
 
-      return max;
+      path.push({max_time: max, tasks: tasks});
+
+      return path;
     },
     drawLongestPath() {
       this.circleCheck();
@@ -333,13 +108,13 @@ var schedGraphBuilder = new Vue({
         var schedText = "";
         var text = this.schedGraphTxt.split("@");
 
-        for (i = 0; i < text.length; i++) {
+        for (var i = 0; i < text.length; i++) {
           if (i % 2 === 0) {
             schedText += text[i];
           }
           else {
             var tempTasks = text[i].split(";");
-            for (j = 0; j < this.longestPath.length; j++) { //task1, task2
+            for (var j = 0; j < this.longestPath.length; j++) { //task1, task2
               if (tempTasks[0] === this.longestPath[j].task1 && tempTasks[1] === this.longestPath[j].task2) {
                 schedText += "5";
               }
@@ -350,13 +125,13 @@ var schedGraphBuilder = new Vue({
       else {
         var schedText = "";
         var text = this.schedGraphTxt.split("@");
-        for (i = 0; i < text.length; i++) {
+        for (var i = 0; i < text.length; i++) {
           if (i % 2 === 0) {
             schedText += text[i];
           }
           else {
             var tempTasks = text[i].split(";");
-            for (j = 0; j < this.circleTaskPairs.length; j++) { //task1, task2
+            for (var j = 0; j < this.circleTaskPairs.length; j++) { //task1, task2
               if (tempTasks[0] === this.circleTaskPairs[j].task1 && tempTasks[1] === this.circleTaskPairs[j].task2) {
                 schedText += "5";
               }
@@ -376,6 +151,19 @@ var schedGraphBuilder = new Vue({
           console.error(error);
         });
     },
+    canAddToGantt(task){
+      add = true;
+
+      this.gantt.forEach(g => {
+        g.tasks.forEach(t => {
+          if(t.task === task){
+            add = false;
+          }
+        });
+      });
+
+      return add;
+    },
     async makeGantDiagram(uis) {
       if (!recipieBuilder.circle) {
         this.gantt = [];
@@ -386,14 +174,29 @@ var schedGraphBuilder = new Vue({
         this.schedPrecedencesWithProducts.forEach(s => {
           var act_eq = this.getEquipment(s.task);
           var add_task = "";
+          var start_time = "";
           this.gantt.forEach(g => {
             if (g.eq === act_eq) {
-              var start_time = +this.getLongestPath(s.task, +0);
-              g.tasks.push({ task: s.task, start_time: start_time, end_time: (start_time + +this.getProctimeForDijkstra(s.task, s.product)) });
+              var longest_path_hier = this.getLongestPath(s.task, +0);
+
+              /*longest_path_hier.forEach(g => {
+                console.log(g.max_time);
+                g.tasks.forEach(task => {
+                  console.log(task);
+                });
+              });*/
+
+              //console.log(longest_path_hier[0].max_time);
+
+              start_time = +longest_path_hier[0].max_time;
+             // console.log(start_time);
+              if(this.canAddToGantt(s.task)){
+                g.tasks.push({ task: s.task, start_time: start_time, end_time: (start_time + +this.getProctimeForDijkstra(s.task, s.product)) });
+              }  
             }
           });
         });
-        /* console.log("-------gantt----------");
+         /*console.log("-------gantt----------");
          this.gantt.forEach(g => {
            console.log(g.eq);
            g.tasks.forEach(t => {
@@ -417,7 +220,7 @@ var schedGraphBuilder = new Vue({
 
         document.getElementById("ganttDiagram").innerHTML = "";
         var svgNS = "http://www.w3.org/2000/svg";
-        for (i = 0; i < this.gantt.length; i++) {
+        for (var i = 0; i < this.gantt.length; i++) {
           width = 40;
           y = y_unit * i;
           color = "black";
@@ -447,8 +250,8 @@ var schedGraphBuilder = new Vue({
 
         x = +40;
         text_y = -15;
-        for (j = 0; j < this.gantt.length; j++) {
-          for (i = 0; i < this.gantt[j].tasks.length; i++) {
+        for (var j = 0; j < this.gantt.length; j++) {
+          for (var i = 0; i < this.gantt[j].tasks.length; i++) {
             width = (this.gantt[j].tasks[i].end_time - this.gantt[j].tasks[i].start_time) * width_unit;
             y = y_unit * j;
             x = 40 + this.gantt[j].tasks[i].start_time * 40;
@@ -478,13 +281,6 @@ var schedGraphBuilder = new Vue({
             document.getElementById("ganttDiagram").appendChild(txt);
           }
         }
-
-        /*this.gantt.forEach(g => {
-          console.log(g.eq);
-          g.tasks.forEach(t => {
-            console.log("\t" + t.task + " " + t.start_time + " " + t.end_time);
-          });
-        });*/
       }
       else {
         document.getElementById("ganttDiagram").innerHTML = "";
@@ -494,9 +290,9 @@ var schedGraphBuilder = new Vue({
       var tasks = [];
 
       if (first) {
-        for (i = 0; i < recipieBuilder.tasksToEq2.length; i++) {
+        for (var i = 0; i < recipieBuilder.tasksToEq2.length; i++) {
           tasks.push(recipieBuilder.tasksToEq2[i].eq);
-          for (j = 0; j < recipieBuilder.tasksToEq2[i].tasks.length; j++) {
+          for (var j = 0; j < recipieBuilder.tasksToEq2[i].tasks.length; j++) {
             tasks.push(recipieBuilder.tasksToEq2[i].tasks[j]);
           }
         }
@@ -505,17 +301,17 @@ var schedGraphBuilder = new Vue({
       else {
         var schedTable = document.getElementsByClassName("schedTable");
         var texts = [];
-        for (i = 0; i < schedTable.length; i++) {
+        for (var i = 0; i < schedTable.length; i++) {
           texts.push(schedTable[i].innerHTML);
         }
 
         var datas = [];
-        for (i = 0; i < texts.length; i++) {
+        for (var i = 0; i < texts.length; i++) {
           datas.push(texts[i].split(">"));
         }
 
-        for (i = 0; i < datas.length; i++) {
-          for (j = 0; j < datas[i].length; j++) {
+        for (var i = 0; i < datas.length; i++) {
+          for (var j = 0; j < datas[i].length; j++) {
             if (datas[i][j].indexOf("</span") !== -1) {
               var data = datas[i][j].split('<');
               var taskWithEq = data[0].split('/');
@@ -532,9 +328,9 @@ var schedGraphBuilder = new Vue({
       this.schedTasks = [];
       this.schedTasksArray = [];
       this.lastInCol = [];
-      for (i = 0; i < tasks.length; i++) {
+      for (var i = 0; i < tasks.length; i++) {
         var yes = true;
-        for (j = 0; j < recipieBuilder.equipments.length; j++) {
+        for (var j = 0; j < recipieBuilder.equipments.length; j++) {
           if (recipieBuilder.equipments[j] === tasks[i]) {
             yes = false;
           }
@@ -560,14 +356,14 @@ var schedGraphBuilder = new Vue({
     },
     makeSchedPrecedencesWithProducts(uis) {
       this.schedPrecedencesWithProducts = [];
-      for (i = 0; i < recipieBuilder.precedencesWithProducts.length; i++) {  //task, product
+      for (var i = 0; i < recipieBuilder.precedencesWithProducts.length; i++) {  //task, product
         this.schedPrecedencesWithProducts.push({ task: recipieBuilder.precedencesWithProducts[i].task, product: recipieBuilder.precedencesWithProducts[i].product, schedEdge: false });
       }
 
       //if(recipieBuilder.uisNisChk){
       if (uis) {
         var addThese = []; //task1, task2
-        for (i = 0; i < this.schedTasksArray.length - 1; i++) { //task
+        for (var i = 0; i < this.schedTasksArray.length - 1; i++) { //task
           if (this.schedTasksArray[i].task !== "--") {
             if (this.schedTasksArray[i + 1].task !== "--") {
               addThese.push({ task1: this.schedTasksArray[i].task, task2: this.schedTasksArray[i + 1].task });
@@ -577,7 +373,7 @@ var schedGraphBuilder = new Vue({
       }
       else {
         var addThese = []; //task1, task2
-        for (i = 0; i < this.schedTasksArray.length - 1; i++) { //task
+        for (var i = 0; i < this.schedTasksArray.length - 1; i++) { //task
           if (this.schedTasksArray[i].task !== "--") {
             if (this.schedTasksArray[i + 1].task !== "--") {
               addThese.push({ task1: this.schedTasksArray[i].task, task2: this.schedTasksArray[i + 1].task });
@@ -586,68 +382,95 @@ var schedGraphBuilder = new Vue({
         }
       }
 
-      for (i = 0; i < addThese.length; i++) { //task1, task2
+      for (var i = 0; i < addThese.length; i++) { //task1, task2
         this.schedPrecedencesWithProducts.push({ task: addThese[i].task1, product: addThese[i].task2, schedEdge: true });
+      }
+    },
+    isInStartTasks(start_tasks, task){
+      var yes = false;
+
+      for(var i = 0; i < start_tasks.length && !yes; i++){
+        if(task === start_tasks[i]){
+          yes = true;
+        }
+      }
+
+      return yes;
+    },
+    getStartTasks(){
+      var start_tasks = [];
+
+      recipieBuilder.precedences.forEach( p => {
+        var yes = true;
+        for (var i = 0; i < recipieBuilder.precedences.length && yes; i++){
+          if(p.task1 === recipieBuilder.precedences[i].task2){
+            yes = false;
+          }
+        }
+
+        if(yes){
+          if(!this.isInStartTasks(start_tasks, p.task1)){
+            start_tasks.push(p.task1);
+          }
+        }
+      });
+
+      return start_tasks;
+    },
+    getTask2s(compare_task){
+      task2s = [];
+      this.allEdges.forEach(a => {
+        if(compare_task === a.task1){
+          task2s.push(a.task2);
+        }
+      });
+
+      return task2s;
+    },
+    getCircleTaskPairs(tmp_arr){
+      for (var i = 0; i < tmp_arr.length - 1; i++) {
+        yes = true;
+        for (var u = 0; u < this.circleTaskPairs.length && yes; u++) {
+          if (this.circleTaskPairs[u].task1 === tmp_arr[i] && this.circleTaskPairs[u].task2 === tmp_arr[i + 1]) {
+            yes = false;
+          }
+        }
+        if (yes) {
+          this.circleTaskPairs.push({ task1: tmp_arr[i], task2: tmp_arr[i + 1] });
+        }
       }
     },
     circleCheck() {
       recipieBuilder.circle = false;
 
-      //megkeresem a kezdő taszkokat
-      var startTasks = [];
-      for (i = 0; i < recipieBuilder.precedences.length; i++) { //task1, task2
-        var yes = true;
-        for (j = 0; j < recipieBuilder.precedences.length && yes; j++) { //task1, task2
-          if (recipieBuilder.precedences[i].task1 === recipieBuilder.precedences[j].task2) {
-            yes = false;
-          }
-        }
-        if (yes) {
-          //csak egyszer rakom bele őket
-          for (j = 0; j < startTasks.length && yes; j++) {
-            if (recipieBuilder.precedences[i].task1 === startTasks[j]) {
-              yes = false;
-            }
-          }
-          if (yes) {
-            startTasks.push(recipieBuilder.precedences[i].task1);
-          }
-        }
-      }
+      var startTasks = this.getStartTasks();
 
-      for (startTaskIndex = 0; startTaskIndex < startTasks.length; startTaskIndex++) {
-        var startTask = startTasks[startTaskIndex];
-        var task2S = [];
-        for (i = 0; i < this.allEdges.length; i++) { //task1, task2
-          if (startTask === this.allEdges[i].task1) {
-            task2S.push(this.allEdges[i].task2);
-          }
-        }
+    
+      for (var startTaskIndex = 0; startTaskIndex < startTasks.length; startTaskIndex++) {
+        var task2S = this.getTask2s(startTasks[startTaskIndex]);
+
+       
 
         var circleArr = []; //task, task2S, end
-        circleArr.push({ task: startTask, task2S: task2S, end: true });
+        circleArr.push({ task: startTasks[startTaskIndex], task2S: task2S, end: true });
 
-        for (r = 0; r < this.allEdges.length && !recipieBuilder.circle; r++) {
+        for (var r = 0; r < this.allEdges.length && !recipieBuilder.circle; r++) {
           var endTask = []; //task, task2S, end
-          for (i = 0; i < circleArr.length; i++) { //task, task2S, end
+          for (var i = 0; i < circleArr.length; i++) { //task, task2S, end
             if (circleArr[i].end) {
               endTask.push({ task: circleArr[i].task, task2S: circleArr[i].task2S, end: true });
             }
           }
 
-          task2S = [];
-          for (i = 0; i < this.allEdges.length; i++) { //task1, task2
-            if (endTask[0].task2S[0] === this.allEdges[i].task1) {
-              task2S.push(this.allEdges[i].task2);
-            }
-          }
+          task2S = this.getTask2s(endTask[0].task2S[0]);
 
+         
           //megnézem hogy ezek közül van e amivel kör lesz
-          var endCircleTask = "";
-          for (i = 0; i < task2S.length && !recipieBuilder.circle; i++) {
-            for (j = 0; j < circleArr.length && !recipieBuilder.circle; j++) { //task, task2S, end
+          for (var i = 0; i < task2S.length && !recipieBuilder.circle; i++) {
+            for (var j = 0; j < circleArr.length && !recipieBuilder.circle; j++) { //task, task2S, end
               if (task2S[i] === circleArr[j].task) {
                 recipieBuilder.circle = true;
+                //console.log(recipieBuilder.circle); 
                 circleArr.push({ task: circleArr[circleArr.length - 1].task2S[0], task2S: [], end: false });
                 circleArr.push({ task: task2S[i], task2S: [], end: false });
               }
@@ -657,40 +480,27 @@ var schedGraphBuilder = new Vue({
           if (recipieBuilder.circle) {
             endTask = circleArr[circleArr.length - 1].task;
             var go = true;
-            for (i = 0; i < circleArr.length && go; i++) { //task, task2S, end
+            for (var i = 0; i < circleArr.length && go; i++) { //task, task2S, end
               if (circleArr[i].task === endTask) {
                 go = false;
               }
             }
 
             var tmpArr = [];
-            for (j = i - 1; j < circleArr.length; j++) { //task, task2S, end
+            for (var j = i - 1; j < circleArr.length; j++) { //task, task2S, end
               tmpArr.push(circleArr[j].task);
             }
 
-            this.circleTaskPairs = []; //task1, task2
-            for (i = 0; i < tmpArr.length - 1; i++) {
-              yes = true;
-              for (u = 0; u < this.circleTaskPairs.length && yes; u++) {
-                if (this.circleTaskPairs[u].task1 === tmpArr[i] && this.circleTaskPairs[u].task2 === tmpArr[i + 1]) {
-                  yes = false;
-                }
-              }
-              if (yes) {
-                this.circleTaskPairs.push({ task1: tmpArr[i], task2: tmpArr[i + 1] });
-              }
-            }
+            this.circleTaskPairs = [];
+            this.getCircleTaskPairs(tmpArr); //task1, task2
           }
           else {
-            var end = false;
-            if (task2S.length > 0) {
-              end = true;
-            }
+            var end = task2S.length > 0;
 
             circleArr.push({ task: endTask[0].task2S[0], task2S: task2S, end: end });
 
             var tmpArr = [];
-            for (i = 1; i < endTask[0].task2S.length; i++) {
+            for (var i = 1; i < endTask[0].task2S.length; i++) {
               tmpArr.push(endTask[0].task2S[i]);
             }
 
@@ -698,11 +508,11 @@ var schedGraphBuilder = new Vue({
 
             circleArr[circleArr.length - 2] = endTask[0];
 
-            for (i = 0; i < circleArr.length; i++) { //task, task2S, end
+            for (var i = 0; i < circleArr.length; i++) { //task, task2S, end
               if (circleArr[i].task2S.length > 0) {
                 circleArr[i].end = true;
 
-                for (j = 0; j < i; j++) { //task, task2S, end
+                for (var j = 0; j < i; j++) { //task, task2S, end
                   circleArr[j].end = false;
                 }
               }
@@ -711,7 +521,7 @@ var schedGraphBuilder = new Vue({
             //el kell venni az end utániakat
             var tmpArr = []; //task, task2S, end
             var go = true;
-            for (i = 0; i < circleArr.length && go; i++) { //task, task2S, end
+            for (var i = 0; i < circleArr.length && go; i++) { //task, task2S, end
               if (circleArr[i].end) {
                 go = false;
                 tmpArr.push({ task: circleArr[i].task, task2S: circleArr[i].task2S, end: circleArr[i].end });
@@ -722,7 +532,7 @@ var schedGraphBuilder = new Vue({
             }
 
             var circleArr = [];//task, task2S, end
-            for (i = 0; i < tmpArr.length; i++) { //task, task2S, end
+            for (var i = 0; i < tmpArr.length; i++) { //task, task2S, end
               circleArr.push({ task: tmpArr[i].task, task2S: tmpArr[i].task2S, end: tmpArr[i].end });
             }
           }
@@ -747,10 +557,10 @@ var schedGraphBuilder = new Vue({
 
       //Collect all task to product
       var productWithTasks = []; //product, tasks[]
-      for (i = 0; i < recipieBuilder.products.length; i++) {
+      for (var i = 0; i < recipieBuilder.products.length; i++) {
         var add = [];
         var act_product = "";
-        for (j = 0; j < recipieBuilder.tasksAndProducts.length; j++) { //name, product
+        for (var j = 0; j < recipieBuilder.tasksAndProducts.length; j++) { //name, product
           if (recipieBuilder.products[i] === recipieBuilder.tasksAndProducts[j].product) {
             act_product = recipieBuilder.tasksAndProducts[j].product;
             add.push(recipieBuilder.tasksAndProducts[j].name);
@@ -761,10 +571,10 @@ var schedGraphBuilder = new Vue({
 
       /* Collect all precedence to product */
       var productWithPrecedence = []; //product, precedences[] - task1, task2
-      for (i = 0; i < productWithTasks.length; i++) { //product, tasks[]
+      for (var i = 0; i < productWithTasks.length; i++) { //product, tasks[]
         var add = [];
-        for (j = 0; j < productWithTasks[i].tasks.length; j++) {
-          for (u = 0; u < recipieBuilder.precedencesWithProducts.length; u++) { //task, product
+        for (var j = 0; j < productWithTasks[i].tasks.length; j++) {
+          for (var u = 0; u < recipieBuilder.precedencesWithProducts.length; u++) { //task, product
             if (productWithTasks[i].tasks[j] === recipieBuilder.precedencesWithProducts[u].task) {
               add.push({ task1: recipieBuilder.precedencesWithProducts[u].task, task2: recipieBuilder.precedencesWithProducts[u].product });
             }
@@ -776,11 +586,11 @@ var schedGraphBuilder = new Vue({
       /* Sort the productWithPrecedence array */
       /* Add first task to array */
       var sortedProductWithTasks = []; //product tasks[]
-      for (i = 0; i < productWithPrecedence.length; i++) { //product, precedences[] - task1, task2
+      for (var i = 0; i < productWithPrecedence.length; i++) { //product, precedences[] - task1, task2
         var add = [];
-        for (j = 0; j < productWithPrecedence[i].precedences.length; j++) {
+        for (var j = 0; j < productWithPrecedence[i].precedences.length; j++) {
           act_index = 0;
-          for (u = 0; u < productWithPrecedence[i].precedences.length; u++) {
+          for (var u = 0; u < productWithPrecedence[i].precedences.length; u++) {
             if (productWithPrecedence[i].precedences[j].task1 === productWithPrecedence[i].precedences[u].task2) {
               act_index++;
             }
@@ -793,18 +603,18 @@ var schedGraphBuilder = new Vue({
       }
 
       /* Add the rest tasks to array */
-      for (i = 0; i < productWithPrecedence.length; i++) { //product, precedences[] - task1, task2
-        for (z = 0; z < productWithPrecedence[i].precedences.length; z++) { //product, precedences[] - task1, task2
+      for (var i = 0; i < productWithPrecedence.length; i++) { //product, precedences[] - task1, task2
+        for (var z = 0; z < productWithPrecedence[i].precedences.length; z++) { //product, precedences[] - task1, task2
           var add = "";
-          for (j = 0; j < sortedProductWithTasks[i].tasks.length; j++) { //product tasks[]
-            for (u = 0; u < productWithPrecedence[i].precedences.length; u++) {
+          for (var j = 0; j < sortedProductWithTasks[i].tasks.length; j++) { //product tasks[]
+            for (var u = 0; u < productWithPrecedence[i].precedences.length; u++) {
               if (sortedProductWithTasks[i].tasks[j] === productWithPrecedence[i].precedences[u].task1) {
                 add = productWithPrecedence[i].precedences[u].task2;
               }
             }
           }
           var yes = true;
-          for (j = 0; j < sortedProductWithTasks[i].tasks.length; j++) { //product tasks[]
+          for (var j = 0; j < sortedProductWithTasks[i].tasks.length; j++) { //product tasks[]
             if (add === sortedProductWithTasks[i].tasks[j]) {
               yes = false;
             }
@@ -817,11 +627,11 @@ var schedGraphBuilder = new Vue({
 
       /* To which task goes multiple edges */
       var multipleTasksToOneProduct = []; //task, product, count
-      for (i = 0; i < recipieBuilder.precedencesWithProducts.length; i++) {  //task, product
+      for (var i = 0; i < recipieBuilder.precedencesWithProducts.length; i++) {  //task, product
         var act_task = recipieBuilder.precedencesWithProducts[i].task;
         var act_product = recipieBuilder.precedencesWithProducts[i].product;
         var act_index = -1;
-        for (j = 0; j < recipieBuilder.precedencesWithProducts.length; j++) {  //task, product
+        for (var j = 0; j < recipieBuilder.precedencesWithProducts.length; j++) {  //task, product
           if (recipieBuilder.precedencesWithProducts[j].product === act_product) {
             act_index++;
           }
@@ -831,10 +641,10 @@ var schedGraphBuilder = new Vue({
 
       /* How many edges goes to a task */
       var howManyEdgesToTask = []; //task, count
-      for (i = 0; i < multipleTasksToOneProduct.length; i++) { //task, product, count
+      for (var i = 0; i < multipleTasksToOneProduct.length; i++) { //task, product, count
         if (multipleTasksToOneProduct[i].count > 0) {
           var add = true;
-          for (j = 0; j < howManyEdgesToTask.length; j++) { //task, count
+          for (var j = 0; j < howManyEdgesToTask.length; j++) { //task, count
             if (howManyEdgesToTask[j].task === multipleTasksToOneProduct[i].product) {
               add = false;
             }
@@ -843,7 +653,7 @@ var schedGraphBuilder = new Vue({
             howManyEdgesToTask.push({ task: multipleTasksToOneProduct[i].product, count: 1 });
           }
           else {
-            for (j = 0; j < howManyEdgesToTask.length; j++) { //task, count
+            for (var j = 0; j < howManyEdgesToTask.length; j++) { //task, count
               if (howManyEdgesToTask[j].task === multipleTasksToOneProduct[i].product) {
                 howManyEdgesToTask[j].count += 1;
               }
@@ -854,10 +664,10 @@ var schedGraphBuilder = new Vue({
 
       /* X positions */
       var xPositions = []; //task, xPos
-      for (i = 0; i < sortedProductWithTasks.length; i++) { //product tasks[]
+      for (var i = 0; i < sortedProductWithTasks.length; i++) { //product tasks[]
         var xPos = 0;
-        for (j = 0; j < sortedProductWithTasks[i].tasks.length; j++) {
-          for (u = 0; u < multipleTasksToOneProduct.length; u++) { //task, product, count
+        for (var j = 0; j < sortedProductWithTasks[i].tasks.length; j++) {
+          for (var u = 0; u < multipleTasksToOneProduct.length; u++) { //task, product, count
             if (sortedProductWithTasks[i].tasks[j] === multipleTasksToOneProduct[u].product) {
               if (multipleTasksToOneProduct[u].count > 0) {
                 if (sortedProductWithTasks[i].tasks[j - 1] === multipleTasksToOneProduct[u].task) {
@@ -874,15 +684,15 @@ var schedGraphBuilder = new Vue({
       }
 
       var tasksAsXPos = []; //xPos, tasks[]
-      for (i = 0; i < xPositions.length; i++) {  //task, xPos
+      for (var i = 0; i < xPositions.length; i++) {  //task, xPos
         var add = [];
-        for (j = 0; j < xPositions.length; j++) {  //task, xPos
+        for (var j = 0; j < xPositions.length; j++) {  //task, xPos
           if (xPositions[i].xPos === xPositions[j].xPos) {
             add.push(xPositions[j].task);
           }
         }
         var yes = true;
-        for (j = 0; j < tasksAsXPos.length; j++) { //xPos, tasks[]
+        for (var j = 0; j < tasksAsXPos.length; j++) { //xPos, tasks[]
           if (xPositions[i].xPos === tasksAsXPos[j].xPos) {
             yes = false;
           }
@@ -894,11 +704,11 @@ var schedGraphBuilder = new Vue({
 
       /* Y positions */
       var yPositions = []; //task, yPos
-      for (i = 0; i < tasksAsXPos.length; i++) { //xPos, tasks[]
-        for (u = 0; u < xPositions.length; u++) { //task, xPos
-          for (j = 0; j < tasksAsXPos[i].tasks.length; j++) {
+      for (var i = 0; i < tasksAsXPos.length; i++) { //xPos, tasks[]
+        for (var u = 0; u < xPositions.length; u++) { //task, xPos
+          for (var j = 0; j < tasksAsXPos[i].tasks.length; j++) {
             var yes = true;
-            for (z = 0; z < yPositions.length; z++) { //task, yPos
+            for (var z = 0; z < yPositions.length; z++) { //task, yPos
               if (yPositions[z].task === tasksAsXPos[i].tasks[j]) {
                 yes = false;
               }
@@ -908,8 +718,8 @@ var schedGraphBuilder = new Vue({
 
               /*HA KELL A SOROK KÖZÉ PLUSZ HELY AZT ITT KELL*/
 
-              /*for(z = 0; z < sortedProductWithTasks.length; z++){ //product, tasks[]
-                for(t = 0; t < sortedProductWithTasks[z].tasks.length; t++){
+              /*for (var  = 0; z < sortedProductWithTasks.length; z++){ //product, tasks[]
+                for (var  = 0; t < sortedProductWithTasks[z].tasks.length; t++){
                   if(sortedProductWithTasks[z].tasks[t] === tasksAsXPos[i].tasks[j]){
                     if(z + 1 < sortedProductWithTasks.length){
                       if(sortedProductWithTasks[z + 1].product !== sortedProductWithTasks[z].product){
@@ -920,7 +730,7 @@ var schedGraphBuilder = new Vue({
                 }
               }*/
 
-              /*  for(z = 0; z < recipieBuilder.tasksAndProducts.length; z++){ //name, product
+              /*  for (var  = 0; z < recipieBuilder.tasksAndProducts.length; z++){ //name, product
                   if(tasksAsXPos[i].tasks[j] === recipieBuilder.tasksAndProducts[z].name){
                     if(z + 1 < recipieBuilder.tasksAndProducts.length){
                       if(recipieBuilder.tasksAndProducts[z + 1].product !== recipieBuilder.tasksAndProducts[z].product){
@@ -936,19 +746,19 @@ var schedGraphBuilder = new Vue({
         }
       }
 
-      for (i = 0; i < yPositions.length; i++) { //task, yPos
-        for (j = 0; j < howManyEdgesToTask.length; j++) { //task, count
+      for (var i = 0; i < yPositions.length; i++) { //task, yPos
+        for (var j = 0; j < howManyEdgesToTask.length; j++) { //task, count
           if (yPositions[i].task === howManyEdgesToTask[j].task) {
             if (howManyEdgesToTask[j].count > 0) {
               var edgesToThisTask = [];
-              for (u = 0; u < recipieBuilder.precedencesWithProducts.length; u++) { //task, product
+              for (var u = 0; u < recipieBuilder.precedencesWithProducts.length; u++) { //task, product
                 if (yPositions[i].task === recipieBuilder.precedencesWithProducts[u].product) {
                   edgesToThisTask.push(recipieBuilder.precedencesWithProducts[u].task);
                 }
               }
               var middleItem = edgesToThisTask[edgesToThisTask.length % 2];
               var act_y_pos = 0;
-              for (z = 0; z < yPositions.length; z++) { //task, yPos
+              for (var z = 0; z < yPositions.length; z++) { //task, yPos
                 if (yPositions[z].task === middleItem) {
                   if (edgesToThisTask.length % 2 !== 0) {
                     act_y_pos = yPositions[z].yPos;
@@ -961,23 +771,23 @@ var schedGraphBuilder = new Vue({
               yPositions[i].yPos = act_y_pos;
 
               var prevItem = "";
-              for (u = 0; u < recipieBuilder.precedencesWithProducts.length; u++) { //task, product
+              for (var u = 0; u < recipieBuilder.precedencesWithProducts.length; u++) { //task, product
                 if (middleItem === recipieBuilder.precedencesWithProducts[u].task) {
                   prevItem = recipieBuilder.precedencesWithProducts[u].product;
                 }
               }
 
-              for (z = 0; z < sortedProductWithTasks.length; z++) {  //product tasks[]
-                for (t = 0; t < sortedProductWithTasks[z].tasks.length; t++) {
-                  for (u = 0; u < recipieBuilder.precedencesWithProducts.length; u++) { //task, product
+              for (var z = 0; z < sortedProductWithTasks.length; z++) {  //product tasks[]
+                for (var t = 0; t < sortedProductWithTasks[z].tasks.length; t++) {
+                  for (var u = 0; u < recipieBuilder.precedencesWithProducts.length; u++) { //task, product
                     if (recipieBuilder.precedencesWithProducts[u].task === prevItem) {
                       var act_y_pos = 0;
-                      for (r = 0; r < yPositions.length; r++) { //task, yPos
+                      for (var r = 0; r < yPositions.length; r++) { //task, yPos
                         if (prevItem === yPositions[r].task) {
                           act_y_pos = yPositions[r].yPos;
                         }
                       }
-                      for (r = 0; r < yPositions.length; r++) { //task, yPos
+                      for (var r = 0; r < yPositions.length; r++) { //task, yPos
                         if (recipieBuilder.precedencesWithProducts[u].product === yPositions[r].task) {
                           yPositions[r].yPos = act_y_pos;
                         }
@@ -993,9 +803,9 @@ var schedGraphBuilder = new Vue({
       }
 
       var productsWithMultipleInEdges = [];
-      for (i = 0; i < sortedProductWithTasks.length; i++) { //product tasks[]
-        for (j = 0; j < sortedProductWithTasks[i].tasks.length; j++) {
-          for (u = 0; u < howManyEdgesToTask.length; u++) { //task, count
+      for (var i = 0; i < sortedProductWithTasks.length; i++) { //product tasks[]
+        for (var j = 0; j < sortedProductWithTasks[i].tasks.length; j++) {
+          for (var u = 0; u < howManyEdgesToTask.length; u++) { //task, count
             if (howManyEdgesToTask[u].task === sortedProductWithTasks[i].tasks[j]) {
               productsWithMultipleInEdges.push(sortedProductWithTasks[i].product);
             }
@@ -1003,17 +813,17 @@ var schedGraphBuilder = new Vue({
         }
       }
 
-      for (i = 0; i < sortedProductWithTasks.length; i++) { //product tasks[]
+      for (var i = 0; i < sortedProductWithTasks.length; i++) { //product tasks[]
         var yes = true;
-        for (j = 0; j < productsWithMultipleInEdges.length; j++) {
+        for (var j = 0; j < productsWithMultipleInEdges.length; j++) {
           if (productsWithMultipleInEdges[j] === sortedProductWithTasks[i].product) {
             yes = false;
           }
         }
         if (yes) {
           var act_y_pos = 0;
-          for (j = 0; j < yPositions.length; j++) { //task, yPos
-            for (u = 0; u < sortedProductWithTasks[i].tasks.length; u++) {
+          for (var j = 0; j < yPositions.length; j++) { //task, yPos
+            for (var u = 0; u < sortedProductWithTasks[i].tasks.length; u++) {
               if (yPositions[j].task === sortedProductWithTasks[i].tasks[u]) {
                 act_y_pos = yPositions[j].yPos;
                 break;
@@ -1023,8 +833,8 @@ var schedGraphBuilder = new Vue({
               break;
             }
           }
-          for (j = 0; j < yPositions.length; j++) { //task, yPos
-            for (u = 0; u < sortedProductWithTasks[i].tasks.length; u++) {
+          for (var j = 0; j < yPositions.length; j++) { //task, yPos
+            for (var u = 0; u < sortedProductWithTasks[i].tasks.length; u++) {
               if (yPositions[j].task === sortedProductWithTasks[i].tasks[u]) {
                 yPositions[j].yPos = act_y_pos;
               }
@@ -1033,11 +843,11 @@ var schedGraphBuilder = new Vue({
         }
       }
 
-      for (i = 0; i < sortedProductWithTasks.length; i++) { //product tasks[]
+      for (var i = 0; i < sortedProductWithTasks.length; i++) { //product tasks[]
         /* Search x position */
-        for (j = 0; j < sortedProductWithTasks[i].tasks.length; j++) { //product tasks[]
+        for (var j = 0; j < sortedProductWithTasks[i].tasks.length; j++) { //product tasks[]
           var xPos = 0;
-          for (u = 0; u < xPositions.length; u++) { //task, xPos
+          for (var u = 0; u < xPositions.length; u++) { //task, xPos
             if (xPositions[u].task === sortedProductWithTasks[i].tasks[j]) {
               xPos = xPositions[u].xPos;
             }
@@ -1045,7 +855,7 @@ var schedGraphBuilder = new Vue({
 
           /* Search y position */
           var yPos = 0;
-          for (u = 0; u < yPositions.length; u++) { //task, yPos
+          for (var u = 0; u < yPositions.length; u++) { //task, yPos
             if (yPositions[u].task === sortedProductWithTasks[i].tasks[j]) {
               yPos = yPositions[u].yPos;
             }
@@ -1055,7 +865,7 @@ var schedGraphBuilder = new Vue({
           this.schedGraphTxt += " \"";
 
           var act_product = "";
-          for (u = 0; u < sortedProductWithTasks[i].tasks[j].length; u++) {
+          for (var u = 0; u < sortedProductWithTasks[i].tasks[j].length; u++) {
             if (sortedProductWithTasks[i].tasks[j][u] === "\"") {
               act_product += "\\" + sortedProductWithTasks[i].tasks[j][u];
             }
@@ -1071,7 +881,7 @@ var schedGraphBuilder = new Vue({
           this.schedGraphTxt += act_product + "\" [ pos=\"" + xPos + "," + yPos + "\", label = < <B>\\N</B><BR/>";
 
           var isProduct = false;
-          for (u = 0; u < recipieBuilder.products.length; u++) {
+          for (var u = 0; u < recipieBuilder.products.length; u++) {
             if (sortedProductWithTasks[i].tasks[j] === recipieBuilder.products[u]) {
               isProduct = true;
             }
@@ -1079,9 +889,9 @@ var schedGraphBuilder = new Vue({
           if (!isProduct) {
             this.schedGraphTxt += "{";
             /* Add equipments to task*/
-            for (u = 0; u < recipieBuilder.taskEquipment.length; u++) { //task, eqs[]
+            for (var u = 0; u < recipieBuilder.taskEquipment.length; u++) { //task, eqs[]
               if (recipieBuilder.taskEquipment[u].task === sortedProductWithTasks[i].tasks[j]) {
-                for (z = 0; z < recipieBuilder.taskEquipment[u].eqs.length; z++) {
+                for (var z = 0; z < recipieBuilder.taskEquipment[u].eqs.length; z++) {
                   this.schedGraphTxt += recipieBuilder.taskEquipment[u].eqs[z] + ",";
                 }
               }
@@ -1098,7 +908,7 @@ var schedGraphBuilder = new Vue({
 
       var tasks = [];
       var r = [];
-      for (j = 1; j < this.schedTasksArray.length; j++) {
+      for (var j = 1; j < this.schedTasksArray.length; j++) {
         if (this.schedTasksArray[j].task === "--") {
           if (r.length > 0) {
             tasks.push(r);
@@ -1109,15 +919,15 @@ var schedGraphBuilder = new Vue({
           r.push(this.schedTasksArray[j].task);
         }
       }
-      /*  for(j = 0; j < t.length; j++){
+      /*  for (var  = 0; j < t.length; j++){
           //console.log(t[j]);
         }*/
 
 
-      for (i = 0; i < this.schedPrecedencesWithProducts.length; i++) { //task, product, schedEdge(true/false)
+      for (var i = 0; i < this.schedPrecedencesWithProducts.length; i++) { //task, product, schedEdge(true/false)
 
         t1 = "";
-        for (u = 0; u < this.schedPrecedencesWithProducts[i].task.length; u++) {
+        for (var u = 0; u < this.schedPrecedencesWithProducts[i].task.length; u++) {
           if (this.schedPrecedencesWithProducts[i].task[u] === "\"") {
             t1 += "\\" + this.schedPrecedencesWithProducts[i].task[u];
           }
@@ -1131,7 +941,7 @@ var schedGraphBuilder = new Vue({
         }
 
         t2 = "";
-        for (u = 0; u < this.schedPrecedencesWithProducts[i].product.length; u++) {
+        for (var u = 0; u < this.schedPrecedencesWithProducts[i].product.length; u++) {
           if (this.schedPrecedencesWithProducts[i].product[u] === "\"") {
             t2 += "\\" + this.schedPrecedencesWithProducts[i].product[u];
           }
@@ -1153,8 +963,8 @@ var schedGraphBuilder = new Vue({
         if (this.schedPrecedencesWithProducts[i].schedEdge) {
           i1 = -1;
           i2 = -1;
-          for (j = 0; j < t.length; j++) {
-            for (u = 0; u < t[j].length; u++) {
+          for (var j = 0; j < t.length; j++) {
+            for (var u = 0; u < t[j].length; u++) {
               if (t1 === t[j][u]) {
                 i1 = j;
               }
@@ -1167,14 +977,14 @@ var schedGraphBuilder = new Vue({
           if (i1 === i2) {
             tempProctimes = [];
             tempTask = this.schedPrecedencesWithProducts[i].task;
-            for (j = 0; j < recipieBuilder.proctimes.length; j++) {
+            for (var j = 0; j < recipieBuilder.proctimes.length; j++) {
               if (recipieBuilder.proctimes[j].task === tempTask) {
                 tempProctimes.push(recipieBuilder.proctimes[j].proctime);
               }
             }
 
             minProctime = tempProctimes[0];
-            for (j = 0; j < tempProctimes.length; j++) {
+            for (var j = 0; j < tempProctimes.length; j++) {
               if (tempProctimes[j] < minProctime) {
                 minProctime = tempProctimes[j];
               }
@@ -1182,7 +992,7 @@ var schedGraphBuilder = new Vue({
 
             if (!uis) {
               tempT1 = "";
-              for (j = 0; j < this.schedPrecedencesWithProducts.length; j++) { //task, product, schedEdge(true/false)
+              for (var j = 0; j < this.schedPrecedencesWithProducts.length; j++) { //task, product, schedEdge(true/false)
                 if (!this.schedPrecedencesWithProducts[j].schedEdge) {
                   if (this.schedPrecedencesWithProducts[j].task === t1) {
                     tempT1 = this.schedPrecedencesWithProducts[j].product;
@@ -1207,7 +1017,7 @@ var schedGraphBuilder = new Vue({
             this.nisSchedPrecedences.push({ task1: t1, task2: t2, proctime: minProctime });
 
             /* addPenWidth = false;
-             for(j = 0; j < this.longestPath.length; j++){ //task1, task2
+             for (var  = 0; j < this.longestPath.length; j++){ //task1, task2
                if(t1 === this.longestPath[j].task1 && t1 === this.longestPath[j].task1){
                  addPenWidth = true;
                }
@@ -1219,14 +1029,14 @@ var schedGraphBuilder = new Vue({
         else {
           tempProctimes = [];
           tempTask = this.schedPrecedencesWithProducts[i].task;
-          for (j = 0; j < recipieBuilder.proctimes.length; j++) {
+          for (var j = 0; j < recipieBuilder.proctimes.length; j++) {
             if (recipieBuilder.proctimes[j].task === tempTask) {
               tempProctimes.push(recipieBuilder.proctimes[j].proctime);
             }
           }
 
           minProctime = tempProctimes[0];
-          for (j = 0; j < tempProctimes.length; j++) {
+          for (var j = 0; j < tempProctimes.length; j++) {
             if (tempProctimes[j] < minProctime) {
               minProctime = tempProctimes[j];
             }
@@ -1235,7 +1045,7 @@ var schedGraphBuilder = new Vue({
           this.schedGraphTxt += " [ label = " + minProctime + " penwidth=\"@" + t1 + ";" + t2 + "@\" ]";
 
           /* addPenWidth = false;
-           for(j = 0; j < this.longestPath.length; j++){ //task1, task2
+           for (var  = 0; j < this.longestPath.length; j++){ //task1, task2
              if(t1 === this.longestPath[j].task1 && t1 === this.longestPath[j].task1){
                addPenWidth = true;
              }
@@ -1274,21 +1084,44 @@ var schedGraphBuilder = new Vue({
         });
       });
 
-      console.log("nisSchedPrecedences");
+     /* console.log("nisSchedPrecedences");
       this.nisSchedPrecedences.forEach(n => {
         console.log(n.task1 + " " + n.task2 + " " + n.proctime);
       });
+*/
+
+      this.circleCheck();
+      if(!recipieBuilder.circle){
+        this.makeLongestPath();
+      }
+      else{
+        this.drawLongestPath();
+      }
+    },
+    makeLongestPath(){
+      var max_product = "";
+      var path = {max_time: -1, tasks:[]};
+      recipieBuilder.products.forEach(p => {
+        var tmp_path = this.getLongestPath(p)[0];
+        if(tmp_path.max_time > path.max_time){
+          path = tmp_path;
+          max_product = p;
+        }
+      });
 
 
+      this.longestPath = [];
+      for(var i = 0; i < path.tasks.length - 1; i++){
+        this.longestPath.push({task1: path.tasks[i], task2: path.tasks[i + 1]});
+      }
+      this.longestPath.push({task1: this.longestPath[this.longestPath.length - 1].task2, task2: max_product});
 
-      this.dijkstra();
+      recipieBuilder.ganttWidth = path.max_time * 40 + 41;
 
+      this.drawLongestPath();
     },
     async waitForIt(drag, uis) {
       this.nisSchedPrecedences = []; //task1, task2, proctime
-
-
-
 
       await this.schedGraphTxtOut(drag, uis);
 
@@ -1298,13 +1131,18 @@ var schedGraphBuilder = new Vue({
        });*/
 
 
-      console.log("nisSchedPrecedences");
+     /* console.log("nisSchedPrecedences");
       this.nisSchedPrecedences.forEach(n => {
         console.log(n.task1 + " " + n.task2 + " " + n.proctime);
       });
       console.log(this.getLongestPath("a1", +0));
-
-
+*/
+     /* this.getLongestPath("b", +0).forEach(g => {
+        console.log(g.max_time);
+        g.tasks.forEach(task => {
+          console.log(task);
+        });
+      });*/
 
       this.makeGantDiagram(uis);
     }
