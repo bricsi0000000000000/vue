@@ -1,4 +1,4 @@
-var schedGraphBuilder = new Vue({
+  var schedGraphBuilder = new Vue({
   data() {
     return {
       schedGraphTxt: "",
@@ -179,31 +179,14 @@ var schedGraphBuilder = new Vue({
             if (g.eq === act_eq) {
               var longest_path_hier = this.getLongestPath(s.task, +0);
 
-              /*longest_path_hier.forEach(g => {
-                console.log(g.max_time);
-                g.tasks.forEach(task => {
-                  console.log(task);
-                });
-              });*/
-
-              //console.log(longest_path_hier[0].max_time);
-
               start_time = +longest_path_hier[0].max_time;
-             // console.log(start_time);
               if(this.canAddToGantt(s.task)){
                 g.tasks.push({ task: s.task, start_time: start_time, end_time: (start_time + +this.getProctimeForDijkstra(s.task, s.product)) });
               }  
             }
           });
         });
-         /*console.log("-------gantt----------");
-         this.gantt.forEach(g => {
-           console.log(g.eq);
-           g.tasks.forEach(t => {
-             console.log("\t" + t.task + " " + t.start_time + " " + t.end_time);
-           });
-         });*/
-
+      
         var color = "black";
         var x = 0;
         var y = 0;
@@ -360,7 +343,6 @@ var schedGraphBuilder = new Vue({
         this.schedPrecedencesWithProducts.push({ task: recipieBuilder.precedencesWithProducts[i].task, product: recipieBuilder.precedencesWithProducts[i].product, schedEdge: false });
       }
 
-      //if(recipieBuilder.uisNisChk){
       if (uis) {
         var addThese = []; //task1, task2
         for (var i = 0; i < this.schedTasksArray.length - 1; i++) { //task
@@ -464,13 +446,11 @@ var schedGraphBuilder = new Vue({
 
           task2S = this.getTask2s(endTask[0].task2S[0]);
 
-         
           //megnézem hogy ezek közül van e amivel kör lesz
           for (var i = 0; i < task2S.length && !recipieBuilder.circle; i++) {
             for (var j = 0; j < circleArr.length && !recipieBuilder.circle; j++) { //task, task2S, end
               if (task2S[i] === circleArr[j].task) {
                 recipieBuilder.circle = true;
-                //console.log(recipieBuilder.circle); 
                 circleArr.push({ task: circleArr[circleArr.length - 1].task2S[0], task2S: [], end: false });
                 circleArr.push({ task: task2S[i], task2S: [], end: false });
               }
@@ -539,23 +519,7 @@ var schedGraphBuilder = new Vue({
         }
       }
     },
-    async schedGraphTxtOut(drag, uis) {
-      if (!drag) {
-        this.schedTasks = recipieBuilder.taskEquipment;
-      }
-
-      this.makeSchedPrecedencesWithProducts(uis);
-
-      this.allEdges = [];
-
-      recipieBuilder.equipmentsToTask();
-
-      this.schedGraphTxt = "digraph SGraph { rankdir=LR  splines=true node [shape=circle,fixedsize=true,width=0.9,label=<<B>\\N</B>>,pin=true]";
-
-      var xPosDist = 2;
-      var yPosDist = 1.1;
-
-      //Collect all task to product
+    getProductWithTasks(){
       var productWithTasks = []; //product, tasks[]
       for (var i = 0; i < recipieBuilder.products.length; i++) {
         var add = [];
@@ -569,7 +533,9 @@ var schedGraphBuilder = new Vue({
         productWithTasks.push({ product: act_product, tasks: add });
       }
 
-      /* Collect all precedence to product */
+      return productWithTasks;
+    },
+    getProductWithPrecedence(productWithTasks){
       var productWithPrecedence = []; //product, precedences[] - task1, task2
       for (var i = 0; i < productWithTasks.length; i++) { //product, tasks[]
         var add = [];
@@ -583,8 +549,9 @@ var schedGraphBuilder = new Vue({
         productWithPrecedence.push({ product: productWithTasks[i].product, precedences: add });
       }
 
-      /* Sort the productWithPrecedence array */
-      /* Add first task to array */
+      return productWithPrecedence;
+    },
+    getSortedProductWithTasks(productWithPrecedence){
       var sortedProductWithTasks = []; //product tasks[]
       for (var i = 0; i < productWithPrecedence.length; i++) { //product, precedences[] - task1, task2
         var add = [];
@@ -625,7 +592,10 @@ var schedGraphBuilder = new Vue({
         }
       }
 
-      /* To which task goes multiple edges */
+
+      return sortedProductWithTasks;
+    },
+    getMultipleTasksToOneProduct(){
       var multipleTasksToOneProduct = []; //task, product, count
       for (var i = 0; i < recipieBuilder.precedencesWithProducts.length; i++) {  //task, product
         var act_task = recipieBuilder.precedencesWithProducts[i].task;
@@ -639,7 +609,9 @@ var schedGraphBuilder = new Vue({
         multipleTasksToOneProduct.push({ task: act_task, product: act_product, count: act_index });
       }
 
-      /* How many edges goes to a task */
+      return multipleTasksToOneProduct;
+    },
+    getHowManyEdgesToTask(multipleTasksToOneProduct){
       var howManyEdgesToTask = []; //task, count
       for (var i = 0; i < multipleTasksToOneProduct.length; i++) { //task, product, count
         if (multipleTasksToOneProduct[i].count > 0) {
@@ -662,7 +634,9 @@ var schedGraphBuilder = new Vue({
         }
       }
 
-      /* X positions */
+      return howManyEdgesToTask;
+    },
+    getXPositions(sortedProductWithTasks, multipleTasksToOneProduct, xPosDist){
       var xPositions = []; //task, xPos
       for (var i = 0; i < sortedProductWithTasks.length; i++) { //product tasks[]
         var xPos = 0;
@@ -683,6 +657,9 @@ var schedGraphBuilder = new Vue({
         }
       }
 
+      return xPositions;
+    },
+    getTasksAsXPos(xPositions){
       var tasksAsXPos = []; //xPos, tasks[]
       for (var i = 0; i < xPositions.length; i++) {  //task, xPos
         var add = [];
@@ -702,7 +679,9 @@ var schedGraphBuilder = new Vue({
         }
       }
 
-      /* Y positions */
+      return tasksAsXPos;
+    },
+    getYPositions(tasksAsXPos, xPositions, yPosDist){
       var yPositions = []; //task, yPos
       for (var i = 0; i < tasksAsXPos.length; i++) { //xPos, tasks[]
         for (var u = 0; u < xPositions.length; u++) { //task, xPos
@@ -746,6 +725,140 @@ var schedGraphBuilder = new Vue({
         }
       }
 
+      return yPositions;
+    },
+    getProductsWithMultipleInEdges(sortedProductWithTasks,howManyEdgesToTask){
+      var productsWithMultipleInEdges = [];
+      for (var i = 0; i < sortedProductWithTasks.length; i++) { //product tasks[]
+        for (var j = 0; j < sortedProductWithTasks[i].tasks.length; j++) {
+          for (var u = 0; u < howManyEdgesToTask.length; u++) { //task, count
+            if (howManyEdgesToTask[u].task === sortedProductWithTasks[i].tasks[j]) {
+              productsWithMultipleInEdges.push(sortedProductWithTasks[i].product);
+            }
+          }
+        }
+      }
+      return productsWithMultipleInEdges;
+    },
+    getActProduct(i, j, sortedProductWithTasks){
+      var act_product = "";
+
+      for (var u = 0; u < sortedProductWithTasks[i].tasks[j].length; u++) {
+        if (sortedProductWithTasks[i].tasks[j][u] === "\"") {
+          act_product += "\\" + sortedProductWithTasks[i].tasks[j][u];
+        }
+        else {
+          act_product += sortedProductWithTasks[i].tasks[j][u];
+        }
+      }
+
+      if (act_product[act_product.length - 1] === "\\") {
+        act_product += " ";
+      }
+
+      return act_product;
+    },
+    getIsProduct(i, j, sortedProductWithTasks){
+      var is_product = false;
+      for (var u = 0; u < recipieBuilder.products.length && !is_product; u++) {
+        if (sortedProductWithTasks[i].tasks[j] === recipieBuilder.products[u]) {
+          is_product = true;
+        }
+      }
+      return is_product;
+    },
+    getNewTask1(i){
+      var new_task1 = "";
+      for (var u = 0; u < this.schedPrecedencesWithProducts[i].task.length; u++) {
+        if (this.schedPrecedencesWithProducts[i].task[u] === "\"") {
+          new_task1 += "\\" + this.schedPrecedencesWithProducts[i].task[u];
+        }
+        else {
+          new_task1 += this.schedPrecedencesWithProducts[i].task[u];
+        }
+      }
+
+      if (new_task1[new_task1.length - 1] === "\\") {
+        new_task1 += " ";
+      }
+
+      return new_task1;
+    },
+    getNewTask2(i){
+      var new_task2 = "";
+      for (var u = 0; u < this.schedPrecedencesWithProducts[i].product.length; u++) {
+        if (this.schedPrecedencesWithProducts[i].product[u] === "\"") {
+          new_task2 += "\\" + this.schedPrecedencesWithProducts[i].product[u];
+        }
+        else {
+          new_task2 += this.schedPrecedencesWithProducts[i].product[u];
+        }
+      }
+
+      if (new_task2[new_task2.length - 1] === "\\") {
+        new_task2 += " ";
+      }
+      if (!this.schedPrecedencesWithProducts[i].schedEdge) {
+        this.schedGraphTxt += "\"" + new_task1 + "\" -> \"" + new_task2 + "\"";
+
+        this.allEdges.push({ task1: new_task1, task2: new_task2 });
+      }
+
+      return new_task2;
+    },
+    newTasksEquals(t){
+      var i1 = -1;
+      var i2 = -1;
+      for (var j = 0; j < t.length; j++) {
+        for (var u = 0; u < t[j].length; u++) {
+          if (new_task1 === t[j][u]) {
+            i1 = j;
+          }
+          if (new_task2 === t[j][u]) {
+            i2 = j;
+          }
+        }
+      }
+
+      if(i1 === i2){
+        return true;
+      }
+      else{
+        return false;
+      }
+    },
+    async schedGraphTxtOut(drag, uis) {
+      if (!drag) {
+        this.schedTasks = recipieBuilder.taskEquipment;
+      }
+
+      this.makeSchedPrecedencesWithProducts(uis);
+
+      this.allEdges = [];
+
+      recipieBuilder.equipmentsToTask();
+
+      this.schedGraphTxt = "digraph SGraph { rankdir=LR  splines=true node [shape=circle,fixedsize=true,width=0.9,label=<<B>\\N</B>>,pin=true]";
+
+      var xPosDist = 2;
+      var yPosDist = 1.1;
+
+      var productWithTasks = this.getProductWithTasks(); //product, tasks[]
+
+      var productWithPrecedence = this.getProductWithPrecedence(productWithTasks); //product, precedences[] - task1, task2
+
+      var sortedProductWithTasks = this.getSortedProductWithTasks(productWithPrecedence); //product tasks[]
+      
+      var multipleTasksToOneProduct = this.getMultipleTasksToOneProduct(); //task, product, count
+
+      var howManyEdgesToTask = this.getHowManyEdgesToTask(multipleTasksToOneProduct); //task, count
+
+      var xPositions = this.getXPositions(sortedProductWithTasks, multipleTasksToOneProduct, xPosDist); //task, xPos
+
+      var tasksAsXPos = this.getTasksAsXPos(xPositions); //xPos, tasks[]
+   
+      var yPositions = this.getYPositions(tasksAsXPos, xPositions, yPosDist); //task, yPos
+      
       for (var i = 0; i < yPositions.length; i++) { //task, yPos
         for (var j = 0; j < howManyEdgesToTask.length; j++) { //task, count
           if (yPositions[i].task === howManyEdgesToTask[j].task) {
@@ -782,14 +895,14 @@ var schedGraphBuilder = new Vue({
                   for (var u = 0; u < recipieBuilder.precedencesWithProducts.length; u++) { //task, product
                     if (recipieBuilder.precedencesWithProducts[u].task === prevItem) {
                       var act_y_pos = 0;
-                      for (var r = 0; r < yPositions.length; r++) { //task, yPos
-                        if (prevItem === yPositions[r].task) {
-                          act_y_pos = yPositions[r].yPos;
+                      for (var tmp_arr = 0; tmp_arr < yPositions.length; tmp_arr++) { //task, yPos
+                        if (prevItem === yPositions[tmp_arr].task) {
+                          act_y_pos = yPositions[tmp_arr].yPos;
                         }
                       }
-                      for (var r = 0; r < yPositions.length; r++) { //task, yPos
-                        if (recipieBuilder.precedencesWithProducts[u].product === yPositions[r].task) {
-                          yPositions[r].yPos = act_y_pos;
+                      for (var tmp_arr = 0; tmp_arr < yPositions.length; tmp_arr++) { //task, yPos
+                        if (recipieBuilder.precedencesWithProducts[u].product === yPositions[tmp_arr].task) {
+                          yPositions[tmp_arr].yPos = act_y_pos;
                         }
                       }
                       prevItem = recipieBuilder.precedencesWithProducts[u].product;
@@ -802,16 +915,7 @@ var schedGraphBuilder = new Vue({
         }
       }
 
-      var productsWithMultipleInEdges = [];
-      for (var i = 0; i < sortedProductWithTasks.length; i++) { //product tasks[]
-        for (var j = 0; j < sortedProductWithTasks[i].tasks.length; j++) {
-          for (var u = 0; u < howManyEdgesToTask.length; u++) { //task, count
-            if (howManyEdgesToTask[u].task === sortedProductWithTasks[i].tasks[j]) {
-              productsWithMultipleInEdges.push(sortedProductWithTasks[i].product);
-            }
-          }
-        }
-      }
+      var productsWithMultipleInEdges = this.getProductsWithMultipleInEdges(sortedProductWithTasks, howManyEdgesToTask);
 
       for (var i = 0; i < sortedProductWithTasks.length; i++) { //product tasks[]
         var yes = true;
@@ -864,28 +968,12 @@ var schedGraphBuilder = new Vue({
           /* Add task/product to schedGraphTxt */
           this.schedGraphTxt += " \"";
 
-          var act_product = "";
-          for (var u = 0; u < sortedProductWithTasks[i].tasks[j].length; u++) {
-            if (sortedProductWithTasks[i].tasks[j][u] === "\"") {
-              act_product += "\\" + sortedProductWithTasks[i].tasks[j][u];
-            }
-            else {
-              act_product += sortedProductWithTasks[i].tasks[j][u];
-            }
-          }
-
-          if (act_product[act_product.length - 1] === "\\") {
-            act_product += " ";
-          }
+          var act_product = this.getActProduct(i, j, sortedProductWithTasks);
 
           this.schedGraphTxt += act_product + "\" [ pos=\"" + xPos + "," + yPos + "\", label = < <B>\\N</B><BR/>";
 
-          var isProduct = false;
-          for (var u = 0; u < recipieBuilder.products.length; u++) {
-            if (sortedProductWithTasks[i].tasks[j] === recipieBuilder.products[u]) {
-              isProduct = true;
-            }
-          }
+          var isProduct = this.getIsProduct(i, j, sortedProductWithTasks);
+          
           if (!isProduct) {
             this.schedGraphTxt += "{";
             /* Add equipments to task*/
@@ -907,74 +995,27 @@ var schedGraphBuilder = new Vue({
       this.schedTasksArray.push({ task: "--" });
 
       var tasks = [];
-      var r = [];
+      var tmp_arr = [];
       for (var j = 1; j < this.schedTasksArray.length; j++) {
         if (this.schedTasksArray[j].task === "--") {
-          if (r.length > 0) {
-            tasks.push(r);
-            r = [];
+          if (tmp_arr.length > 0) {
+            tasks.push(tmp_arr);
+            tmp_arr = [];
           }
         }
         else {
-          r.push(this.schedTasksArray[j].task);
+          tmp_arr.push(this.schedTasksArray[j].task);
         }
       }
-      /*  for (var  = 0; j < t.length; j++){
-          //console.log(t[j]);
-        }*/
-
 
       for (var i = 0; i < this.schedPrecedencesWithProducts.length; i++) { //task, product, schedEdge(true/false)
-
-        t1 = "";
-        for (var u = 0; u < this.schedPrecedencesWithProducts[i].task.length; u++) {
-          if (this.schedPrecedencesWithProducts[i].task[u] === "\"") {
-            t1 += "\\" + this.schedPrecedencesWithProducts[i].task[u];
-          }
-          else {
-            t1 += this.schedPrecedencesWithProducts[i].task[u];
-          }
-        }
-
-        if (t1[t1.length - 1] === "\\") {
-          t1 += " ";
-        }
-
-        t2 = "";
-        for (var u = 0; u < this.schedPrecedencesWithProducts[i].product.length; u++) {
-          if (this.schedPrecedencesWithProducts[i].product[u] === "\"") {
-            t2 += "\\" + this.schedPrecedencesWithProducts[i].product[u];
-          }
-          else {
-            t2 += this.schedPrecedencesWithProducts[i].product[u];
-          }
-        }
-
-        if (t2[t2.length - 1] === "\\") {
-          t2 += " ";
-        }
-        if (!this.schedPrecedencesWithProducts[i].schedEdge) {
-          this.schedGraphTxt += "\"" + t1 + "\" -> \"" + t2 + "\"";
-
-          this.allEdges.push({ task1: t1, task2: t2 });
-        }
-
+        new_task1 = this.getNewTask1(i);
+      
+        new_task2 = this.getNewTask2(i);
 
         if (this.schedPrecedencesWithProducts[i].schedEdge) {
-          i1 = -1;
-          i2 = -1;
-          for (var j = 0; j < t.length; j++) {
-            for (var u = 0; u < t[j].length; u++) {
-              if (t1 === t[j][u]) {
-                i1 = j;
-              }
-              if (t2 === t[j][u]) {
-                i2 = j;
-              }
-            }
-          }
-
-          if (i1 === i2) {
+         
+          if (this.newTasksEquals(t)) {
             tempProctimes = [];
             tempTask = this.schedPrecedencesWithProducts[i].task;
             for (var j = 0; j < recipieBuilder.proctimes.length; j++) {
@@ -994,19 +1035,19 @@ var schedGraphBuilder = new Vue({
               tempT1 = "";
               for (var j = 0; j < this.schedPrecedencesWithProducts.length; j++) { //task, product, schedEdge(true/false)
                 if (!this.schedPrecedencesWithProducts[j].schedEdge) {
-                  if (this.schedPrecedencesWithProducts[j].task === t1) {
+                  if (this.schedPrecedencesWithProducts[j].task === new_task1) {
                     tempT1 = this.schedPrecedencesWithProducts[j].product;
                   }
                 }
               }
-              t1 = tempT1;
+              new_task1 = tempT1;
               minProctime = -1;
             }
 
 
-            this.schedGraphTxt += "\"" + t1 + "\" -> \"" + t2 + "\"";
+            this.schedGraphTxt += "\"" + new_task1 + "\" -> \"" + new_task2 + "\"";
 
-            this.allEdges.push({ task1: t1, task2: t2 });
+            this.allEdges.push({ task1: new_task1, task2: new_task2 });
 
             if (minProctime !== -1) {
               this.schedGraphTxt += " [ label = " + minProctime + ", style=\"dashed\"";
@@ -1014,16 +1055,9 @@ var schedGraphBuilder = new Vue({
             else {
               this.schedGraphTxt += " [ style=\"dashed\"";
             }
-            this.nisSchedPrecedences.push({ task1: t1, task2: t2, proctime: minProctime });
+            this.nisSchedPrecedences.push({ task1: new_task1, task2: new_task2, proctime: minProctime });
 
-            /* addPenWidth = false;
-             for (var  = 0; j < this.longestPath.length; j++){ //task1, task2
-               if(t1 === this.longestPath[j].task1 && t1 === this.longestPath[j].task1){
-                 addPenWidth = true;
-               }
-             }*/
-
-            this.schedGraphTxt += " penwidth=\"@" + t1 + ";" + t2 + "@\" ]";
+            this.schedGraphTxt += " penwidth=\"@" + new_task1 + ";" + new_task2 + "@\" ]";
           }
         }
         else {
@@ -1042,21 +1076,13 @@ var schedGraphBuilder = new Vue({
             }
           }
 
-          this.schedGraphTxt += " [ label = " + minProctime + " penwidth=\"@" + t1 + ";" + t2 + "@\" ]";
-
-          /* addPenWidth = false;
-           for (var  = 0; j < this.longestPath.length; j++){ //task1, task2
-             if(t1 === this.longestPath[j].task1 && t1 === this.longestPath[j].task1){
-               addPenWidth = true;
-             }
-           }*/
+          this.schedGraphTxt += " [ label = " + minProctime + " penwidth=\"@" + new_task1 + ";" + new_task2 + "@\" ]";
         }
       }
 
 
       this.schedGraphTxt += "layout=\"neato\"";
       this.schedGraphTxt += "}";
-
 
       recipieBuilder.precedencesWithProducts.forEach(s => {
         var add = true;
@@ -1083,12 +1109,6 @@ var schedGraphBuilder = new Vue({
           }
         });
       });
-
-     /* console.log("nisSchedPrecedences");
-      this.nisSchedPrecedences.forEach(n => {
-        console.log(n.task1 + " " + n.task2 + " " + n.proctime);
-      });
-*/
 
       this.circleCheck();
       if(!recipieBuilder.circle){
@@ -1127,25 +1147,6 @@ var schedGraphBuilder = new Vue({
       this.nisSchedPrecedences = []; //task1, task2, proctime
 
       await this.schedGraphTxtOut(drag, uis);
-
-      /* console.log("schedPrecedencesWithProducts");
-       this.schedPrecedencesWithProducts.forEach(n => {
-         console.log(n.task + " " + n.product + " " + n.schedEdge);
-       });*/
-
-
-     /* console.log("nisSchedPrecedences");
-      this.nisSchedPrecedences.forEach(n => {
-        console.log(n.task1 + " " + n.task2 + " " + n.proctime);
-      });
-      console.log(this.getLongestPath("a1", +0));
-*/
-     /* this.getLongestPath("b", +0).forEach(g => {
-        console.log(g.max_time);
-        g.tasks.forEach(task => {
-          console.log(task);
-        });
-      });*/
 
       this.makeGantDiagram(uis);
     }
