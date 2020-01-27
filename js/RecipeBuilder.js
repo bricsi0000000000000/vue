@@ -27,24 +27,49 @@ var recipieBuilder = new Vue({
 
       downUpClick: false,
 
+      before_dropped: "", //eq, tasks
+
       dragAndDropOptions: {
         // dropzoneSelector: 'ul',
         // draggableSelector: 'li',
         //showDropzoneAreas: false,
         //multipleDropzonesItemsDraggingEnabled: false,
         //onDrop(event) {
-        onDrop() {
+        onDrop(event) {
+          if(componentInstance.checkTasksEquipment(event)){
+            componentInstance.updateEquimpents();
+          }
           schedGraphBuilder.getTasks(false);
-          componentInstance.updateEquimpents();
-          //componentInstance.updateTasksToEqOnDrop(tasks);
-          // componentInstance.updateTasksToEq();
-          //componentInstance.updateTasksToEq2();
-          // schedGraphBuilder.makeGantDiagram();
+          //componentInstance.checkTasksEquipment(event);
+
         },
-        // onDragstart(event) {
-        //   event.stop();
-        // },
-        /* onDragend(event) {
+        onDragstart(event) {
+          //event.stop();
+          componentInstance.before_dropped = []; //eq, tasks
+          var sched_table = document.getElementsByClassName("schedTable");
+          for(var child_index = 0; child_index < sched_table.length; child_index++){
+            var act_eq = "";
+            var act_tasks = [];
+            for(var node_index = 0; node_index < sched_table[child_index].children.length; node_index++){
+              if(node_index === 0){
+                act_eq = sched_table[child_index].children[node_index].textContent;
+              }
+              else{
+                act_tasks.push(sched_table[child_index].children[node_index].textContent);
+              }
+            }
+            componentInstance.before_dropped.push({eq: act_eq, tasks: act_tasks});
+          }
+          /*console.log(document.getElementsByClassName("schedTable").length);
+          console.log(document.getElementsByClassName("schedTable")[0].children[0].textContent);
+          console.log(document.getElementsByClassName("schedTable")[0].children[1].textContent);*/
+        },
+         onDragend(event) {
+          if(!componentInstance.checkTasksEquipment(event)){
+            event.stop();
+          }
+       
+
            // if you need to stop d&d
            // event.stop();
  
@@ -54,10 +79,10 @@ var recipieBuilder = new Vue({
            // to component instance
  
            // to detect if draggable element is dropped out
-           if (!event.droptarget) {
+           //if (!event.droptarget) {
             // console.log(event);
-           }
-         }*/
+           //}
+         }
       },
       /*---------------RECIPIE BUILDER---------------*/
       products: ["a", "b"],
@@ -87,8 +112,9 @@ var recipieBuilder = new Vue({
       proctime_task: "",
       proctime_eq: "",
 
-      taskEquipment: [{ "task": "a1", "eqs": ["e1"] }, { "task": "b11", "eqs": ["e1"] }, { "task": "b3", "eqs": ["e1"] }, { "task": "a2", "eqs": ["e2"] }, { "task": "b12", "eqs": ["e2"] }, { "task": "b2", "eqs": ["e3"] }, { "task": "a3", "eqs": ["e3"] }, { "task": "a4", "eqs": ["e2"] }, { "task": "b4", "eqs": ["e3"] }], //task, eqs[] | which task which equipments
-
+      taskEquipments: [{ "task": "a1", "eqs": ["e1"] }, { "task": "b11", "eqs": ["e1"] }, { "task": "b3", "eqs": ["e1"] }, { "task": "a2", "eqs": ["e2"] }, { "task": "b12", "eqs": ["e2"] }, { "task": "b2", "eqs": ["e3"] }, { "task": "a3", "eqs": ["e3"] }, { "task": "a4", "eqs": ["e2"] }, { "task": "b4", "eqs": ["e3"] }], //task, eqs[] | which task which equipments
+      taskEquipment: [], //task, eq, proctime
+      equipmentsWithTasks:[], //eq, tasks
       recipieGraphTxt: "",
 
       showWarningTxt: false,
@@ -104,7 +130,6 @@ var recipieBuilder = new Vue({
       eqsLength: 0,
       precedencesLength: 0,
       proctimesLength: 0,
-      taskToEq2: [],
 
       /*---------------SchedGraphBuilder-------------*/
       uisNisChk: false, //UIS NIS
@@ -176,6 +201,7 @@ var recipieBuilder = new Vue({
     /*---------------SchedGraphBuilder-------------*/
     switchForms() {
       this.updateOnlyTasks();
+      this.updateTaskEquipment();
 
       this.seenForms = !this.seenForms;
       if (!this.seenForms) {
@@ -361,11 +387,14 @@ var recipieBuilder = new Vue({
       this.proctime_task = "";
       this.proctime_eq = "";
 
+      
       this.deleteDuplicateProctimes();
-
+      
+      this.updateTaskEquipment();
       this.recipieGraphTxtOut();
-
+      
       this.updateProctimesLength();
+
     },
     addTasksAndProducts() {
       this.tasksAndProducts.push({ name: this.taskName, product: this.product });
@@ -456,7 +485,6 @@ var recipieBuilder = new Vue({
     deleteTaskAndTasksAndProducts(id) {
       var task = "";
       for (var i = 0; i < this.tasks.length; i++) {
-        console.log(this.tasks[i]);
         if (id === i) {
           var ok = false;
           for (var j = 0; j < this.products.length && !ok; j++) {
@@ -762,60 +790,31 @@ var recipieBuilder = new Vue({
       }
     },
     updateEquimpents() {
-      var tasks = [];
-      var schedTable = document.getElementsByClassName("schedTable");
-      var splited_elements = [];
-      for (var i = 0; i < schedTable.length; i++) {
-        splited_elements.push(schedTable[i].innerHTML);
-      }
-
-      var datas = [];
-      for (var i = 0; i < splited_elements.length; i++) {
-        datas.push(splited_elements[i].split(">"));
-      }
-
-      for (var i = 0; i < datas.length; i++) {
-        for (var j = 0; j < datas[i].length; j++) {
-          if (datas[i][j].indexOf("</span") !== -1) {
-            var final_datas = datas[i][j].split('<');
-            taskWithEq = final_datas[0].split('/');
-            tasks.push(taskWithEq[0]);
+      var dropped = []; //eq, tasks
+      var sched_table = document.getElementsByClassName("schedTable");
+      for(var child_index = 0; child_index < sched_table.length; child_index++){
+        var act_eq = "";
+        var act_tasks = [];
+        for(var node_index = 0; node_index < sched_table[child_index].children.length; node_index++){
+          if(node_index === 0){
+            act_eq = sched_table[child_index].children[node_index].textContent;
+          }
+          else{
+            act_tasks.push(sched_table[child_index].children[node_index].textContent);
           }
         }
+        dropped.push({eq: act_eq, tasks: act_tasks});
       }
 
-      var tmpEq = "";
-      var tmpTasks = [];
-      var eqWithTasks = []; //eq, tasks[]
-
-      for (var i = 0; i < tasks.length; i++) {
-        if (!yes) {
-          eqWithTasks.push({ eq: tmpEq, tasks: tmpTasks });
-        }
-        var yes = true;
-        for (var j = 0; j < this.equipments.length; j++) {
-          if (this.equipments[j] === tasks[i]) {
-            yes = false;
-          }
-        }
-        if (yes) {
-          tmpTasks.push(tasks[i]);
-        }
-        else {
-          tmpTasks = [];
-          tmpEq = tasks[i];
-        }
-      }
-
-      for (var i = 0; i < this.proctimes.length; i++) { //task, eq, proctime
-        for (var j = 0; j < eqWithTasks.length; j++) { //eq, tasks
-          for (var u = 0; u < eqWithTasks[j].tasks.length; u++) {
-            if (eqWithTasks[j].tasks[u] === this.proctimes[i].task) {
-              this.proctimes[i].eq = eqWithTasks[j].eq;
+      dropped.forEach(drop => {
+        drop.tasks.forEach(task => {
+          this.taskEquipment.forEach(task_eq => {
+            if(task === task_eq.task){
+              task_eq.eq = drop.eq;
             }
-          }
-        }
-      }
+          });
+        });
+      });
 
       this.equipmentsToTask();
     },
@@ -857,10 +856,10 @@ var recipieBuilder = new Vue({
       this.tasksToEq = []; //eq, tasks
       for (var i = 0; i < this.equipments.length; i++) {
         var tasks = [];
-        for (var j = 0; j < this.taskEquipment.length; j++) { //task, eqs[]
-          for (var u = 0; u < this.taskEquipment[j].eqs.length; u++) {
-            if (this.equipments[i] === this.taskEquipment[j].eqs[u]) {
-              tasks.push(this.taskEquipment[j].task);
+        for (var j = 0; j < this.taskEquipments.length; j++) { //task, eqs[]
+          for (var u = 0; u < this.taskEquipments[j].eqs.length; u++) {
+            if (this.equipments[i] === this.taskEquipments[j].eqs[u]) {
+              tasks.push(this.taskEquipments[j].task);
             }
           }
         }
@@ -875,13 +874,12 @@ var recipieBuilder = new Vue({
         this.tasksToEq2 = []; //eq, tasks
         for (var i = 0; i < this.equipments.length; i++) {
           var tasks = [];
-          for (var j = 0; j < this.taskEquipment.length; j++) { //task, eqs[]
-            for (var u = 0; u < this.taskEquipment[j].eqs.length; u++) {
-              if (this.equipments[i] === this.taskEquipment[j].eqs[u]) {
-                tasks.push(this.taskEquipment[j].task);
-              }
+          this.taskEquipment.forEach(task_eq => {
+            if(task_eq.eq === this.equipments[i]){
+              tasks.push(task_eq.task);
             }
-          }
+          });
+        
           this.tasksToEq2.push({ eq: this.equipments[i], tasks: tasks });
         }
       }
@@ -953,7 +951,37 @@ var recipieBuilder = new Vue({
         this.tasksToEqWithProctimes.push({ eq: eq, tasks: tmpTasks });
       }
     },
+    updateTaskEquipment(){
+      if(this.taskEquipment.length === 0){
+        this.taskEquipment = []; //task, eq, proctime
+        this.taskEquipments.forEach(task => {
+          this.taskEquipment.push({task: task.task, eq: task.eqs[0], proctime: -1});
+        });
+      }
 
+      this.taskEquipment.forEach(task => {
+        this.proctimes.forEach(time => {
+          if(task.task === time.task && task.eq === time.eq){
+            task.proctime = time.proctime;
+          }
+        });
+      });
+
+      this.updateEquimpentsWithTasks();
+    },
+    updateEquimpentsWithTasks(){
+      this.equipmentsWithTasks = []; //eq, tasks
+
+      this.equipments.forEach(equipment => {
+        var act_tasks = [];
+        this.taskEquipment.forEach(task => {
+          if(task.eq === equipment){
+            act_tasks.push(task.task);
+          }
+        });
+        this.equipmentsWithTasks.push({eq: equipment, tasks: act_tasks});
+      });
+    },
     /*-------------------------*/
 
     /*--------DELETE-DUPLICATE--------*/
@@ -1048,7 +1076,7 @@ var recipieBuilder = new Vue({
       this.showWarningTxt = true;
     },
     equipmentsToTask() {
-      this.taskEquipment = [];
+      this.taskEquipments = [];
       for (var i = 0; i < this.proctimes.length; i++) {
         var taskTemp = this.proctimes[i].task;
         var eqTemp = [];
@@ -1059,29 +1087,29 @@ var recipieBuilder = new Vue({
         }
 
         var yes = true;
-        for (var j = 0; j < this.taskEquipment.length; j++) {
-          if (this.taskEquipment[j].task === taskTemp) {
+        for (var j = 0; j < this.taskEquipments.length; j++) {
+          if (this.taskEquipments[j].task === taskTemp) {
             yes = false;
           }
         }
         if (yes) {
-          this.taskEquipment.push({ task: taskTemp, eqs: eqTemp });
+          this.taskEquipments.push({ task: taskTemp, eqs: eqTemp });
         }
       }
     },
     recipieGraphTxtOut() {
       this.equipmentsToTask();
 
-      this.recipieGraphTxt = "digraph SGraph { rankdir=LR 	node [shape=circle,fixedsize=true,width=0.9,label=<<B>\\N</B>>]"
-      for (var i = 0; i < this.taskEquipment.length; i++) {
+      this.recipieGraphTxt = "digraph SGraph { rankdir=LR 	node [shape=circle,fixedsize=true,width=0.9,label=<<B>\\N</B>>]";
+      for(var i = 0; i < this.taskEquipments.length; i++){
         this.recipieGraphTxt += " \"";
         var cur_task = "";
-        for (var j = 0; j < this.taskEquipment[i].task.length; j++) {
-          if (this.taskEquipment[i].task[j] === "\"") {
-            cur_task += "\\" + this.taskEquipment[i].task[j];
+        for (var j = 0; j < this.taskEquipments[i].task.length; j++) {
+          if (this.taskEquipments[i].task[j] === "\"") {
+            cur_task += "\\" + this.taskEquipments[i].task[j];
           }
           else {
-            cur_task += this.taskEquipment[i].task[j];
+            cur_task += this.taskEquipments[i].task[j];
           }
         }
 
@@ -1091,10 +1119,11 @@ var recipieBuilder = new Vue({
 
         this.recipieGraphTxt += cur_task + "\" [ " + "label = < <B>\\N</B><BR/>{";
 
-        for (var j = 0; j < this.taskEquipment[i].eqs.length; j++) {
-          this.recipieGraphTxt += this.taskEquipment[i].eqs[j] + ",";
+        for (var j = 0; j < this.taskEquipments[i].eqs.length; j++) {
+          this.recipieGraphTxt += this.taskEquipments[i].eqs[j] + ",";
         }
         this.recipieGraphTxt = this.recipieGraphTxt.substring(0, this.recipieGraphTxt.length - 1);
+      
         this.recipieGraphTxt += "}> ]";
       }
 
@@ -1132,25 +1161,16 @@ var recipieBuilder = new Vue({
 
         this.recipieGraphTxt += cur_task + "\"";
 
-        var tempProctimes = [];
-        var tempTask = this.precedencesWithProducts[i].task;
-        for (var j = 0; j < this.proctimes.length; j++) {
-          if (this.proctimes[j].task === tempTask) {
-            tempProctimes.push(this.proctimes[j].proctime);
+        var proc_time = -1;
+        for(var j = 0; j < this.taskEquipment.length; j++){
+          if(this.precedencesWithProducts[i].task === this.taskEquipment[j].task){
+            proc_time = this.taskEquipment[j].proctime;
           }
         }
 
-        var minProctime = tempProctimes[0];
-        for (var j = 0; j < tempProctimes.length; j++) {
-          if (tempProctimes[j] < minProctime) {
-            minProctime = tempProctimes[j];
-          }
-        }
-
-        this.recipieGraphTxt += " [ label = " + minProctime + " ]";
+        this.recipieGraphTxt += " [ label = " + proc_time + " ]";
       }
       this.recipieGraphTxt += "}";
-
 
       var viz = new Viz();
       viz.renderSVGElement(this.recipieGraphTxt)
@@ -1162,7 +1182,25 @@ var recipieBuilder = new Vue({
           viz = new Viz();
           console.error(error);
         });
-      // console.log(this.recipieGraphTxt);
+       //console.log(this.recipieGraphTxt);
+    },
+    checkTasksEquipment(event){
+      var act_task = event.items[0].innerText;
+      var dropped_eq = event.droptarget.textContent.split(' ')[0];
+
+      var dropped_eq_is_good = false;
+      this.taskEquipments.forEach(task_eq => {
+        task_eq.eqs.forEach(eq => {
+          
+          if(eq === dropped_eq){
+            if(task_eq.task === act_task){
+              dropped_eq_is_good = true;
+            }
+          }
+        });
+      }); 
+
+      return dropped_eq_is_good;
     },
   },
 }).$mount("#content");

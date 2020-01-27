@@ -1,4 +1,4 @@
-  var schedGraphBuilder = new Vue({
+var schedGraphBuilder = new Vue({
   data() {
     return {
       schedGraphTxt: "",
@@ -18,9 +18,9 @@
     getProctime(task) {
       var proctime = -1;
 
-      recipieBuilder.proctimes.forEach(p => {
-        if (p.task === task) {
-          proctime = p.proctime;
+      recipieBuilder.taskEquipment.forEach(task_eq => {
+        if (task_eq.task === task) {
+          proctime = task_eq.proctime;
         }
       });
 
@@ -58,10 +58,12 @@
     },
     getEquipment(task) {
       var equipment = "";
-      recipieBuilder.taskEquipment.forEach(eq => { //task, eqs
-        if (eq.task === task) {
-          equipment = eq.eqs[0];
-        }
+      recipieBuilder.taskEquipments.forEach(task_equipment => { //task, eqs
+        task_equipment.eqs.forEach(eq => {
+          if(task_equipment.task === task){
+            equipment = eq;
+          }
+        });
       });
 
       return equipment;
@@ -90,15 +92,15 @@
       var max = 0;
       prev_tasks.forEach(element => {
         longest_path_hier = this.getLongestPath(element.task1, +0);
-        if ((longest_path_hier[0].max_time  + +element.n) > max) {
-          max = longest_path_hier[0].max_time  + +element.n;
+        if ((longest_path_hier[0].max_time + +element.n) > max) {
+          max = longest_path_hier[0].max_time + +element.n;
           tasks = longest_path_hier[0].tasks;
           max_task = element.task1;
         }
       });
       tasks.push(max_task);
 
-      path.push({max_time: max, tasks: tasks});
+      path.push({ max_time: max, tasks: tasks });
 
       return path;
     },
@@ -140,6 +142,8 @@
         }
       }
 
+      //console.log(schedText);
+
       var viz = new Viz();
       viz.renderSVGElement(schedText)
         .then(function (element) {
@@ -151,12 +155,12 @@
           console.error(error);
         });
     },
-    canAddToGantt(task){
+    canAddToGantt(task) {
       add = true;
 
       this.gantt.forEach(g => {
         g.tasks.forEach(t => {
-          if(t.task === task){
+          if (t.task === task) {
             add = false;
           }
         });
@@ -164,7 +168,7 @@
 
       return add;
     },
-    async makeGantDiagram(uis) {
+    async makeGantDiagram() {
       if (!recipieBuilder.circle) {
         this.gantt = [];
         recipieBuilder.equipments.forEach(equipment => {
@@ -173,20 +177,19 @@
 
         this.schedPrecedencesWithProducts.forEach(s => {
           var act_eq = this.getEquipment(s.task);
-          var add_task = "";
           var start_time = "";
           this.gantt.forEach(g => {
             if (g.eq === act_eq) {
               var longest_path_hier = this.getLongestPath(s.task, +0);
 
               start_time = +longest_path_hier[0].max_time;
-              if(this.canAddToGantt(s.task)){
+              if (this.canAddToGantt(s.task)) {
                 g.tasks.push({ task: s.task, start_time: start_time, end_time: (start_time + +this.getProctimeForDijkstra(s.task, s.product)) });
-              }  
+              }
             }
           });
         });
-      
+
         var color = "black";
         var x = 0;
         var y = 0;
@@ -279,7 +282,6 @@
             tasks.push(recipieBuilder.tasksToEq2[i].tasks[j]);
           }
         }
-
       }
       else {
         var schedTable = document.getElementsByClassName("schedTable");
@@ -305,6 +307,8 @@
       }
 
       recipieBuilder.updateTasksToEq2(tasks);
+      recipieBuilder.updateTaskEquipment();
+
       this.dragAndDropList(tasks);
     },
     dragAndDropList(tasks) {
@@ -337,27 +341,28 @@
         this.waitForIt(true, true);
       }
     },
-    makeSchedPrecedencesWithProducts(uis) {
+    isTaskPairInSchedPrecedencesWithProducts(task1, task2){
+      var yes = false;
+
+      this.schedPrecedencesWithProducts.forEach(p => {
+        if(p.task === task1 && p.product === task2){
+          yes = true;
+        }
+      });
+
+      return yes;
+    },
+    makeSchedPrecedencesWithProducts() {
       this.schedPrecedencesWithProducts = [];
       for (var i = 0; i < recipieBuilder.precedencesWithProducts.length; i++) {  //task, product
         this.schedPrecedencesWithProducts.push({ task: recipieBuilder.precedencesWithProducts[i].task, product: recipieBuilder.precedencesWithProducts[i].product, schedEdge: false });
       }
-
-      if (uis) {
-        var addThese = []; //task1, task2
-        for (var i = 0; i < this.schedTasksArray.length - 1; i++) { //task
-          if (this.schedTasksArray[i].task !== "--") {
-            if (this.schedTasksArray[i + 1].task !== "--") {
-              addThese.push({ task1: this.schedTasksArray[i].task, task2: this.schedTasksArray[i + 1].task });
-            }
-          }
-        }
-      }
-      else {
-        var addThese = []; //task1, task2
-        for (var i = 0; i < this.schedTasksArray.length - 1; i++) { //task
-          if (this.schedTasksArray[i].task !== "--") {
-            if (this.schedTasksArray[i + 1].task !== "--") {
+     
+      var addThese = []; //task1, task2
+      for (var i = 0; i < this.schedTasksArray.length - 1; i++) { //task
+        if (this.schedTasksArray[i].task !== "--") {
+          if (this.schedTasksArray[i + 1].task !== "--") {
+            if(!this.isTaskPairInSchedPrecedencesWithProducts(this.schedTasksArray[i].task, this.schedTasksArray[i + 1].task)){
               addThese.push({ task1: this.schedTasksArray[i].task, task2: this.schedTasksArray[i + 1].task });
             }
           }
@@ -368,30 +373,30 @@
         this.schedPrecedencesWithProducts.push({ task: addThese[i].task1, product: addThese[i].task2, schedEdge: true });
       }
     },
-    isInStartTasks(start_tasks, task){
+    isInStartTasks(start_tasks, task) {
       var yes = false;
 
-      for(var i = 0; i < start_tasks.length && !yes; i++){
-        if(task === start_tasks[i]){
+      for (var i = 0; i < start_tasks.length && !yes; i++) {
+        if (task === start_tasks[i]) {
           yes = true;
         }
       }
 
       return yes;
     },
-    getStartTasks(){
+    getStartTasks() {
       var start_tasks = [];
 
-      recipieBuilder.precedences.forEach( p => {
+      recipieBuilder.precedences.forEach(p => {
         var yes = true;
-        for (var i = 0; i < recipieBuilder.precedences.length && yes; i++){
-          if(p.task1 === recipieBuilder.precedences[i].task2){
+        for (var i = 0; i < recipieBuilder.precedences.length && yes; i++) {
+          if (p.task1 === recipieBuilder.precedences[i].task2) {
             yes = false;
           }
         }
 
-        if(yes){
-          if(!this.isInStartTasks(start_tasks, p.task1)){
+        if (yes) {
+          if (!this.isInStartTasks(start_tasks, p.task1)) {
             start_tasks.push(p.task1);
           }
         }
@@ -399,17 +404,17 @@
 
       return start_tasks;
     },
-    getTask2s(compare_task){
+    getTask2s(compare_task) {
       task2s = [];
       this.allEdges.forEach(a => {
-        if(compare_task === a.task1){
+        if (compare_task === a.task1) {
           task2s.push(a.task2);
         }
       });
 
       return task2s;
     },
-    getCircleTaskPairs(tmp_arr){
+    getCircleTaskPairs(tmp_arr) {
       for (var i = 0; i < tmp_arr.length - 1; i++) {
         yes = true;
         for (var u = 0; u < this.circleTaskPairs.length && yes; u++) {
@@ -427,11 +432,11 @@
 
       var startTasks = this.getStartTasks();
 
-    
+
       for (var startTaskIndex = 0; startTaskIndex < startTasks.length; startTaskIndex++) {
         var task2S = this.getTask2s(startTasks[startTaskIndex]);
 
-       
+
 
         var circleArr = []; //task, task2S, end
         circleArr.push({ task: startTasks[startTaskIndex], task2S: task2S, end: true });
@@ -519,7 +524,7 @@
         }
       }
     },
-    getProductWithTasks(){
+    getProductWithTasks() {
       var productWithTasks = []; //product, tasks[]
       for (var i = 0; i < recipieBuilder.products.length; i++) {
         var add = [];
@@ -535,7 +540,7 @@
 
       return productWithTasks;
     },
-    getProductWithPrecedence(productWithTasks){
+    getProductWithPrecedence(productWithTasks) {
       var productWithPrecedence = []; //product, precedences[] - task1, task2
       for (var i = 0; i < productWithTasks.length; i++) { //product, tasks[]
         var add = [];
@@ -551,7 +556,7 @@
 
       return productWithPrecedence;
     },
-    getSortedProductWithTasks(productWithPrecedence){
+    getSortedProductWithTasks(productWithPrecedence) {
       var sortedProductWithTasks = []; //product tasks[]
       for (var i = 0; i < productWithPrecedence.length; i++) { //product, precedences[] - task1, task2
         var add = [];
@@ -595,7 +600,7 @@
 
       return sortedProductWithTasks;
     },
-    getMultipleTasksToOneProduct(){
+    getMultipleTasksToOneProduct() {
       var multipleTasksToOneProduct = []; //task, product, count
       for (var i = 0; i < recipieBuilder.precedencesWithProducts.length; i++) {  //task, product
         var act_task = recipieBuilder.precedencesWithProducts[i].task;
@@ -611,7 +616,7 @@
 
       return multipleTasksToOneProduct;
     },
-    getHowManyEdgesToTask(multipleTasksToOneProduct){
+    getHowManyEdgesToTask(multipleTasksToOneProduct) {
       var howManyEdgesToTask = []; //task, count
       for (var i = 0; i < multipleTasksToOneProduct.length; i++) { //task, product, count
         if (multipleTasksToOneProduct[i].count > 0) {
@@ -636,7 +641,7 @@
 
       return howManyEdgesToTask;
     },
-    getXPositions(sortedProductWithTasks, multipleTasksToOneProduct, xPosDist){
+    getXPositions(sortedProductWithTasks, multipleTasksToOneProduct, xPosDist) {
       var xPositions = []; //task, xPos
       for (var i = 0; i < sortedProductWithTasks.length; i++) { //product tasks[]
         var xPos = 0;
@@ -659,7 +664,7 @@
 
       return xPositions;
     },
-    getTasksAsXPos(xPositions){
+    getTasksAsXPos(xPositions) {
       var tasksAsXPos = []; //xPos, tasks[]
       for (var i = 0; i < xPositions.length; i++) {  //task, xPos
         var add = [];
@@ -681,7 +686,7 @@
 
       return tasksAsXPos;
     },
-    getYPositions(tasksAsXPos, xPositions, yPosDist){
+    getYPositions(tasksAsXPos, xPositions, yPosDist) {
       var yPositions = []; //task, yPos
       for (var i = 0; i < tasksAsXPos.length; i++) { //xPos, tasks[]
         for (var u = 0; u < xPositions.length; u++) { //task, xPos
@@ -727,7 +732,7 @@
 
       return yPositions;
     },
-    getProductsWithMultipleInEdges(sortedProductWithTasks,howManyEdgesToTask){
+    getProductsWithMultipleInEdges(sortedProductWithTasks, howManyEdgesToTask) {
       var productsWithMultipleInEdges = [];
       for (var i = 0; i < sortedProductWithTasks.length; i++) { //product tasks[]
         for (var j = 0; j < sortedProductWithTasks[i].tasks.length; j++) {
@@ -740,7 +745,7 @@
       }
       return productsWithMultipleInEdges;
     },
-    getActProduct(i, j, sortedProductWithTasks){
+    getActProduct(i, j, sortedProductWithTasks) {
       var act_product = "";
 
       for (var u = 0; u < sortedProductWithTasks[i].tasks[j].length; u++) {
@@ -758,7 +763,7 @@
 
       return act_product;
     },
-    getIsProduct(i, j, sortedProductWithTasks){
+    getIsProduct(i, j, sortedProductWithTasks) {
       var is_product = false;
       for (var u = 0; u < recipieBuilder.products.length && !is_product; u++) {
         if (sortedProductWithTasks[i].tasks[j] === recipieBuilder.products[u]) {
@@ -767,7 +772,7 @@
       }
       return is_product;
     },
-    getNewTask1(i){
+    getNewTask1(i) {
       var new_task1 = "";
       for (var u = 0; u < this.schedPrecedencesWithProducts[i].task.length; u++) {
         if (this.schedPrecedencesWithProducts[i].task[u] === "\"") {
@@ -784,7 +789,7 @@
 
       return new_task1;
     },
-    getNewTask2(i){
+    getNewTask2(i) {
       var new_task2 = "";
       for (var u = 0; u < this.schedPrecedencesWithProducts[i].product.length; u++) {
         if (this.schedPrecedencesWithProducts[i].product[u] === "\"") {
@@ -806,7 +811,7 @@
 
       return new_task2;
     },
-    newTasksEquals(t){
+    newTasksEquals(t) {
       var i1 = -1;
       var i2 = -1;
       for (var j = 0; j < t.length; j++) {
@@ -820,16 +825,16 @@
         }
       }
 
-      if(i1 === i2){
+      if (i1 === i2) {
         return true;
       }
-      else{
+      else {
         return false;
       }
     },
     async schedGraphTxtOut(drag, uis) {
       if (!drag) {
-        this.schedTasks = recipieBuilder.taskEquipment;
+        this.schedTasks = recipieBuilder.taskEquipments;
       }
 
       this.makeSchedPrecedencesWithProducts(uis);
@@ -848,7 +853,7 @@
       var productWithPrecedence = this.getProductWithPrecedence(productWithTasks); //product, precedences[] - task1, task2
 
       var sortedProductWithTasks = this.getSortedProductWithTasks(productWithPrecedence); //product tasks[]
-      
+
       var multipleTasksToOneProduct = this.getMultipleTasksToOneProduct(); //task, product, count
 
       var howManyEdgesToTask = this.getHowManyEdgesToTask(multipleTasksToOneProduct); //task, count
@@ -856,9 +861,9 @@
       var xPositions = this.getXPositions(sortedProductWithTasks, multipleTasksToOneProduct, xPosDist); //task, xPos
 
       var tasksAsXPos = this.getTasksAsXPos(xPositions); //xPos, tasks[]
-   
+
       var yPositions = this.getYPositions(tasksAsXPos, xPositions, yPosDist); //task, yPos
-      
+
       for (var i = 0; i < yPositions.length; i++) { //task, yPos
         for (var j = 0; j < howManyEdgesToTask.length; j++) { //task, count
           if (yPositions[i].task === howManyEdgesToTask[j].task) {
@@ -973,19 +978,13 @@
           this.schedGraphTxt += act_product + "\" [ pos=\"" + xPos + "," + yPos + "\", label = < <B>\\N</B><BR/>";
 
           var isProduct = this.getIsProduct(i, j, sortedProductWithTasks);
-          
+
           if (!isProduct) {
-            this.schedGraphTxt += "{";
-            /* Add equipments to task*/
-            for (var u = 0; u < recipieBuilder.taskEquipment.length; u++) { //task, eqs[]
-              if (recipieBuilder.taskEquipment[u].task === sortedProductWithTasks[i].tasks[j]) {
-                for (var z = 0; z < recipieBuilder.taskEquipment[u].eqs.length; z++) {
-                  this.schedGraphTxt += recipieBuilder.taskEquipment[u].eqs[z] + ",";
-                }
+            recipieBuilder.taskEquipment.forEach(task_to_eq => {
+              if (task_to_eq.task === sortedProductWithTasks[i].tasks[j]) {
+                this.schedGraphTxt += task_to_eq.eq;
               }
-            }
-            this.schedGraphTxt = this.schedGraphTxt.substring(0, this.schedGraphTxt.length - 1);
-            this.schedGraphTxt += "}";
+            });
           }
           this.schedGraphTxt += "> ]";
         }
@@ -1010,26 +1009,16 @@
 
       for (var i = 0; i < this.schedPrecedencesWithProducts.length; i++) { //task, product, schedEdge(true/false)
         new_task1 = this.getNewTask1(i);
-      
         new_task2 = this.getNewTask2(i);
 
         if (this.schedPrecedencesWithProducts[i].schedEdge) {
-         
           if (this.newTasksEquals(t)) {
-            tempProctimes = [];
-            tempTask = this.schedPrecedencesWithProducts[i].task;
-            for (var j = 0; j < recipieBuilder.proctimes.length; j++) {
-              if (recipieBuilder.proctimes[j].task === tempTask) {
-                tempProctimes.push(recipieBuilder.proctimes[j].proctime);
+            minProctime = -1;
+            recipieBuilder.taskEquipment.forEach(task_eq => {
+              if(task_eq.task === new_task1){
+                minProctime = task_eq.proctime;
               }
-            }
-
-            minProctime = tempProctimes[0];
-            for (var j = 0; j < tempProctimes.length; j++) {
-              if (tempProctimes[j] < minProctime) {
-                minProctime = tempProctimes[j];
-              }
-            }
+            });
 
             if (!uis) {
               tempT1 = "";
@@ -1043,7 +1032,6 @@
               new_task1 = tempT1;
               minProctime = -1;
             }
-
 
             this.schedGraphTxt += "\"" + new_task1 + "\" -> \"" + new_task2 + "\"";
 
@@ -1061,20 +1049,12 @@
           }
         }
         else {
-          tempProctimes = [];
-          tempTask = this.schedPrecedencesWithProducts[i].task;
-          for (var j = 0; j < recipieBuilder.proctimes.length; j++) {
-            if (recipieBuilder.proctimes[j].task === tempTask) {
-              tempProctimes.push(recipieBuilder.proctimes[j].proctime);
+          minProctime = -1;
+          recipieBuilder.taskEquipment.forEach(task_eq => {
+            if(task_eq.task === new_task1){
+              minProctime = task_eq.proctime;
             }
-          }
-
-          minProctime = tempProctimes[0];
-          for (var j = 0; j < tempProctimes.length; j++) {
-            if (tempProctimes[j] < minProctime) {
-              minProctime = tempProctimes[j];
-            }
-          }
+          });
 
           this.schedGraphTxt += " [ label = " + minProctime + " penwidth=\"@" + new_task1 + ";" + new_task2 + "@\" ]";
         }
@@ -1111,19 +1091,19 @@
       });
 
       this.circleCheck();
-      if(!recipieBuilder.circle){
+      if (!recipieBuilder.circle) {
         this.makeLongestPath();
       }
-      else{
+      else {
         this.drawLongestPath();
       }
     },
-    makeLongestPath(){
+    makeLongestPath() {
       var max_product = "";
-      var path = {max_time: -1, tasks:[]};
+      var path = { max_time: -1, tasks: [] };
       recipieBuilder.products.forEach(p => {
         var tmp_path = this.getLongestPath(p)[0];
-        if(tmp_path.max_time > path.max_time){
+        if (tmp_path.max_time > path.max_time) {
           path = tmp_path;
           max_product = p;
         }
@@ -1131,10 +1111,10 @@
 
 
       this.longestPath = [];
-      for(var i = 0; i < path.tasks.length - 1; i++){
-        this.longestPath.push({task1: path.tasks[i], task2: path.tasks[i + 1]});
+      for (var i = 0; i < path.tasks.length - 1; i++) {
+        this.longestPath.push({ task1: path.tasks[i], task2: path.tasks[i + 1] });
       }
-      this.longestPath.push({task1: this.longestPath[this.longestPath.length - 1].task2, task2: max_product});
+      this.longestPath.push({ task1: this.longestPath[this.longestPath.length - 1].task2, task2: max_product });
 
       recipieBuilder.ganttWidth = path.max_time * 40 + 41;
       recipieBuilder.longestPathTime = path.max_time;
@@ -1148,7 +1128,7 @@
 
       await this.schedGraphTxtOut(drag, uis);
 
-      this.makeGantDiagram(uis);
+      this.makeGantDiagram();
     }
   }
 });
