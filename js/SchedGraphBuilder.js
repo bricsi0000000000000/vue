@@ -58,12 +58,10 @@ var schedGraphBuilder = new Vue({
     },
     getEquipment(task) {
       var equipment = "";
-      recipieBuilder.taskEquipments.forEach(task_equipment => { //task, eqs
-        task_equipment.eqs.forEach(eq => {
-          if(task_equipment.task === task){
-            equipment = eq;
-          }
-        });
+      recipieBuilder.taskEquipment.forEach(task_equipment => { //task, eqs
+        if(task_equipment.task === task){
+          equipment = task_equipment.eq;
+        }
       });
 
       return equipment;

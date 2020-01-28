@@ -27,8 +27,6 @@ var recipieBuilder = new Vue({
 
       downUpClick: false,
 
-      before_dropped: "", //eq, tasks
-
       dragAndDropOptions: {
         // dropzoneSelector: 'ul',
         // draggableSelector: 'li',
@@ -40,35 +38,14 @@ var recipieBuilder = new Vue({
             componentInstance.updateEquimpents();
           }
           schedGraphBuilder.getTasks(false);
-          //componentInstance.checkTasksEquipment(event);
-
         },
-        onDragstart(event) {
-          //event.stop();
-          componentInstance.before_dropped = []; //eq, tasks
-          var sched_table = document.getElementsByClassName("schedTable");
-          for(var child_index = 0; child_index < sched_table.length; child_index++){
-            var act_eq = "";
-            var act_tasks = [];
-            for(var node_index = 0; node_index < sched_table[child_index].children.length; node_index++){
-              if(node_index === 0){
-                act_eq = sched_table[child_index].children[node_index].textContent;
-              }
-              else{
-                act_tasks.push(sched_table[child_index].children[node_index].textContent);
-              }
-            }
-            componentInstance.before_dropped.push({eq: act_eq, tasks: act_tasks});
-          }
-          /*console.log(document.getElementsByClassName("schedTable").length);
-          console.log(document.getElementsByClassName("schedTable")[0].children[0].textContent);
-          console.log(document.getElementsByClassName("schedTable")[0].children[1].textContent);*/
-        },
+       /* onDragstart(event) {
+         
+        },*/
          onDragend(event) {
           if(!componentInstance.checkTasksEquipment(event)){
             event.stop();
           }
-       
 
            // if you need to stop d&d
            // event.stop();
@@ -107,12 +84,12 @@ var recipieBuilder = new Vue({
 
       precedencesWithProducts: [{ "task": "a2", "product": "a3" }, { "task": "b2", "product": "b3" }, { "task": "a1", "product": "a2" }, { "task": "b11", "product": "b2" }, { "task": "b12", "product": "b2" }, { "task": "a4", "product": "a" }, { "task": "b4", "product": "b" }, { "task": "a3", "product": "a4" }, { "task": "b3", "product": "b4" }], //task, product
 
-      proctimes: [{ "task": "a1", "eq": "e1", "proctime": "3" }, { "task": "b11", "eq": "e1", "proctime": "2" }, { "task": "b3", "eq": "e1", "proctime": "1" }, { "task": "a2", "eq": "e2", "proctime": "2" }, { "task": "b12", "eq": "e2", "proctime": "4" }, { "task": "b2", "eq": "e3", "proctime": "3" }, { "task": "a3", "eq": "e3", "proctime": "4" }, { "task": "a4", "eq": "e2", "proctime": "2" }, { "task": "b4", "eq": "e3", "proctime": "4" }], //task, eq, proctime
+      proctimes: [{ "task": "a1", "eq": "e1", "proctime": "3" },{ "task": "a1", "eq": "e2", "proctime": "6" } , { "task": "b11", "eq": "e1", "proctime": "2" }, { "task": "b3", "eq": "e1", "proctime": "1" }, { "task": "a2", "eq": "e2", "proctime": "2" }, { "task": "b12", "eq": "e2", "proctime": "4" }, { "task": "b2", "eq": "e3", "proctime": "3" }, { "task": "a3", "eq": "e3", "proctime": "4" }, { "task": "a4", "eq": "e2", "proctime": "2" }, { "task": "b4", "eq": "e3", "proctime": "4" }], //task, eq, proctime
       proctime: "",
       proctime_task: "",
       proctime_eq: "",
 
-      taskEquipments: [{ "task": "a1", "eqs": ["e1"] }, { "task": "b11", "eqs": ["e1"] }, { "task": "b3", "eqs": ["e1"] }, { "task": "a2", "eqs": ["e2"] }, { "task": "b12", "eqs": ["e2"] }, { "task": "b2", "eqs": ["e3"] }, { "task": "a3", "eqs": ["e3"] }, { "task": "a4", "eqs": ["e2"] }, { "task": "b4", "eqs": ["e3"] }], //task, eqs[] | which task which equipments
+      taskEquipments: [{ "task": "a1", "eqs": ["e1", "e2"] }, { "task": "b11", "eqs": ["e1"] }, { "task": "b3", "eqs": ["e1"] }, { "task": "a2", "eqs": ["e2"] }, { "task": "b12", "eqs": ["e2"] }, { "task": "b2", "eqs": ["e3"] }, { "task": "a3", "eqs": ["e3"] }, { "task": "a4", "eqs": ["e2"] }, { "task": "b4", "eqs": ["e3"] }], //task, eqs[] | which task which equipments
       taskEquipment: [], //task, eq, proctime
       equipmentsWithTasks:[], //eq, tasks
       recipieGraphTxt: "",
@@ -815,8 +792,6 @@ var recipieBuilder = new Vue({
           });
         });
       });
-
-      this.equipmentsToTask();
     },
     updateProductsLength() {
       this.productsLength = this.products.length;
