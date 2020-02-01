@@ -933,29 +933,32 @@ var recipieBuilder = new Vue({
           this.taskEquipment.push({task: task.task, eq: task.eqs[0], proctime: -1});
         });
       }
-
-      this.taskEquipment.forEach(task => {
-        this.proctimes.forEach(time => {
-          if(task.task === time.task && task.eq === time.eq){
-            task.proctime = time.proctime;
-          }
+      else{
+        this.taskEquipment.forEach(task => {
+          this.proctimes.forEach(time => {
+            if(task.task === time.task && task.eq === time.eq){
+              task.proctime = time.proctime;
+            }
+          });
         });
-      });
+      }
 
       this.updateEquimpentsWithTasks();
     },
     updateEquimpentsWithTasks(){
-      this.equipmentsWithTasks = []; //eq, tasks
+      if(this.equipmentsWithTasks.length === 0){
+        this.equipmentsWithTasks = []; //eq, tasks
 
-      this.equipments.forEach(equipment => {
-        var act_tasks = [];
-        this.taskEquipment.forEach(task => {
-          if(task.eq === equipment){
-            act_tasks.push(task.task);
-          }
+        this.equipments.forEach(equipment => {
+          var act_tasks = [];
+          this.taskEquipment.forEach(task => {
+            if(task.eq === equipment){
+              act_tasks.push(task.task);
+            }
+          });
+          this.equipmentsWithTasks.push({eq: equipment, tasks: act_tasks});
         });
-        this.equipmentsWithTasks.push({eq: equipment, tasks: act_tasks});
-      });
+      }
     },
     /*-------------------------*/
 
