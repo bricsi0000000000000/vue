@@ -527,10 +527,10 @@ var schedGraphBuilder = new Vue({
       for (var i = 0; i < recipieBuilder.products.length; i++) {
         var add = [];
         var act_product = "";
-        for (var j = 0; j < recipieBuilder.tasksAndProducts.length; j++) { //name, product
+        for (var j = 0; j < recipieBuilder.tasksAndProducts.length; j++) { //task, product
           if (recipieBuilder.products[i] === recipieBuilder.tasksAndProducts[j].product) {
             act_product = recipieBuilder.tasksAndProducts[j].product;
-            add.push(recipieBuilder.tasksAndProducts[j].name);
+            add.push(recipieBuilder.tasksAndProducts[j].task);
           }
         }
         productWithTasks.push({ product: act_product, tasks: add });
@@ -697,31 +697,6 @@ var schedGraphBuilder = new Vue({
             }
             if (yes) {
               yPos = 0 - j * yPosDist;
-
-              /*HA KELL A SOROK KÖZÉ PLUSZ HELY AZT ITT KELL*/
-
-              /*for (var  = 0; z < sortedProductWithTasks.length; z++){ //product, tasks[]
-                for (var  = 0; t < sortedProductWithTasks[z].tasks.length; t++){
-                  if(sortedProductWithTasks[z].tasks[t] === tasksAsXPos[i].tasks[j]){
-                    if(z + 1 < sortedProductWithTasks.length){
-                      if(sortedProductWithTasks[z + 1].product !== sortedProductWithTasks[z].product){
-                       yPos += .5;
-                      }
-                    }
-                  }
-                }
-              }*/
-
-              /*  for (var  = 0; z < recipieBuilder.tasksAndProducts.length; z++){ //name, product
-                  if(tasksAsXPos[i].tasks[j] === recipieBuilder.tasksAndProducts[z].name){
-                    if(z + 1 < recipieBuilder.tasksAndProducts.length){
-                      if(recipieBuilder.tasksAndProducts[z + 1].product !== recipieBuilder.tasksAndProducts[z].product){
-                        yPos -= .5;
-                      }
-                    }
-                  }
-                }
-   */
               yPositions.push({ task: tasksAsXPos[i].tasks[j], yPos: yPos });
             }
           }
@@ -808,27 +783,6 @@ var schedGraphBuilder = new Vue({
       }
 
       return new_task2;
-    },
-    newTasksEquals(t) {
-      var i1 = -1;
-      var i2 = -1;
-      for (var j = 0; j < t.length; j++) {
-        for (var u = 0; u < t[j].length; u++) {
-          if (new_task1 === t[j][u]) {
-            i1 = j;
-          }
-          if (new_task2 === t[j][u]) {
-            i2 = j;
-          }
-        }
-      }
-
-      if (i1 === i2) {
-        return true;
-      }
-      else {
-        return false;
-      }
     },
     async schedGraphTxtOut(drag, uis) {
       if (!drag) {
@@ -1010,41 +964,39 @@ var schedGraphBuilder = new Vue({
         new_task2 = this.getNewTask2(i);
 
         if (this.schedPrecedencesWithProducts[i].schedEdge) {
-          if (this.newTasksEquals(t)) {
-            minProctime = -1;
-            recipieBuilder.taskEquipment.forEach(task_eq => {
-              if(task_eq.task === new_task1){
-                minProctime = task_eq.proctime;
-              }
-            });
+          minProctime = -1;
+          recipieBuilder.taskEquipment.forEach(task_eq => {
+            if(task_eq.task === new_task1){
+              minProctime = task_eq.proctime;
+            }
+          });
 
-            if (!uis) {
-              tempT1 = "";
-              for (var j = 0; j < this.schedPrecedencesWithProducts.length; j++) { //task, product, schedEdge(true/false)
-                if (!this.schedPrecedencesWithProducts[j].schedEdge) {
-                  if (this.schedPrecedencesWithProducts[j].task === new_task1) {
-                    tempT1 = this.schedPrecedencesWithProducts[j].product;
-                  }
+          if (!uis) {
+            tempT1 = "";
+            for (var j = 0; j < this.schedPrecedencesWithProducts.length; j++) { //task, product, schedEdge(true/false)
+              if (!this.schedPrecedencesWithProducts[j].schedEdge) {
+                if (this.schedPrecedencesWithProducts[j].task === new_task1) {
+                  tempT1 = this.schedPrecedencesWithProducts[j].product;
                 }
               }
-              new_task1 = tempT1;
-              minProctime = -1;
             }
-
-            this.schedGraphTxt += "\"" + new_task1 + "\" -> \"" + new_task2 + "\"";
-
-            this.allEdges.push({ task1: new_task1, task2: new_task2 });
-
-            if (minProctime !== -1) {
-              this.schedGraphTxt += " [ label = " + minProctime + ", style=\"dashed\"";
-            }
-            else {
-              this.schedGraphTxt += " [ style=\"dashed\"";
-            }
-            this.nisSchedPrecedences.push({ task1: new_task1, task2: new_task2, proctime: minProctime });
-
-            this.schedGraphTxt += " penwidth=\"@" + new_task1 + ";" + new_task2 + "@\" ]";
+            new_task1 = tempT1;
+            minProctime = -1;
           }
+
+          this.schedGraphTxt += "\"" + new_task1 + "\" -> \"" + new_task2 + "\"";
+
+          this.allEdges.push({ task1: new_task1, task2: new_task2 });
+
+          if (minProctime !== -1) {
+            this.schedGraphTxt += " [ label = " + minProctime + ", style=\"dashed\"";
+          }
+          else {
+            this.schedGraphTxt += " [ style=\"dashed\"";
+          }
+          this.nisSchedPrecedences.push({ task1: new_task1, task2: new_task2, proctime: minProctime });
+
+          this.schedGraphTxt += " penwidth=\"@" + new_task1 + ";" + new_task2 + "@\" ]";
         }
         else {
           minProctime = -1;
