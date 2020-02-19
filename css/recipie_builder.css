@@ -1,11 +1,11 @@
-.RecipieBuilderTables table {
+.recipie-builder-tables table {
     font-family: arial, sans-serif;
     border-collapse: collapse;
     margin: 15px;
     float: left;
 }
 
-.RecipieBuilderTables td{
+.recipie-builder-tables td{
     border: 1px solid #dddddd;
     text-align: center;
     padding-left: 5px;
@@ -15,7 +15,7 @@
     padding: 6px;
 }
 
-.RecipieBuilderTables th {
+.recipie-builder-tables th {
     background-color: #333;
     color: white;
     font-size: 15px;
@@ -32,27 +32,27 @@ input, select {
     background-color: #e2e2e2;
 }
 
-.addBtn, .deleteBtn{
+.add-btn, .delete-btn{
     width: 100%;
     color:white;
     font-weight: bold;
 }
 
-.addBtn{
+.add-btn{
     background-color: #37acc9;
     border: 3px solid #37acc9;
 }
 
-.deleteBtn{
+.delete-btn{
     background-color: #c94d37;
     border: 3px solid #c94d37;
 }
 
-#RecipieBuilder{
+#recipie-builder{
     margin-left: 20px;
 }
   
-#recipieGraph{
+#recipie-graph{
     margin: 20px;
 }
   
@@ -64,10 +64,10 @@ img{
 }
 
   
-.longestPathProperties table{
+.longest-path-properties table{
     margin: 0px;
 }
 
-.longestPathProperties td{
+.longest-path-properties td{
     text-align: left;
 }
