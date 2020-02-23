@@ -35,7 +35,7 @@
 
 <body>
     <div id="recipie-builder">
-        <div class="recipie-builder-tables">
+        <div class="recipie-builder-tables" v-if="seenForms">
             <div class="row">
                 <div id="products-table" class="col-">
                     <table>
@@ -256,6 +256,86 @@
                 <div id="recipie-graph" class="col-"></div>
             </div>
         </div>
+        <div id="SchedGraphBuilder" v-if="!seenForms">
+            <table class="container">
+                <tr>
+                    <td>
+                        <div class="UIS-NIS-btns-container col-">
+                          <button type="button" v-bind:class="{ 'UIS-NIS-btns-inactive': uis, 'UIS-NIS-btns-active': !uis }" v-on:click="uisNisSwitch()">UIS</button>
+                          <button type="button" v-bind:class="{ 'UIS-NIS-btns-inactive': !uis, 'UIS-NIS-btns-active': uis }" v-on:click="uisNisSwitch()">NIS</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td> 
+                        <div class="col- drag-and-drop">        
+                            <div v-for="(equipment, index) in equipments">
+                                <div v-drag-and-drop:options="dragAndDropOptions">
+                                    <ul class="sched-table">
+                                        <div style="background: rgb(94, 94, 94); color: white; text-align: center; font-weight: bold; padding-bottom:3px">
+                                            <span>{{equipment.name}}</span>
+                                        </div>
+                                        <li v-for="(task, index) in equipment.tasks">
+                                            <span>{{task.name}}</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div id="sched-graph"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="recipie-builder-tables">
+                        <div v-if="!circle" class="col- longest-path-properties">
+                            <table>
+                                <th colspan="2">
+                                    Longest path
+                                </th>
+                                <tr>
+                                    <td class="title">
+                                        Start task
+                                    </td>
+                                    <td style="font-weight: bold"> 
+                                        {{longestPathStartTask}}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="title">
+                                        End product
+                                    </td>
+                                    <td style="font-weight: bold"> 
+                                        {{longestPathEndTask}}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="title">
+                                        Time
+                                    </td>
+                                    <td style="font-weight: bold"> 
+                                        {{longestPathTime}}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div v-if="circle" class="col- longest-pathproperties">
+                            <table>
+                                <th>
+                                    Circle
+                                </th>
+                            </table>
+                        </div>
+                    </td>
+                    <td>
+                        <svg id="gantt-diagram" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" v-bind:style="{ width : ganttWidth + 'px' }"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <button type="button" class="switch-btn" v-on:click="switchForms()">Switch</button>
     </div>
 
     <script src="js/recipie_builder/recipie_graph_builder.js"></script>
@@ -263,6 +343,8 @@
     <script src="js/recipie_builder/equipment.js"></script>
     <script src="js/recipie_builder/product.js"></script>
     <script src="js/recipie_builder/task.js"></script>
+    <script src="js/sched_builder/sched_builder.js"></script>
+    <script src="js/sched_builder/sched_graph_builder.js"></script>
 </body>
 
 </html>

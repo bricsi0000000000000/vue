@@ -1,15 +1,15 @@
-#gantDiagram table{
+#gant-diagram table{
     margin: 0px;
 }
   
-#gantDiagram td{
+#gant-diagram td{
     border: 1px solid #3f3f3f;
     width: 40px;
     height: 40px;
     text-align: center;
 }
 
-#gantDiagram th{
+#gant-diagram th{
     border: 1px solid #3f3f3f;
     background-color: #3f3f3f;
     color: white;
@@ -18,25 +18,25 @@
     text-align: center;
 }
 
-.ganttEmptyCell{
+.gantt-empty-cell{
     background-color: #c7c7c7;
 }
   
-.ganttNotEmptyCell{
+.gantt-not-empty-cell{
     background-color: white;
     font-weight: bold;
 }
 
-.ganttNumberEmptyCell{
+.gantt-number-empty-cell{
     background-color: #a0a0a0;
     color:black;
 }
 
-.UIS_NIS_btns_container{
+.UIS-NIS-btns-container{
     margin-left: 36px;
 }
 
-.UIS_NIS_btns_active{
+.UIS-NIS-btns-active{
     font-weight: bold;
     color: white;
     padding: 5px;
@@ -45,7 +45,7 @@
     border: 3px solid #37acc9;
 }
 
-.UIS_NIS_btns_inactive{
+.UIS-NIS-btns-inactive{
     padding: 5px;
     width: 50px;
     background-color: #ffffff;
@@ -53,7 +53,7 @@
 }
 
 /*DRAG AND DROP*/
-.dragAndDrop{
+.drag-and-drop{
     margin-left: 20px;
 }
   

@@ -5,7 +5,25 @@ Vue.use(VueDraggable.default);
 var recipieBuilder = new Vue({
   el: '#recipie-builder',
   data() {
+    const instance = this;
     return {
+      dragAndDropOptions: {
+        onDrop(event) {
+          let act_task = event.items[0].innerText;
+          let dropped_equipment = event.droptarget.textContent.split(' ')[0];
+          if(instance.checkTaskEquipment(act_task, dropped_equipment)){
+            instance.updateTasksEquipment(act_task, dropped_equipment);
+            instance.updateSchedGraphEquipmentsTasks();
+          }
+        },
+        onDragend(event) {
+          let act_task = event.items[0].innerText;
+          let dropped_equipment = event.droptarget.textContent.split(' ')[0];
+          if(!instance.checkTaskEquipment(act_task, dropped_equipment)){
+            event.stop();
+          }
+        }
+      },
       /*Arrow images*/
       arrowImgProductsState: false,
       arrowImgProducts: "images/down-arrow.png",
@@ -50,6 +68,14 @@ var recipieBuilder = new Vue({
 
       precedenceTasksFrom: [],
       precedenceTasksTo: [], 
+
+      seenForms: true,
+      uis: true,
+      circle: false,
+      longestPathStartTask: '',
+      longestPathEndTask: '',
+      longestPathTime: '',
+      ganttWidth: 0,
     }
   },
   methods: {
@@ -198,6 +224,8 @@ var recipieBuilder = new Vue({
                 this.updateProctimesLength();
 
                 this.allProctimes.push({name: add_task.name, equipment: this.inputProctimeEquipment, proctime: this.inputProctime, product: add_task.Product});
+
+                this.updateEquipmentsTasksAsSmallestProctime();
               }
               else{
                 this.showWarning("Proctime (" + this.inputProctimeTask.name + ", " + this.inputProctimeEquipment.name + ") is already exists", "error");
@@ -236,6 +264,7 @@ var recipieBuilder = new Vue({
       this.deleteProctimeFromProduct(product);
       this.deleteAllProctimeFromProduct(product);
       this.updateProctimesLength();
+      this.updateEquipmentsTasksAsSmallestProctime();
 
       this.buildRecipieGraph();
     },
@@ -316,6 +345,8 @@ var recipieBuilder = new Vue({
       this.deleteProctimeFromTask(task);
       this.deleteAllProctimeFromTask(task);
       this.updateProctimesLength();
+      this.updateEquipmentsFromTask(task);
+      this.updateEquipmentsTasksAsSmallestProctime();
 
       this.buildRecipieGraph();
     },
@@ -375,6 +406,7 @@ var recipieBuilder = new Vue({
       this.proctimes.splice(index, 1);
       this.allProctimes.splice(index, 1);
       this.updateProctimesLength();
+      this.updateEquipmentsTasksAsSmallestProctime();
 
       this.buildRecipieGraph();
     },
@@ -458,6 +490,29 @@ var recipieBuilder = new Vue({
     getProctimeTask(value) {
       return value === this.inputProctimeTask;
     },
+    getEquipmentsAndTasks(){
+      let sched_table = document.getElementsByClassName("sched-table");
+      let index;
+      let dropped = [];
+      for(index = 0; index < this.equipments.length; index++){
+        let change_equipment = '';
+        let tasks = [];
+        let element_index;
+        for(element_index = 0; element_index < sched_table[index].children.length; element_index++){
+          if(sched_table[index].children[element_index].textContent !== ""){
+            if(element_index === 0){
+              change_equipment = sched_table[index].children[element_index].textContent;
+            }
+            else{
+              tasks.push({name: sched_table[index].children[element_index].textContent});
+            }
+          }
+        }
+        dropped.push({equipment: change_equipment, tasks: tasks});
+      }
+
+      return dropped;
+    },
 
     /* ------------- CHECK ------------- */
     isInputProductValid(new_product) {
@@ -535,6 +590,19 @@ var recipieBuilder = new Vue({
 
       return true;
     },
+    checkTaskEquipment(act_task, dropped_equipment){
+      for(let task of this.tasks){
+        if(task.name === act_task){
+          for(let equipment of task.equipments){
+            if(equipment.name === dropped_equipment){
+              return true;
+            }
+          }
+        }
+      }
+
+      return false;
+    },
 
     /* ------------- UPDATE ------------- */
     updateProductsLength() {
@@ -563,7 +631,6 @@ var recipieBuilder = new Vue({
     updateTasksFromProctime(){
       for(let task of this.tasks){
         if(task.name === this.inputProctimeTask.name){
-          //task.equipment_and_proctime = {equipment: this.inputProctimeEquipment, proctime: this.inputProctime};
           task.SetEquipmentAndProctime(this.inputProctimeEquipment, this.inputProctime);
         }
       }
@@ -571,14 +638,80 @@ var recipieBuilder = new Vue({
     updatePrecedencesFromProctime(){
       for(let precedence of this.precedences){
         if(precedence.from.name === this.inputProctimeTask.name){
-          //precedence.from.equipment_and_proctime = {equipment: this.inputProctimeEquipment, proctime: this.inputProctime};
           precedence.from.SetEquipmentAndProctime(this.inputProctimeEquipment, this.inputProctime);
 
         }
         if(precedence.to.name === this.inputProctimeTask.name){
-          //precedence.to.equipment_and_proctime = {equipment: this.inputProctimeEquipment, proctime: this.inputProctime};
           precedence.to.SetEquipmentAndProctime(this.inputProctimeEquipment, this.inputProctime);
+        }
+      }
+    },
+    updateEquipmentsFromTask(task){
+      for(let equipment of this.equipments){
+        if(equipment.tasks.indexOf(task) !== -1){
+          equipment.tasks.splice(equipment.tasks.indexOf(task), 1);
+        }
+      }
+    },
+    updateEquipmentsTasksAsSmallestProctime(){
+      let min_proctime_tasks = [];
 
+      for(let task of this.tasks){
+        let min_proctime = Number.MAX_VALUE;
+        let min_proctime_task = '';
+
+        for(let proctime of this.allProctimes){
+          if(task.name === proctime.name){
+            if(proctime.proctime < min_proctime){
+              min_proctime = proctime.proctime;
+              min_proctime_task = proctime;
+            }
+          }
+        }
+
+        if(min_proctime_task !== ''){
+          min_proctime_tasks.push(min_proctime_task);
+        }
+      }
+
+      for(let equipment of this.equipments){
+        equipment.tasks = [];
+        for(let proctime of min_proctime_tasks){
+          if(equipment.name === proctime.equipment.name){
+            equipment.AddTask(proctime);
+          }
+        }
+      }
+    },
+    updateEquipmentsTasks(){
+      for(let equipment of this.equipments){
+        for(let sched_equipment of schedBuilder.equipments){
+          if(sched_equipment.equipment === equipment.name){
+            equipment.tasks = sched_equipment.tasks;
+          }
+        }
+      }
+    },
+    updateSchedGraphEquipmentsTasks(){
+      let dropped = this.getEquipmentsAndTasks();
+
+      for(let drop of dropped){
+        schedBuilder.equipments.push({equipment: drop.equipment, tasks: drop.tasks});
+      }
+    },
+    updateTasksEquipment(act_task, dropped_equipment){
+      for(let task of this.tasks){
+        if(task.name === act_task){
+          let index = 0;
+          let stop = false;
+          while(index < task.equipments.length && !stop){
+            if(task.equipments[index].name === dropped_equipment){
+              stop = true;
+            }
+            index++;
+          }
+          index--;
+          task.ChangeEquipmentAndProctime(task.equipments[index], task.proctimes[index]);
         }
       }
     },
@@ -687,6 +820,29 @@ var recipieBuilder = new Vue({
           viz_graph = new Viz();
           console.error(error);
         });
+    },
+
+    switchForms() {
+      this.seenForms = !this.seenForms;
+      if (!this.seenForms) {
+        schedBuilder.buidSchedGraph();
+        document.title = "Schedule graph builder";
+      }
+      else {
+        this.updateEquipmentsTasks();
+        this.buildRecipieGraph();
+
+        document.title = "Recipie graph builder";
+      }
+    },
+    uisNisSwitch() {
+      if (this.uis) {
+        //schedGraphBuilder.waitForIt(true, true);
+      }
+      else {
+        //schedGraphBuilder.waitForIt(true, false);
+      }
+      this.uis = !this.uis;
     },
   }
 });

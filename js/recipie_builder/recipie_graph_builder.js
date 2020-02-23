@@ -63,11 +63,23 @@ class RecipieGraphBuilder{
         }
       }
       if(add){
-        last_tasks.push(p1.to);
+        if(!this.isTaskInArray(p1.to, last_tasks)){
+          last_tasks.push(p1.to);
+        }
       }
     }
 
     return last_tasks;
+  }
+
+  isTaskInArray(task, array){
+    for(let item of array){
+      if(task.name === item.name){
+        return true;
+      }
+    }
+
+    return false;
   }
 
   get recipieGraphText(){
