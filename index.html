@@ -37,6 +37,11 @@
 
 <body>
     <div id="recipie-builder">
+        <div class="menu">
+            <button type="button" v-on:click="switchForms()">Switch forms</button>
+            <button type="button" v-on:click="save_file()">Save datas</button>
+            <button type="button" v-on:click="show_import_file()">Import datas</button>
+        </div>
         <div class="recipie-builder-tables" v-if="seenForms">
             <div class="row">
                 <div id="products-table" class="col-">
@@ -337,12 +342,9 @@
             </table>
         </div>
 
-        <div id="import-file">
-            <input type="file" v-on:change="readTextFile(this)">
+        <div id="import-file" v-if="showImport">
+            <input type="file" v-on:change="readTextFile">
         </div>
-
-        <button type="button" class="switch-btn" v-on:click="switchForms()">Switch</button>
-        <button type="button" class="save-btn" v-on:click="save_file()">Save</button>
     </div>
 
     <script src="js/recipie_builder/recipie_graph_builder.js"></script>

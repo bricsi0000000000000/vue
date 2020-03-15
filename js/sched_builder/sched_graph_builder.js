@@ -4,6 +4,7 @@ class SchedGraphBuilder{
   constructor(){
     this.sched_graph_text = "digraph SGraph { rankdir=LR  splines=true node [shape=circle,fixedsize=true,width=0.9,label=<<B>\\N</B>>,pin=true]";
     this.precedencesWithProducts = [];
+    this.sched_precedences = [];
     this.makePrecedencesWithProducts();
     this.buildGraph();
   }
@@ -57,16 +58,39 @@ class SchedGraphBuilder{
       this.sched_graph_text += '"' + precedence.from + '" -> "' + precedence.to + '" [ label = "" penwidth="" ]' ;
     }
 
+    this.sched_precedences = this.makeSchedPrecedences();
+    for(let precedence of sched_precedences){
+      this.sched_graph_text += '"' + precedence.from + '" -> "' + precedence.to + '" [ label = "" style="dashed" penwidth="" ]' ;
+    }
+
     this.sched_graph_text += 'layout="neato"}';
 
-    console.log(this.sched_graph_text);
+    //console.log(this.sched_graph_text);
+  }
+  makeSchedPrecedences(){
+    /*let sched_precedences = []; //from, to
+    let index;
+    for(index = 0; index < recipieBuilder.dragDropPrecedences.length; index++){
+      let task_index;
+      for(task_index = 0; task_index < recipieBuilder.dragDropPrecedences[index].tasks.length - 1; task_index++){
+        sched_precedences.push({from: recipieBuilder.dragDropPrecedences[index].tasks[task_index], to: recipieBuilder.dragDropPrecedences[index].tasks[task_index + 1]});
+      }
+    }*/
+
+    return sched_precedences;
   }
   getEquipment(search_task){
     for(let task of recipieBuilder.tasks){
       if(task.name === search_task){
-        return task.equipment_and_proctime.equipment.name;
+        if(typeof task.equipment_and_proctime.equipment === 'object'){
+          return task.equipment_and_proctime.equipment.name;
+        }
+        else{
+          return task.equipment_and_proctime.equipment;
+        }
       }
     }
+    return '';
   }
   makeCoordinates(){
     let coordinates = []; //task, x, y
