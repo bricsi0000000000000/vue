@@ -17,3 +17,38 @@ td{
     bottom: 0px;
     right: 0px;
 }
+
+
+.save-btn{
+  background-color: #9dff00;
+  border: 3px solid #89df00;
+  width: 80px;
+  height: 40px;
+  color: black;
+  margin-bottom: 20px;
+  margin-right: 120px;
+  position: fixed;
+  bottom: 0px;
+  right: 0px;
+}
+
+.import-btn{
+  background-color: #00ccff;
+  border: 3px solid #00aeda;
+  width: 80px;
+  height: 40px;
+  color: black;
+  margin-bottom: 20px;
+  margin-right: 220px;
+  position: fixed;
+  bottom: 0px;
+  right: 0px;
+}
+
+.import-file{
+  margin-bottom: 20px;
+  margin-right: 420px;
+  position: fixed;
+  bottom: 0px;
+  right: 0px;
+}

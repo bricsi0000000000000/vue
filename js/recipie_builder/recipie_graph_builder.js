@@ -18,7 +18,7 @@ class RecipieGraphBuilder{
       if(task.equipments.length > 0){
         row += "{";
         for(let equipment of task.equipments){
-          row += equipment.name + ",";
+          row += equipment + ",";
         }
         row = row.substring(0, row.length - 1);
         row += "}";

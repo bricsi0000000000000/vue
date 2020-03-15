@@ -48,7 +48,7 @@ var recipieBuilder = new Vue({
       tasks: [],
 
       inputEquipmentName: '',
-      equipments: [],
+      equipments: [], //TODO delete tasks from equipment, I don't need them
 
       inputTaskPrecedenceFrom: "",
       inputTaskPrecedenceTo: "",
@@ -76,6 +76,8 @@ var recipieBuilder = new Vue({
       longestPathEndTask: '',
       longestPathTime: '',
       ganttWidth: 0,
+
+      dragDropPrecedences: [], //equipment, tasks
     }
   },
   methods: {
@@ -211,13 +213,13 @@ var recipieBuilder = new Vue({
               if(this.isInputProctimeNew(this.inputProctimeTask, this.inputProctimeEquipment)){
                 let change_task = this.tasks.find(this.getProctimeTask);
                 change_task.AddProctime(this.inputProctime);
-                change_task.AddEquipment(this.inputProctimeEquipment);
+                change_task.AddEquipment(this.inputProctimeEquipment.name);
 
                 this.updateTasksFromProctime();
                 this.updatePrecedencesFromProctime();
 
                 let add_task = Object.assign(Object.create(Object.getPrototypeOf(change_task)),change_task);
-                add_task.ChangeEquipmentAndProctime(this.inputProctimeEquipment, this.inputProctime);
+                add_task.ChangeEquipmentAndProctime(this.inputProctimeEquipment.name, this.inputProctime);
                 
                 this.proctimes.push(add_task);
                 this.buildRecipieGraph();
@@ -513,6 +515,13 @@ var recipieBuilder = new Vue({
 
       return dropped;
     },
+    getEquipment(get_task){
+      for(let task of this.tasks){
+        if(get_task === task.name){
+          return task.equipment_and_proctime.equipment.name;
+        }
+      }
+    },
 
     /* ------------- CHECK ------------- */
     isInputProductValid(new_product) {
@@ -631,7 +640,7 @@ var recipieBuilder = new Vue({
     updateTasksFromProctime(){
       for(let task of this.tasks){
         if(task.name === this.inputProctimeTask.name){
-          task.SetEquipmentAndProctime(this.inputProctimeEquipment, this.inputProctime);
+          task.SetEquipmentAndProctime(this.inputProctimeEquipment.name, this.inputProctime);
         }
       }
     },
@@ -720,7 +729,7 @@ var recipieBuilder = new Vue({
     removePrecedenceTasksTo() {
       this.precedenceTasksTo = [];
       for(let task of this.tasks){
-        if(task.Product === this.inputTaskPrecedenceFrom.Product){
+        if(task.product === this.inputTaskPrecedenceFrom.product){
           if(task.name !== this.inputTaskPrecedenceFrom.name){
             this.precedenceTasksTo.push(task);
           }
@@ -730,7 +739,7 @@ var recipieBuilder = new Vue({
     removePrecedenceTasksFrom() {
       this.precedenceTasksFrom = [];
       for(let task of this.tasks){
-        if(task.Product === this.inputTaskPrecedenceTo.Product){
+        if(task.product === this.inputTaskPrecedenceTo.product){
           if(task.name !== this.inputTaskPrecedenceTo.name){
             this.precedenceTasksFrom.push(task);
           }
@@ -822,9 +831,43 @@ var recipieBuilder = new Vue({
         });
     },
 
+    makeDragDropPrecedences(){
+      this.dragDropPrecedences = [];
+
+      for(let equipment of this.equipments){
+        this.dragDropPrecedences.push({equipment: equipment.name, tasks: []});
+      }
+
+      for(let precedence of this.precedences){
+        let equipment = this.getEquipment(precedence.from.name);
+        for(let drag_drop of this.dragDropPrecedences){
+          if(drag_drop.equipment === equipment){
+            if(!this.isTaskInDragDropPrecedences(precedence.from.name)){
+              drag_drop.tasks.push(precedence.from.name);
+            }
+            if(!this.isTaskInDragDropPrecedences(precedence.to.name)){
+              drag_drop.tasks.push(precedence.to.name);
+            }
+          }
+        }
+      }
+    },
+    isTaskInDragDropPrecedences(search_task){
+      for(let drag_drop of this.dragDropPrecedences){
+        for(let task of drag_drop.tasks){
+          if(task === search_task){
+            return true;
+          }
+        }
+      }
+
+      return false;
+    },
+
     switchForms() {
       this.seenForms = !this.seenForms;
       if (!this.seenForms) {
+        this.makeDragDropPrecedences();
         schedBuilder.buidSchedGraph();
         document.title = "Schedule graph builder";
       }
@@ -844,5 +887,46 @@ var recipieBuilder = new Vue({
       }
       this.uis = !this.uis;
     },
+
+    download(filename, text) {
+      let element = document.createElement('a');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+      element.setAttribute('download', filename);
+
+      element.style.display = 'none';
+      document.body.appendChild(element);
+
+      element.click();
+
+      document.body.removeChild(element);
+    },
+    
+    save_file(){
+      this.download('tasks.json',JSON.stringify(this.tasks));
+      /*new_tasks = JSON.parse(new_tasks);
+
+      this.tasks = [];
+      let index;
+      for(index = 0; index < this.tasksLength; index++){
+        this.tasks.push(new_tasks[index]);
+      }*/
+    },
+    readTextFile(input_file)
+    {
+      console.log(input_file);
+      let file = input_file.value;
+
+      let reader = new FileReader();
+    
+      reader.readAsText(file);
+    
+      reader.onload = function() {
+        console.log(reader.result);
+      };
+    
+      reader.onerror = function() {
+        console.log(reader.error);
+      };
+    }
   }
 });
