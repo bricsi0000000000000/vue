@@ -5,10 +5,11 @@ var schedBuilder = new Vue({
   data(){
     return{
       equipments: [],
+      sched_precedences: []
     }
   },
   methods:{
-    buidSchedGraph(){
+    buildSchedGraph(){
       let schedGraphBuilder = new SchedGraphBuilder();
 
       var viz_graph = new Viz();
@@ -23,21 +24,47 @@ var schedBuilder = new Vue({
         });
     },
     buildDragAndDrop(){
-      recipieBuilder.dragDropPrecedences = [];
-      for(let equipment of recipieBuilder.equipments){
-        recipieBuilder.dragDropPrecedences.push({equipment: equipment.name, tasks: []});
-      }
-    
-      for(let task of recipieBuilder.tasks){
-        for(let equipment of recipieBuilder.dragDropPrecedences){
-          if(typeof task.equipment_and_proctime.equipment === 'object'){
-            if(task.equipment_and_proctime.equipment.name === equipment.equipment){
-              equipment.tasks.push(task.name);
+      if(recipieBuilder.dragDropPrecedences.length <= 0){
+        recipieBuilder.dragDropPrecedences = [];
+        for(let equipment of recipieBuilder.equipments){
+          recipieBuilder.dragDropPrecedences.push({equipment: equipment.name, tasks: []});
+        }
+      
+        for(let task of recipieBuilder.tasks){
+          for(let equipment of recipieBuilder.dragDropPrecedences){
+            if(typeof task.equipment_and_proctime.equipment === 'object'){
+              if(task.equipment_and_proctime.equipment.name === equipment.equipment){
+                equipment.tasks.push(task.name);
+              }
+            }
+            else{
+              if(task.equipment_and_proctime.equipment === equipment.equipment){
+                equipment.tasks.push(task.name);
+              }
             }
           }
-          else{
-            if(task.equipment_and_proctime.equipment === equipment.equipment){
-              equipment.tasks.push(task.name);
+        }
+      }
+    },
+    makeSchedPrecedences(drag_drop){
+      this.sched_precedences = [];
+
+      let index;
+      for(index = 0; index < drag_drop.length; index++){
+        if(recipieBuilder.uis){
+          let task_index;
+          for(task_index = 0; task_index < drag_drop[index].tasks.length - 1; task_index++){
+            this.sched_precedences.push({from: drag_drop[index].tasks[task_index], to: drag_drop[index].tasks[task_index + 1]});
+          }
+        }
+        else{
+          let task_index;
+          for(task_index = 0; task_index < drag_drop[index].tasks.length - 1; task_index++){
+            let precedence_index;
+            for(precedence_index = 0; precedence_index < recipieBuilder.precedences.length; precedence_index++){
+              if(recipieBuilder.precedences[precedence_index].from.name === drag_drop[index].tasks[task_index]){
+                this.sched_precedences.push({from: recipieBuilder.precedences[precedence_index].to.name, to: drag_drop[index].tasks[task_index + 1]});
+              }
             }
           }
         }

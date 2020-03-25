@@ -4,7 +4,8 @@ class SchedGraphBuilder{
   constructor(){
     this.sched_graph_text = "digraph SGraph { rankdir=LR  splines=true node [shape=circle,fixedsize=true,width=0.9,label=<<B>\\N</B>>,pin=true]";
     this.precedencesWithProducts = [];
-    this.sched_precedences = [];
+    this.circleTaskPairs = [];
+    this.longestPath = [];
     this.makePrecedencesWithProducts();
     this.buildGraph();
   }
@@ -47,6 +48,9 @@ class SchedGraphBuilder{
     return false;
   }
   buildGraph(){
+    let circle = new Circle(this.precedencesWithProducts);
+    circle.CheckCircle();
+    
     let coordinates = this.makeCoordinates();
 
     for(let coordinate of coordinates){
@@ -54,30 +58,92 @@ class SchedGraphBuilder{
       this.sched_graph_text += 'label = < <B>\\N</B><BR/>' + this.getEquipment(coordinate.task) + '> ]';
     }
 
+    this.makeLongestPath();
+
+    let penwidth = 1;
     for(let precedence of this.precedencesWithProducts){
-      this.sched_graph_text += '"' + precedence.from + '" -> "' + precedence.to + '" [ label = "" penwidth="" ]' ;
+      this.sched_graph_text += '"' + precedence.from + '" -> "' + precedence.to;
+      this.sched_graph_text += '" [ label = "' + this.getProctime(precedence.from) + '" penwidth="' + penwidth + '" ]';
     }
 
-    this.sched_precedences = this.makeSchedPrecedences();
-    for(let precedence of sched_precedences){
-      this.sched_graph_text += '"' + precedence.from + '" -> "' + precedence.to + '" [ label = "" style="dashed" penwidth="" ]' ;
+    for(let precedence of schedBuilder.sched_precedences){
+      this.sched_graph_text += '"' + precedence.from + '" -> "' + precedence.to;
+      this.sched_graph_text += '" [ label = "' + this.getProctime(precedence.from) + '" style="dashed" penwidth="' + penwidth + '" ]';
     }
 
     this.sched_graph_text += 'layout="neato"}';
 
     //console.log(this.sched_graph_text);
   }
-  makeSchedPrecedences(){
-    /*let sched_precedences = []; //from, to
-    let index;
-    for(index = 0; index < recipieBuilder.dragDropPrecedences.length; index++){
-      let task_index;
-      for(task_index = 0; task_index < recipieBuilder.dragDropPrecedences[index].tasks.length - 1; task_index++){
-        sched_precedences.push({from: recipieBuilder.dragDropPrecedences[index].tasks[task_index], to: recipieBuilder.dragDropPrecedences[index].tasks[task_index + 1]});
+  makeLongestPath(){
+    let max_product = '';
+    let path = {max_time: -1, tasks: []};
+    for(let product of recipieBuilder.products){
+      let tmp_path = this.getLongestPath(product)[0];
+      if(tmp_path.max_time > path.max_time){
+        path = tmp_path;
+        max_product = product.name;
       }
-    }*/
+    }
 
-    return sched_precedences;
+    this.longestPath = [];
+    let index;
+    for(index = 0; index < path.tasks.length - 1; index++){
+      this.longestPath.push({from: path.tasks[index], to: path.tasks[index + 1]});
+    }
+    this.longestPath.push({from: this.longestPath[this.longestPath.length - 1].to, to: max_product});
+
+    this.longestPath.forEach(l => {
+      console.log(l.from + ' ' + l.to);
+    });
+  }
+  getLongestPath(task, max){
+    let path = []; //max_time, tasks[]
+    let prev_tasks = []; //from, to, number
+
+    let circle = new Circle(this.precedencesWithProducts);
+    let all_edges = circle.allEdges();
+
+    all_edges.forEach(edge => {
+      if(task.name === edge.to){
+        prev_tasks.push({from: edge.from, to: edge.to, n: +0});
+      }
+    });
+
+    all_edges.forEach(edge => {
+      prev_tasks.forEach(element => {
+        if(element.from === edge.from && element.to === edge.to){
+          element.n = this.getProctime(edge.from);
+        }
+      });
+    });
+
+    let tasks = [];
+    let max_task = '';
+    let longest_path_hier = '';
+    max = +0;
+    prev_tasks.forEach(element => {
+      longest_path_hier = this.getLongestPath(element.from, +0);
+      if((longest_path_hier[0].max_time + +element.n) > max){
+        max = longest_path_hier[0].max_time + +element.n;
+        tasks = longest_path_hier[0].tasks;
+        max_task = element.from;
+      }
+    });
+
+    tasks.push(max_task);
+    path.push({max_time: max, tasks: tasks});
+
+    return path;
+  }
+  getProctime(search_task){
+    for(let task of recipieBuilder.tasks){
+      if(task.name === search_task){
+        return task.equipment_and_proctime.proctime;
+      }
+    }
+
+    return -1;
   }
   getEquipment(search_task){
     for(let task of recipieBuilder.tasks){

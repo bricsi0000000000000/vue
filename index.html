@@ -268,8 +268,8 @@
                 <tr>
                     <td>
                         <div class="UIS-NIS-btns-container col-">
-                          <button type="button" v-bind:class="{ 'UIS-NIS-btns-inactive': uis, 'UIS-NIS-btns-active': !uis }" v-on:click="uisNisSwitch()">UIS</button>
-                          <button type="button" v-bind:class="{ 'UIS-NIS-btns-inactive': !uis, 'UIS-NIS-btns-active': uis }" v-on:click="uisNisSwitch()">NIS</button>
+                          <button type="button" v-bind:class="{ 'UIS-NIS-btns-inactive': !uis, 'UIS-NIS-btns-active': uis }" v-on:click="uisNisSwitch()">UIS</button>
+                          <button type="button" v-bind:class="{ 'UIS-NIS-btns-inactive': uis, 'UIS-NIS-btns-active': !uis }" v-on:click="uisNisSwitch()">NIS</button>
                         </div>
                     </td>
                 </tr>
@@ -354,6 +354,7 @@
     <script src="js/recipie_builder/task.js"></script>
     <script src="js/sched_builder/sched_builder.js"></script>
     <script src="js/sched_builder/sched_graph_builder.js"></script>
+    <script src="js/sched_builder/circle.js"></script>
 </body>
 
 </html>

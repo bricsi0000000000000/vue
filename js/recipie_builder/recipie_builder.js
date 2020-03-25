@@ -8,36 +8,34 @@ var recipieBuilder = new Vue({
     const instance = this;
     return {
       dragAndDropOptions: {
-        onDrop(event) {
-          let equipment = event.owner.children[0].innerText;
-          for(let precedence of instance.dragDropPrecedences){
-            if(precedence.equipment === equipment){
-              precedence.tasks = [];
-            }
-          }
+        onDrop() {
+          let new_drag_drop = []; //equipment, tasks
+          let sched_table = document.getElementsByClassName('sched-table');
 
-          let index;
-          for(index = 1; index < event.owner.children.length; index++){
-            let new_task = event.owner.children[index].innerText;
-            if(new_task !== ''){
-              for(let precedence of instance.dragDropPrecedences){
-                if(precedence.equipment === equipment){
-                  //precedence.tasks.push(new_task);
-                }
+          for(let table of sched_table){
+            let child_index;
+            let tasks = [];
+            for(child_index = 1; child_index < table.children.length; child_index++){
+              if(table.children[child_index].innerText !== ''){
+                tasks.push(table.children[child_index].innerText);
               }
-              //new_tasks.push(new_task);
             }
+            new_drag_drop.push({equipment: table.children[0].innerText, tasks: tasks});
           }
          
-       
-          schedBuilder.buidSchedGraph();
+          schedBuilder.makeSchedPrecedences(new_drag_drop);
+          schedBuilder.buildSchedGraph();
         },
         onDragend(event) {
-         /* let act_task = event.items[0].innerText;
+          let act_task = event.items[0].innerText;
           let dropped_equipment = event.droptarget.textContent.split(' ')[0];
           if(!instance.checkTaskEquipment(act_task, dropped_equipment)){
             event.stop();
-          }*/
+          }
+          else{
+            instance.updateTasksEquipmentAndProctime(act_task, dropped_equipment);
+            instance.updatePrecedencesEquipmentAndProctime(act_task, dropped_equipment);
+          }
         }
       },
       /*Arrow images*/
@@ -628,7 +626,7 @@ var recipieBuilder = new Vue({
       for(let task of this.tasks){
         if(task.name === act_task){
           for(let equipment of task.equipments){
-            if(equipment.name === dropped_equipment){
+            if(equipment === dropped_equipment){
               return true;
             }
           }
@@ -714,12 +712,7 @@ var recipieBuilder = new Vue({
         equipment.tasks = [];
         for(let proctime of min_proctime_tasks){
           if(equipment.name === proctime.equipment.name){
-            try {
-              equipment.AddTask(proctime.name);
-              
-            } catch (error) {
-              
-            }
+            equipment.tasks.push(proctime.name);
           }
         }
       }
@@ -740,20 +733,45 @@ var recipieBuilder = new Vue({
         schedBuilder.equipments.push({equipment: drop.equipment, tasks: drop.tasks});
       }
     },
-    updateTasksEquipment(act_task, dropped_equipment){
+    updateTasksEquipmentAndProctime(act_task, dropped_equipment){
       for(let task of this.tasks){
         if(task.name === act_task){
-          let index = 0;
-          let stop = false;
-          while(index < task.equipments.length && !stop){
-            if(task.equipments[index].name === dropped_equipment){
-              stop = true;
+          let index;
+          for(index = 0; index < task.equipments.length; index++){
+            if(task.equipments[index] === dropped_equipment){
+              break;
             }
-            index++;
           }
-          index--;
-          task.ChangeEquipmentAndProctime(task.equipments[index], task.proctimes[index]);
+          task.equipment_and_proctime = { equipment: task.equipments[index], proctime: task.proctimes[index] };
         }
+      }
+    },
+    updatePrecedencesEquipmentAndProctime(act_task, dropped_equipment){
+      for(let precedence of this.precedences){
+        if(precedence.from.name === act_task){
+          let index;
+          for(index = 0; index < precedence.from.equipments.length; index++){
+            if(precedence.from.equipments[index] === dropped_equipment){
+              break;
+            }
+          }
+          precedence.from.equipment_and_proctime = { equipment: precedence.from.equipments[index], proctime: precedence.from.proctimes[index] };
+        }
+      }
+    },
+    updateDragDropPrecedenes(){
+      this.dragDropPrecedences = [];
+      let sched_table = document.getElementsByClassName('sched-table');
+
+      for(let table of sched_table){
+        let child_index;
+        let tasks = [];
+        for(child_index = 1; child_index < table.children.length; child_index++){
+          if(table.children[child_index].innerText !== ''){
+            tasks.push(table.children[child_index].innerText);
+          }
+        }
+        this.dragDropPrecedences.push({equipment: table.children[0].innerText, tasks: tasks});
       }
     },
 
@@ -897,19 +915,21 @@ var recipieBuilder = new Vue({
     },
 
     switchForms() {
-      this.seenForms = !this.seenForms;
-      if (!this.seenForms) {
+      if (this.seenForms) {
         //this.makeDragDropPrecedences();
         schedBuilder.buildDragAndDrop();
-        schedBuilder.buidSchedGraph();
+        schedBuilder.makeSchedPrecedences(this.dragDropPrecedences);
+        schedBuilder.buildSchedGraph();
         document.title = "Schedule graph builder";
       }
       else {
+        this.updateDragDropPrecedenes();
         this.updateEquipmentsTasks();
         this.buildRecipieGraph();
-
+        
         document.title = "Recipie graph builder";
       }
+      this.seenForms = !this.seenForms;
     },
     uisNisSwitch() {
       if (this.uis) {
@@ -918,7 +938,10 @@ var recipieBuilder = new Vue({
       else {
         //schedGraphBuilder.waitForIt(true, false);
       }
+      
       this.uis = !this.uis;
+      schedBuilder.makeSchedPrecedences(this.dragDropPrecedences);
+      schedBuilder.buildSchedGraph();
     },
 
     download(filename, text) {
