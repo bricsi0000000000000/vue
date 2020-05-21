@@ -58,28 +58,42 @@ class SchedGraphBuilder{
       this.sched_graph_text += 'label = < <B>\\N</B><BR/>' + this.getEquipment(coordinate.task) + '> ]';
     }
 
-    this.makeLongestPath();
+    if(!recipieBuilder.circle){
+      this.makeLongestPath();
+    }
 
-    let penwidth = 1;
     for(let precedence of this.precedencesWithProducts){
       this.sched_graph_text += '"' + precedence.from + '" -> "' + precedence.to;
-      this.sched_graph_text += '" [ label = "' + this.getProctime(precedence.from) + '" penwidth="' + penwidth + '" ]';
+      this.sched_graph_text += '" [ label = "' + this.getProctime(precedence.from) + '" penwidth="' +
+      (this.isInLongestPath(precedence.from, precedence.to) ? 4 : 1)
+      + '" ]';
     }
 
     for(let precedence of schedBuilder.sched_precedences){
       this.sched_graph_text += '"' + precedence.from + '" -> "' + precedence.to;
-      this.sched_graph_text += '" [ label = "' + this.getProctime(precedence.from) + '" style="dashed" penwidth="' + penwidth + '" ]';
+      this.sched_graph_text += '" [ label = "' + this.getProctime(precedence.from) + '" style="dashed" penwidth="' +
+      (this.isInLongestPath(precedence.from, precedence.to) ? 4 : 1)
+      + '" ]';
     }
 
     this.sched_graph_text += 'layout="neato"}';
 
     //console.log(this.sched_graph_text);
   }
+  isInLongestPath(from, to){
+    for(let path of this.longestPath){
+      if(from === path.from && to === path.to){
+        return true;
+      }
+    }
+
+    return false;
+  }
   makeLongestPath(){
     let max_product = '';
     let path = {max_time: -1, tasks: []};
     for(let product of recipieBuilder.products){
-      let tmp_path = this.getLongestPath(product)[0];
+      let tmp_path = this.getLongestPath(product.name)[0];
       if(tmp_path.max_time > path.max_time){
         path = tmp_path;
         max_product = product.name;
@@ -92,12 +106,8 @@ class SchedGraphBuilder{
       this.longestPath.push({from: path.tasks[index], to: path.tasks[index + 1]});
     }
     this.longestPath.push({from: this.longestPath[this.longestPath.length - 1].to, to: max_product});
-
-    this.longestPath.forEach(l => {
-      console.log(l.from + ' ' + l.to);
-    });
   }
-  getLongestPath(task, max){
+  getLongestPath(task){
     let path = []; //max_time, tasks[]
     let prev_tasks = []; //from, to, number
 
@@ -105,25 +115,16 @@ class SchedGraphBuilder{
     let all_edges = circle.allEdges();
 
     all_edges.forEach(edge => {
-      if(task.name === edge.to){
-        prev_tasks.push({from: edge.from, to: edge.to, n: +0});
+      if(task === edge.to){
+        prev_tasks.push({from: edge.from, to: edge.to, n: this.getProctime(edge.from)});
       }
-    });
-
-    all_edges.forEach(edge => {
-      prev_tasks.forEach(element => {
-        if(element.from === edge.from && element.to === edge.to){
-          element.n = this.getProctime(edge.from);
-        }
-      });
     });
 
     let tasks = [];
     let max_task = '';
-    let longest_path_hier = '';
-    max = +0;
+    let max = 0;
     prev_tasks.forEach(element => {
-      longest_path_hier = this.getLongestPath(element.from, +0);
+      let longest_path_hier = this.getLongestPath(element.from);
       if((longest_path_hier[0].max_time + +element.n) > max){
         max = longest_path_hier[0].max_time + +element.n;
         tasks = longest_path_hier[0].tasks;
