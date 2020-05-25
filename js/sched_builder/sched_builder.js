@@ -61,10 +61,21 @@ var schedBuilder = new Vue({
           let task_index;
           for(task_index = 0; task_index < drag_drop[index].tasks.length - 1; task_index++){
             let precedence_index;
+            let found = false;
             for(precedence_index = 0; precedence_index < recipieBuilder.precedences.length; precedence_index++){
               if(recipieBuilder.precedences[precedence_index].from.name === drag_drop[index].tasks[task_index]){
+                found = true;
                 this.sched_precedences.push({from: recipieBuilder.precedences[precedence_index].to.name, to: drag_drop[index].tasks[task_index + 1]});
               }
+            }
+            if(!found){
+              let add_product = '';
+              for(let task of recipieBuilder.tasks){
+                if(task.name == drag_drop[index].tasks[task_index]){
+                  add_product = task.product;
+                }
+              }
+              this.sched_precedences.push({from: add_product, to: drag_drop[index].tasks[task_index + 1]});
             }
           }
         }

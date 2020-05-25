@@ -63,17 +63,19 @@ class SchedGraphBuilder{
     }
 
     for(let precedence of this.precedencesWithProducts){
-      this.sched_graph_text += '"' + precedence.from + '" -> "' + precedence.to;
-      this.sched_graph_text += '" [ label = "' + this.getProctime(precedence.from) + '" penwidth="' +
-      (this.isInLongestPath(precedence.from, precedence.to) ? 4 : 1)
-      + '" ]';
+      this.sched_graph_text += '"' + precedence.from + '" -> "' + precedence.to +
+      '" [ label = "' + this.getProctime(precedence.from) + '" penwidth="' +
+      (this.isInLongestPath(precedence.from, precedence.to) ? 4 : 1) +
+      '" ]';
     }
 
     for(let precedence of schedBuilder.sched_precedences){
-      this.sched_graph_text += '"' + precedence.from + '" -> "' + precedence.to;
-      this.sched_graph_text += '" [ label = "' + this.getProctime(precedence.from) + '" style="dashed" penwidth="' +
-      (this.isInLongestPath(precedence.from, precedence.to) ? 4 : 1)
-      + '" ]';
+      this.sched_graph_text += '"' + precedence.from + '" -> "' + precedence.to +
+      '" [ label = "' +
+      (recipieBuilder.uis ? this.getProctime(precedence.from) : '') +
+      '" style="dashed" penwidth="' +
+      (this.isInLongestPath(precedence.from, precedence.to) ? 4 : 1) +
+      '" ]';
     }
 
     this.sched_graph_text += 'layout="neato"}';
@@ -106,6 +108,10 @@ class SchedGraphBuilder{
       this.longestPath.push({from: path.tasks[index], to: path.tasks[index + 1]});
     }
     this.longestPath.push({from: this.longestPath[this.longestPath.length - 1].to, to: max_product});
+
+    recipieBuilder.longestPathStartTask = path.tasks[1];
+    recipieBuilder.longestPathEndTask = max_product;
+    recipieBuilder.longestPathTime = path.max_time;
   }
   getLongestPath(task){
     let path = []; //max_time, tasks[]

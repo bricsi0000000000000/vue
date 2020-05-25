@@ -773,8 +773,39 @@ var recipieBuilder = new Vue({
         }
         this.dragDropPrecedences.push({equipment: table.children[0].innerText, tasks: tasks});
       }
+      console.log("-----------");
+      this.dragDropPrecedences.forEach(d=>{
+        console.log(d.equipment);
+        d.tasks.forEach(t=>{
+          console.log('\t' + t);
+        });
+      });
+      /*for(let task of this.tasks){
+        console.log("task: " + this.isTaskLast(task));
+        if(this.isTaskLast(task)){
+          for(let drag_drop_precedence of this.dragDropPrecedences){
+            if(drag_drop_precedence.equipment == task.equipment_and_proctime.equipment){
+              drag_drop_precedence.tasks.push(task.product);
+            }
+          }
+        }
+      }*/
     },
 
+  /*  isTaskLast(search_task){
+      let last = true;
+      for(let from_precedence of this.precedences){
+        if(from_precedence.from.name == search_task){
+          for(let to_precedence of this.precedences){
+            if(from_precedence.from.name == to_precedence.to.name){
+              last = false;
+            }
+          }
+        }
+      }
+
+      return last;
+    },*/
     /* ------------- REMOVE ------------- */
     removePrecedenceTasksTo() {
       this.precedenceTasksTo = [];
@@ -931,16 +962,25 @@ var recipieBuilder = new Vue({
       }
       this.seenForms = !this.seenForms;
     },
+
     uisNisSwitch() {
-      if (this.uis) {
-        //schedGraphBuilder.waitForIt(true, true);
-      }
-      else {
-        //schedGraphBuilder.waitForIt(true, false);
+      this.uis = !this.uis;
+
+      let new_drag_drop = []; //equipment, tasks
+      let sched_table = document.getElementsByClassName('sched-table');
+
+      for(let table of sched_table){
+        let child_index;
+        let tasks = [];
+        for(child_index = 1; child_index < table.children.length; child_index++){
+          if(table.children[child_index].innerText !== ''){
+            tasks.push(table.children[child_index].innerText);
+          }
+        }
+        new_drag_drop.push({equipment: table.children[0].innerText, tasks: tasks});
       }
       
-      this.uis = !this.uis;
-      schedBuilder.makeSchedPrecedences(this.dragDropPrecedences);
+      schedBuilder.makeSchedPrecedences(new_drag_drop);
       schedBuilder.buildSchedGraph();
     },
 
