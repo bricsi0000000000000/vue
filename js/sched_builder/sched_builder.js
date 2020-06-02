@@ -17,11 +17,13 @@ var schedBuilder = new Vue({
         .then(function (element) {
           document.getElementById('sched-graph').innerHTML = "";
           document.getElementById('sched-graph').appendChild(element);
+          schedGraphBuilder.makeGanttDiagram();
         })
         .catch(error => {
           viz_graph = new Viz();
           console.error(error);
         });
+
     },
     buildDragAndDrop(){
       if(recipieBuilder.dragDropPrecedences.length <= 0){

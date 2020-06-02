@@ -6,6 +6,7 @@ class SchedGraphBuilder{
     this.precedencesWithProducts = [];
     this.circleTaskPairs = [];
     this.longestPath = [];
+    this.schedPrecedences = [];
     this.makePrecedencesWithProducts();
     this.buildGraph();
   }
@@ -109,6 +110,7 @@ class SchedGraphBuilder{
     }
     this.longestPath.push({from: this.longestPath[this.longestPath.length - 1].to, to: max_product});
 
+    recipieBuilder.ganttWidth = path.max_time * 40 + 41;
     recipieBuilder.longestPathStartTask = path.tasks[1];
     recipieBuilder.longestPathEndTask = max_product;
     recipieBuilder.longestPathTime = path.max_time;
@@ -330,5 +332,122 @@ class SchedGraphBuilder{
   }
   get SchedGraphText(){
     return this.sched_graph_text;
+  }
+  canAddToGantt(task) {
+    let add = true;
+
+    this.gantt.forEach(g => {
+      g.tasks.forEach(t => {
+        if (t.task === task) {
+          add = false;
+        }
+      });
+    });
+
+    return add;
+  }
+  makeGanttDiagram() {
+    if (!recipieBuilder.circle) {
+      this.gantt = [];
+      recipieBuilder.equipments.forEach(equipment => {
+        this.gantt.push({ eq: equipment.name, tasks: [] });
+      });
+
+      this.precedencesWithProducts.forEach(s => {
+        var act_eq = this.getEquipment(s.from);
+        var start_time = "";
+        this.gantt.forEach(g => {
+          if (g.eq === act_eq) {
+            var longest_path_hier = this.getLongestPath(s.from);
+
+            start_time = +longest_path_hier[0].max_time;
+            if (this.canAddToGantt(s.from)) {
+              g.tasks.push({ task: s.from, start_time: start_time, end_time: (start_time + +this.getProctime(s.from)) });
+            }
+          }
+        });
+      });
+
+      var color = "black";
+      var x = 0;
+      var y = 0;
+      var width = 0;
+      const height = 40;
+      var font_size = 15;
+      var font_family = "Verdana";
+
+      var width_unit = 40;
+      var y_unit = height;
+
+      var text_x = 10;
+      var text_y = -15;
+
+      document.getElementById("gantt-diagram").innerHTML = "";
+      var svgNS = "http://www.w3.org/2000/svg";
+      for (var i = 0; i < this.gantt.length; i++) {
+        width = 40;
+        y = y_unit * i;
+        color = "black";
+
+        let rect = document.createElementNS(svgNS, "rect");
+        rect.setAttributeNS(null, "x", x);
+        rect.setAttributeNS(null, "y", y);
+        rect.setAttributeNS(null, "width", width);
+        rect.setAttributeNS(null, "height", height);
+        rect.setAttributeNS(null, "fill", color);
+        rect.setAttributeNS(null, "stroke", "black");
+        rect.setAttributeNS(null, "stroke-width", "2px");
+        document.getElementById("gantt-diagram").appendChild(rect);
+
+        text_y += 40;
+        color = "white";
+        let txt = document.createElementNS(svgNS, "text");
+        txt.setAttributeNS(null, "x", text_x);
+        txt.setAttributeNS(null, "y", text_y);
+        txt.setAttributeNS(null, "font-family", font_family);
+        txt.setAttributeNS(null, "font-size", font_size);
+        txt.setAttributeNS(null, "fill", color);
+        let text_node = document.createTextNode(this.gantt[i].eq);
+        txt.appendChild(text_node);
+        document.getElementById("gantt-diagram").appendChild(txt);
+      }
+
+      x = +40;
+      text_y = -15;
+      for (var j = 0; j < this.gantt.length; j++) {
+        for (var i = 0; i < this.gantt[j].tasks.length; i++) {
+          width = (this.gantt[j].tasks[i].end_time - this.gantt[j].tasks[i].start_time) * width_unit;
+          y = y_unit * j;
+          x = 40 + this.gantt[j].tasks[i].start_time * 40;
+          color = "grey";
+
+          let rect = document.createElementNS(svgNS, "rect");
+          rect.setAttributeNS(null, "x", x);
+          rect.setAttributeNS(null, "y", y);
+          rect.setAttributeNS(null, "width", width);
+          rect.setAttributeNS(null, "height", height);
+          rect.setAttributeNS(null, "fill", color);
+          rect.setAttributeNS(null, "stroke", "black");
+          rect.setAttributeNS(null, "stroke-width", "2px");
+          document.getElementById("gantt-diagram").appendChild(rect);
+
+          text_y = y + 25;
+          text_x = x + 10;
+          color = "white";
+          let txt = document.createElementNS(svgNS, "text");
+          txt.setAttributeNS(null, "x", text_x);
+          txt.setAttributeNS(null, "y", text_y);
+          txt.setAttributeNS(null, "font-family", font_family);
+          txt.setAttributeNS(null, "font-size", font_size);
+          txt.setAttributeNS(null, "fill", color);
+          let text_node = document.createTextNode(this.gantt[j].tasks[i].task);
+          txt.appendChild(text_node);
+          document.getElementById("gantt-diagram").appendChild(txt);
+        }
+      }
+    }
+    else {
+      document.getElementById("gantt-diagram").innerHTML = "";
+    }
   }
 }
