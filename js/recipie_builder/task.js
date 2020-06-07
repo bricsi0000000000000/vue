@@ -9,14 +9,14 @@ class Task {
         this.equipment_and_proctime = {equipment: '', proctime: -1};
     }
 
-    get Task() {
+    /*get Task() {
         return this.name;
-    }
-    set Task(new_task) {
+    }*/
+   /* set Task(new_task) {
         this.name = new_task;
     }
-
-    get Product() {
+*/
+  /*  get Product() {
         return this.product;
     }
     set Product(new_product) {
@@ -25,7 +25,7 @@ class Task {
 
     get Equipments() {
         return this.equipments;
-    }
+    }*/
     GetEquipment(search_equipment) {
         for (let equipment of this.equipments) {
             if (equipment === search_equipment) {
@@ -43,9 +43,9 @@ class Task {
         return equipment_index;
     }
 
-    get Proctimes() {
+   /* get Proctimes() {
         return this.proctimes;
-    }
+    }*/
     GetProctime(search_proctime) {
         for (let proctime of this.proctimes) {
             if (proctime === search_proctime) {
@@ -62,9 +62,9 @@ class Task {
         this.proctimes.splice(this.proctimes.indexOf(proctime), 1);
     }
 
-    get EquipmentAndProctime() {
+  /*  get EquipmentAndProctime() {
         return this.equipment_and_proctime;
-    }
+    }*/
     SetEquipmentAndProctime(equipment, proctime) {
         if(this.equipment_and_proctime.proctime === -1 || proctime < this.equipment_and_proctime.proctime){
             this.equipment_and_proctime = { equipment: equipment, proctime: proctime };

@@ -133,7 +133,7 @@ var recipieBuilder = new Vue({
             else {
               if (this.isInputTaskAndProductNew(this.inputTaskName, this.inputTaskProductName)) {
                 let add_task = new Task(this.inputTaskName);
-                add_task.Product = this.inputTaskProductName;
+                add_task.product = this.inputTaskProductName;
                 this.tasks.push(add_task);
               }
               else {
@@ -243,7 +243,7 @@ var recipieBuilder = new Vue({
                 this.buildRecipieGraph();
                 this.updateProctimesLength();
 
-                this.allProctimes.push({name: add_task.name, equipment: this.inputProctimeEquipment, proctime: this.inputProctime, product: add_task.Product});
+                this.allProctimes.push({name: add_task.name, equipment: this.inputProctimeEquipment, proctime: this.inputProctime, product: add_task.product});
 
                 this.updateEquipmentsTasksAsSmallestProctime();
               }
@@ -274,7 +274,7 @@ var recipieBuilder = new Vue({
       let product = this.products[index];
       this.products.splice(index, 1);
 
-      this.deleteTasksFromProduct(product);
+      this.updateTasks(product);
       this.updateTasksLength();
 
       this.updatePrecedenceFromAndToTasks();
@@ -288,10 +288,10 @@ var recipieBuilder = new Vue({
 
       this.buildRecipieGraph();
     },
-    deleteTasksFromProduct(product){
+    updateTasks(product){
       let delete_these = [];
       for(let task of this.tasks){
-        if(task.Product === product.name){
+        if(task.product === product.name){
           delete_these.push(task);
         }
       }
@@ -307,8 +307,8 @@ var recipieBuilder = new Vue({
     deletePrecedenceFromProduct(product){
       let delete_these = [];
       for(let precedence of this.precedences){
-        if(precedence.from.Product === product.name ||
-           precedence.to.Product === product.name){
+        if(precedence.from.product === product.name ||
+           precedence.to.product === product.name){
           delete_these.push(precedence.from);
           delete_these.push(precedence.to);
         }
@@ -325,7 +325,7 @@ var recipieBuilder = new Vue({
     deleteProctimeFromProduct(product){
       let delete_these = [];
       for(let proctime of this.proctimes){
-        if(proctime.Product === product.name){
+        if(proctime.product === product.name){
           delete_these.push(proctime);
         }
       }
@@ -433,9 +433,9 @@ var recipieBuilder = new Vue({
     deleteTaskFromProctime(proctime){
       for(let task of this.tasks){
         if(task.name === proctime.name){
-          if(task.equipments.indexOf(proctime.equipment) !== -1){
+          if(task.equipments.indexOf(proctime.equipment.name) !== -1){
             task.RemoveEquipment(proctime.equipment);
-            task.RemoveProctime(proctime.proctime);
+            task.RemoveProctime(proctime);
             task.UpdateEquipmentAndProctime();
           }
         }
@@ -453,7 +453,7 @@ var recipieBuilder = new Vue({
     deleteProctimeFromEquipment(equipment){
       let delete_these = [];
       for(let proctime of this.proctimes){
-        if(proctime.equipment_and_proctime.equipment.name === equipment.name){
+        if(proctime.equipment_and_proctime.equipment === equipment.name){
           delete_these.push(proctime);
         }
       }
@@ -461,7 +461,7 @@ var recipieBuilder = new Vue({
       delete_these.forEach(item => {
         this.proctimes.forEach((proctime, index) => {
           if(item.name === proctime.name &&
-            item.equipment_and_proctime.equipment.name === proctime.equipment_and_proctime.equipment.name){
+            item.equipment_and_proctime.equipment === proctime.equipment_and_proctime.equipment){
             this.proctimes.splice(index, 1);
           }
         });
@@ -486,8 +486,8 @@ var recipieBuilder = new Vue({
     },
     deleteTaskFromEquipment(equipment){
       for(let task of this.tasks){
-        if(task.equipments.indexOf(equipment) !== -1){
-          let equipment_index = task.RemoveEquipment(equipment);
+        if(task.equipments.indexOf(equipment.name) !== -1){
+          let equipment_index = task.RemoveEquipment(equipment.name);
           task.proctimes.splice(equipment_index,1);
           task.UpdateEquipmentAndProctime();
         }
@@ -773,13 +773,6 @@ var recipieBuilder = new Vue({
         }
         this.dragDropPrecedences.push({equipment: table.children[0].innerText, tasks: tasks});
       }
-      console.log("-----------");
-      this.dragDropPrecedences.forEach(d=>{
-        console.log(d.equipment);
-        d.tasks.forEach(t=>{
-          console.log('\t' + t);
-        });
-      });
       /*for(let task of this.tasks){
         console.log("task: " + this.isTaskLast(task));
         if(this.isTaskLast(task)){
@@ -998,7 +991,7 @@ var recipieBuilder = new Vue({
     },
     
     save_file(){
-      this.download('recipie-graph-datas.txt', this.convertArraysToText());
+      this.download('recipie-graph-datas.json', this.convertArraysToText());
     },
     convertArraysToText(){
       return JSON.stringify(this.products) + '\n' +
@@ -1014,9 +1007,31 @@ var recipieBuilder = new Vue({
       const reader = new FileReader();
       reader.onload = e => {
         let datas = e.target.result.split('\n');
-        this.products = JSON.parse(datas[0]);
-        this.tasks = JSON.parse(datas[1]);
-        this.equipments = JSON.parse(datas[2]);
+
+        this.products = [];
+        for(let new_product of JSON.parse(datas[0])){
+          this.products.push(new Product(new_product.name));
+        }
+        
+        this.tasks = [];
+        for(let new_task of JSON.parse(datas[1])){
+          let add_task = new Task(new_task.name);
+          add_task.product = new_task.product;
+          for(let new_equipment of new_task.equipments){
+            add_task.AddEquipment(new_equipment);
+          }
+          add_task.proctimes = new_task.proctimes;
+          add_task.equipment_and_proctime = new_task.equipment_and_proctime;
+          this.tasks.push(add_task);
+        }
+
+        this.equipments = [];
+        for(let new_equipment of JSON.parse(datas[2])){
+          let add_equipment = new Equipment(new_equipment.name);
+          add_equipment.tasks = new_equipment.tasks;
+          this.equipments.push(add_equipment);
+        }
+
         this.precedences = JSON.parse(datas[3]);
         this.proctimes = JSON.parse(datas[4]);
         this.allProctimes = JSON.parse(datas[5]);
