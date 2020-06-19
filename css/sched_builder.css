@@ -1,15 +1,15 @@
-#gantDiagram table{
+#gant-diagram table{
     margin: 0px;
 }
   
-#gantDiagram td{
+#gant-diagram td{
     border: 1px solid #3f3f3f;
     width: 40px;
     height: 40px;
     text-align: center;
 }
 
-#gantDiagram th{
+#gant-diagram th{
     border: 1px solid #3f3f3f;
     background-color: #3f3f3f;
     color: white;
@@ -18,42 +18,49 @@
     text-align: center;
 }
 
-.ganttEmptyCell{
+.gantt-empty-cell{
     background-color: #c7c7c7;
 }
   
-.ganttNotEmptyCell{
+.gantt-not-empty-cell{
     background-color: white;
     font-weight: bold;
 }
 
-.ganttNumberEmptyCell{
+.gantt-number-empty-cell{
     background-color: #a0a0a0;
     color:black;
 }
 
-.UIS_NIS_btns_container{
+.UIS-NIS-btns-container{
     margin-left: 36px;
 }
 
-.UIS_NIS_btns_active{
+.UIS-NIS-btns-active{
     font-weight: bold;
     color: white;
     padding: 5px;
     width: 50px;
-    background-color: #37acc9;
-    border: 3px solid #37acc9;
+    background-color: #333;
+    border: 3px solid #333;
 }
 
-.UIS_NIS_btns_inactive{
+.UIS-NIS-btns-inactive{
     padding: 5px;
     width: 50px;
     background-color: #ffffff;
-    border: 3px solid #37acc9;
+    border: 3px solid #333;
+    color: #333;
+}
+
+input, select{
+    background: white;
+    border: 1px solid #a0a0a0;
+    color: #333;
 }
 
 /*DRAG AND DROP*/
-.dragAndDrop{
+.drag-and-drop{
     margin-left: 20px;
 }
   
@@ -80,7 +87,7 @@ ul {
   
 /* drop target state */
 ul[aria-dropeffect="move"] {
-    border-color:#37acc9;
+    border-color:#333;
     background:#fff;
 }
   
@@ -89,7 +96,7 @@ ul[aria-dropeffect="move"]:focus,
 ul[aria-dropeffect="move"].dragover
 {
     outline:none;
-    box-shadow:0 0 0 1px #fff, 0 0 0 3px #37acc9;
+    box-shadow:0 0 0 1px #fff, 0 0 0 3px #333;
 }
   
 /* draggable items */
@@ -103,23 +110,23 @@ li {
 }
   
 li:hover {
-    box-shadow:0 0 0 2px #37acc9, inset 0 0 0 1px #37acc9;
-    background-color: #37acc9;
-    color: #fff;
+    box-shadow:0 0 0 2px #333, inset 0 0 0 1px #333;
+    background-color: #333;
+    color: #333;
   }
   
 /* items focus state */
 li:focus
 {
     outline:none;
-    box-shadow:0 0 0 2px #37acc9, inset 0 0 0 1px #37acc9;
+    box-shadow:0 0 0 2px #333, inset 0 0 0 1px #333;
 }
   
 /* items grabbed state */
 li[aria-grabbed="true"]
 {
-    background:#37acc9;
-    color:#fff;
+    background:#333;
+    color:#333;
 }
   
 @keyframes nodeInserted {
@@ -129,7 +136,7 @@ li[aria-grabbed="true"]
   
 .item-dropzone-area {
     height: 2rem;
-    background: #005a70;
+    background: rgb(20, 20, 20);
     opacity: 0.8;
     animation-duration: 0.5s;
     animation-name: nodeInserted;
