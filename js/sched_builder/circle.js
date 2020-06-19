@@ -3,6 +3,7 @@
 class Circle{
   constructor(precedencesWithProducts){
     this.precedencesWithProducts = precedencesWithProducts;
+    this.circleTaskPairs = [];
   }
   CheckCircle(){
     recipieBuilder.circle = false;
@@ -174,5 +175,14 @@ class Circle{
     }
 
     return yes;
+  }
+  isInCircle(from, to){
+    for(let edge of this.circleTaskPairs){
+      if(from === edge.from && to === edge.to){
+        return true;
+      }
+    }
+    
+    return false;
   }
 }

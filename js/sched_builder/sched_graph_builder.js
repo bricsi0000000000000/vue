@@ -65,18 +65,28 @@ class SchedGraphBuilder{
 
     for(let precedence of this.precedencesWithProducts){
       this.sched_graph_text += '"' + precedence.from + '" -> "' + precedence.to +
-      '" [ label = "' + this.getProctime(precedence.from) + '" penwidth="' +
-      (this.isInLongestPath(precedence.from, precedence.to) ? 4 : 1) +
-      '" ]';
+      '" [ label = "' + this.getProctime(precedence.from) + '" penwidth="';
+      if(this.isInLongestPath(precedence.from, precedence.to) || circle.isInCircle(precedence.from, precedence.to)){
+        this.sched_graph_text += "4";
+      }
+      else{
+        this.sched_graph_text += "1";
+      }
+      this.sched_graph_text += '" ]';
     }
 
     for(let precedence of schedBuilder.sched_precedences){
       this.sched_graph_text += '"' + precedence.from + '" -> "' + precedence.to +
       '" [ label = "' +
       (recipieBuilder.uis ? this.getProctime(precedence.from) : '') +
-      '" style="dashed" penwidth="' +
-      (this.isInLongestPath(precedence.from, precedence.to) ? 4 : 1) +
-      '" ]';
+      '" style="dashed" penwidth="';
+      if(this.isInLongestPath(precedence.from, precedence.to) || circle.isInCircle(precedence.from, precedence.to)){
+        this.sched_graph_text += "4";
+      }
+      else{
+        this.sched_graph_text += "1";
+      }
+      this.sched_graph_text += '" ]';
     }
 
     this.sched_graph_text += 'layout="neato"}';
@@ -152,7 +162,7 @@ class SchedGraphBuilder{
       }
     }
 
-    return -1;
+    return 0;
   }
   getEquipment(search_task){
     for(let task of recipieBuilder.tasks){
@@ -382,12 +392,14 @@ class SchedGraphBuilder{
       var text_x = 10;
       var text_y = -15;
 
+      var stroke_color = "#c7c7c7";
+
       document.getElementById("gantt-diagram").innerHTML = "";
       var svgNS = "http://www.w3.org/2000/svg";
       for (var i = 0; i < this.gantt.length; i++) {
         width = 40;
         y = y_unit * i;
-        color = "black";
+        color = "#333333";
 
         let rect = document.createElementNS(svgNS, "rect");
         rect.setAttributeNS(null, "x", x);
@@ -395,8 +407,8 @@ class SchedGraphBuilder{
         rect.setAttributeNS(null, "width", width);
         rect.setAttributeNS(null, "height", height);
         rect.setAttributeNS(null, "fill", color);
-        rect.setAttributeNS(null, "stroke", "black");
-        rect.setAttributeNS(null, "stroke-width", "2px");
+        rect.setAttributeNS(null, "stroke", stroke_color);
+        rect.setAttributeNS(null, "stroke-width", "1px");
         document.getElementById("gantt-diagram").appendChild(rect);
 
         text_y += 40;
@@ -416,10 +428,11 @@ class SchedGraphBuilder{
       text_y = -15;
       for (var j = 0; j < this.gantt.length; j++) {
         for (var i = 0; i < this.gantt[j].tasks.length; i++) {
+
           width = (this.gantt[j].tasks[i].end_time - this.gantt[j].tasks[i].start_time) * width_unit;
           y = y_unit * j;
           x = 40 + this.gantt[j].tasks[i].start_time * 40;
-          color = "grey";
+          color = "#E2E2E2";
 
           let rect = document.createElementNS(svgNS, "rect");
           rect.setAttributeNS(null, "x", x);
@@ -427,13 +440,13 @@ class SchedGraphBuilder{
           rect.setAttributeNS(null, "width", width);
           rect.setAttributeNS(null, "height", height);
           rect.setAttributeNS(null, "fill", color);
-          rect.setAttributeNS(null, "stroke", "black");
-          rect.setAttributeNS(null, "stroke-width", "2px");
+          rect.setAttributeNS(null, "stroke", stroke_color);
+          rect.setAttributeNS(null, "stroke-width", "1px");
           document.getElementById("gantt-diagram").appendChild(rect);
 
           text_y = y + 25;
           text_x = x + 10;
-          color = "white";
+          color = "#333333";
           let txt = document.createElementNS(svgNS, "text");
           txt.setAttributeNS(null, "x", text_x);
           txt.setAttributeNS(null, "y", text_y);
@@ -441,6 +454,39 @@ class SchedGraphBuilder{
           txt.setAttributeNS(null, "font-size", font_size);
           txt.setAttributeNS(null, "fill", color);
           let text_node = document.createTextNode(this.gantt[j].tasks[i].task);
+          txt.appendChild(text_node);
+          document.getElementById("gantt-diagram").appendChild(txt);
+        }
+      }
+
+      y = recipieBuilder.equipments.length * 40;
+      x = -40;
+      text_x = 10;
+      text_y = y + 25;
+      for (var j = 0; j < recipieBuilder.longestPathTime + 1; j++) {
+        x += 40;
+        
+        color = "white";
+        let rect = document.createElementNS(svgNS, "rect");
+        rect.setAttributeNS(null, "x", x);
+        rect.setAttributeNS(null, "y", y);
+        rect.setAttributeNS(null, "width", 40);
+        rect.setAttributeNS(null, "height", 40);
+        rect.setAttributeNS(null, "fill", color);
+        rect.setAttributeNS(null, "stroke", stroke_color);
+        rect.setAttributeNS(null, "stroke-width", "1px");
+        document.getElementById("gantt-diagram").appendChild(rect);
+
+        text_x = x + 15;
+        color = "#333333";
+        if(j > 0){
+          let txt = document.createElementNS(svgNS, "text");
+          txt.setAttributeNS(null, "x", text_x);
+          txt.setAttributeNS(null, "y", text_y);
+          txt.setAttributeNS(null, "font-family", font_family);
+          txt.setAttributeNS(null, "font-size", font_size);
+          txt.setAttributeNS(null, "fill", color);
+          let text_node = document.createTextNode(j);
           txt.appendChild(text_node);
           document.getElementById("gantt-diagram").appendChild(txt);
         }

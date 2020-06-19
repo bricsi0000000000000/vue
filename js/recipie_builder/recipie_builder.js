@@ -91,8 +91,11 @@ var recipieBuilder = new Vue({
       longestPathEndTask: '',
       longestPathTime: '',
       ganttWidth: 0,
+      ganttHeight: 0,
 
       dragDropPrecedences: [], //equipment, tasks
+
+      schedGraphBuilderSchedPrecedences: [], //from, to
     }
   },
   methods: {
@@ -110,6 +113,8 @@ var recipieBuilder = new Vue({
       }
       this.inputProductName = '';
       this.updateProductsLength();
+
+      this.showImport = false;
     },
     addTask() {
       if (this.inputTaskName === "" && this.inputTaskProductName === "") {
@@ -134,7 +139,7 @@ var recipieBuilder = new Vue({
               if (this.isInputTaskAndProductNew(this.inputTaskName, this.inputTaskProductName)) {
                 let add_task = new Task(this.inputTaskName);
                 add_task.product = this.inputTaskProductName;
-                this.tasks.push(add_task);
+                this.tasks.push(add_task);        
               }
               else {
                 this.showWarning("Task name (" + this.inputTaskName + ") and product (" + this.inputTaskProductName + ") is already exists", "error");
@@ -147,9 +152,13 @@ var recipieBuilder = new Vue({
       this.inputTaskName = '';
       this.inputTaskProductName = '';
 
+      //this.updateDragDropPrecedenes();
+
       this.updateTasksLength();
       this.buildRecipieGraph();
       this.addPrecedenceTaskFromAndTo();
+
+      this.showImport = false;
     },
     addEquipment() {
       if(this.isInputEquipmentValid(this.inputEquipmentName)){
@@ -165,6 +174,10 @@ var recipieBuilder = new Vue({
       this.inputEquipmentName = '';
 
       this.updateEqsLength();
+
+      this.ganttHeight = this.equipments.length * 40 + 80;
+
+      this.showImport = false;
     },
     addPrecedence() {
       if((this.inputTaskPrecedenceFrom === "" && this.inputTaskPrecedenceTo === "") ||
@@ -195,6 +208,8 @@ var recipieBuilder = new Vue({
         this.inputTaskPrecedenceTo = "";
 
         this.updatePrecedenceFromAndToTasks();
+
+        this.showImport = false;
     },
     addProctime() {
       if (this.inputProctimeTask === "" && this.inputProctimeEquipment === "" && this.inputProctime === "") {
@@ -246,6 +261,13 @@ var recipieBuilder = new Vue({
                 this.allProctimes.push({name: add_task.name, equipment: this.inputProctimeEquipment, proctime: this.inputProctime, product: add_task.product});
 
                 this.updateEquipmentsTasksAsSmallestProctime();
+
+                this.dragDropPrecedences.forEach(precedence => {
+                  if(precedence.equipment === this.inputProctimeEquipment.name){
+                    console.log(add_task.name);
+                    precedence.tasks.push(add_task.name);
+                  }
+                });
               }
               else{
                 this.showWarning("Proctime (" + this.inputProctimeTask.name + ", " + this.inputProctimeEquipment.name + ") is already exists", "error");
@@ -258,6 +280,8 @@ var recipieBuilder = new Vue({
       this.inputProctimeTask = "";
       this.inputProctimeEquipment = "";
       this.inputProctime = "";
+
+      this.showImport = false;
     },
     addPrecedenceTaskFromAndTo() {
       this.precedenceTasksFrom = [];
@@ -287,6 +311,8 @@ var recipieBuilder = new Vue({
       this.updateEquipmentsTasksAsSmallestProctime();
 
       this.buildRecipieGraph();
+
+      this.showImport = false;
     },
     updateTasks(product){
       let delete_these = [];
@@ -303,6 +329,8 @@ var recipieBuilder = new Vue({
           }
         });
       });
+
+      this.showImport = false;
     },
     deletePrecedenceFromProduct(product){
       let delete_these = [];
@@ -321,6 +349,8 @@ var recipieBuilder = new Vue({
           }
         });
       });
+
+      this.showImport = false;
     },
     deleteProctimeFromProduct(product){
       let delete_these = [];
@@ -337,6 +367,8 @@ var recipieBuilder = new Vue({
           }
         });
       });
+
+      this.showImport = false;
     },
     deleteAllProctimeFromProduct(product){
       let delete_these = [];
@@ -353,6 +385,8 @@ var recipieBuilder = new Vue({
           }
         });
       });
+
+      this.showImport = false;
     },
     deleteTask(index){
       let task = this.tasks[index];
@@ -369,6 +403,8 @@ var recipieBuilder = new Vue({
       this.updateEquipmentsTasksAsSmallestProctime();
 
       this.buildRecipieGraph();
+
+      this.showImport = false;
     },
     deletePrecedenceFromTask(task){
       let delete_these = [];
@@ -429,6 +465,8 @@ var recipieBuilder = new Vue({
       this.updateEquipmentsTasksAsSmallestProctime();
 
       this.buildRecipieGraph();
+
+      this.showImport = false;
     },
     deleteTaskFromProctime(proctime){
       for(let task of this.tasks){
@@ -449,6 +487,8 @@ var recipieBuilder = new Vue({
       this.deleteTaskFromEquipment(equipment);
 
       this.buildRecipieGraph();
+
+      this.showImport = false;
     },
     deleteProctimeFromEquipment(equipment){
       let delete_these = [];
@@ -498,6 +538,8 @@ var recipieBuilder = new Vue({
       this.updatePrecedencesLength();
 
       this.buildRecipieGraph();
+
+      this.showImport = false;
     },
 
     /* ------------- GET ------------- */
@@ -940,20 +982,26 @@ var recipieBuilder = new Vue({
 
     switchForms() {
       if (this.seenForms) {
-        //this.makeDragDropPrecedences();
-        schedBuilder.buildDragAndDrop();
-        schedBuilder.makeSchedPrecedences(this.dragDropPrecedences);
-        schedBuilder.buildSchedGraph();
-        document.title = "Schedule graph builder";
+        try{
+          schedBuilder.buildDragAndDrop();
+          schedBuilder.makeSchedPrecedences(this.dragDropPrecedences);
+          schedBuilder.buildSchedGraph();
+
+          document.title = "Schedule graph builder";
+        }
+        catch(err){
+          this.showWarning("There is not enough data to calculate.", "error");
+        }
       }
       else {
         this.updateDragDropPrecedenes();
         this.updateEquipmentsTasks();
         this.buildRecipieGraph();
-        
+
         document.title = "Recipie graph builder";
       }
       this.seenForms = !this.seenForms;
+      this.showImport = false;
     },
 
     uisNisSwitch() {
@@ -990,8 +1038,9 @@ var recipieBuilder = new Vue({
       document.body.removeChild(element);
     },
     
-    save_file(){
+    saveFile(){
       this.download('recipie-graph-datas.json', this.convertArraysToText());
+      this.showImport = false;
     },
     convertArraysToText(){
       return JSON.stringify(this.products) + '\n' +
@@ -1032,16 +1081,21 @@ var recipieBuilder = new Vue({
           this.equipments.push(add_equipment);
         }
 
+        this.ganttHeight = this.equipments.length * 40 + 80;
+
         this.precedences = JSON.parse(datas[3]);
         this.proctimes = JSON.parse(datas[4]);
         this.allProctimes = JSON.parse(datas[5]);
+        this.dragDropPrecedences = [];
+
         this.buildRecipieGraph();
         this.showImport = false;
       };
       reader.readAsText(file);
+
     },
-    show_import_file(){
-      this.showImport = true;
+    showImportFile(){
+      this.showImport = !this.showImport;
     }
   }
 });
