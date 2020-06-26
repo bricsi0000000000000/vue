@@ -442,10 +442,10 @@ var recipieBuilder = new Vue({
         });
       });
     },
-    deleteProctimeFromTask(task){
+    deleteProctimeFromTask(search_task){
       let delete_these = [];
       for(let proctime of this.proctimes){
-        if(proctime.name === task.name){
+        if(proctime.name === search_task.name){
           delete_these.push(proctime);
         }
       }

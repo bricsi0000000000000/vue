@@ -21,7 +21,7 @@ class Task {
         this.equipments.push(new_equipment);
     }
     RemoveEquipment(equipment) {
-        let equipment_index = this.equipments.indexOf(equipment);
+        let equipment_index = this.equipments.indexOf(equipment.name);
         this.equipments.splice(equipment_index, 1);
         return equipment_index;
     }

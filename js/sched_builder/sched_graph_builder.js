@@ -120,7 +120,7 @@ class SchedGraphBuilder{
     }
     this.longestPath.push({from: this.longestPath[this.longestPath.length - 1].to, to: max_product});
 
-    recipieBuilder.ganttWidth = path.max_time * 40 + 41;
+    recipieBuilder.ganttWidth = Math.round(path.max_time, 1) * 40 + 41;
     recipieBuilder.longestPathStartTask = path.tasks[1];
     recipieBuilder.longestPathEndTask = max_product;
     recipieBuilder.longestPathTime = path.max_time;
