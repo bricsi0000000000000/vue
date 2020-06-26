@@ -48,6 +48,14 @@ var schedBuilder = new Vue({
         }
       }
     },
+    isEdgeLoop(from, to){
+      if(from === to){
+        return true;
+      }
+      else{
+        return false;
+      }
+    },
     makeSchedPrecedences(drag_drop){
       this.sched_precedences = [];
 
@@ -56,7 +64,9 @@ var schedBuilder = new Vue({
         if(recipieBuilder.uis){
           let task_index;
           for(task_index = 0; task_index < drag_drop[index].tasks.length - 1; task_index++){
-            this.sched_precedences.push({from: drag_drop[index].tasks[task_index], to: drag_drop[index].tasks[task_index + 1]});
+            if(!this.isEdgeLoop(drag_drop[index].tasks[task_index], drag_drop[index].tasks[task_index + 1])){
+              this.sched_precedences.push({from: drag_drop[index].tasks[task_index], to: drag_drop[index].tasks[task_index + 1]});
+            }
           }
         }
         else{
@@ -67,7 +77,9 @@ var schedBuilder = new Vue({
             for(precedence_index = 0; precedence_index < recipieBuilder.precedences.length; precedence_index++){
               if(recipieBuilder.precedences[precedence_index].from.name === drag_drop[index].tasks[task_index]){
                 found = true;
-                this.sched_precedences.push({from: recipieBuilder.precedences[precedence_index].to.name, to: drag_drop[index].tasks[task_index + 1]});
+                if(!this.isEdgeLoop(recipieBuilder.precedences[precedence_index].to.name, drag_drop[index].tasks[task_index + 1])){
+                  this.sched_precedences.push({from: recipieBuilder.precedences[precedence_index].to.name, to: drag_drop[index].tasks[task_index + 1]});
+                }
               }
             }
             if(!found){
@@ -77,7 +89,9 @@ var schedBuilder = new Vue({
                   add_product = task.product;
                 }
               }
-              this.sched_precedences.push({from: add_product, to: drag_drop[index].tasks[task_index + 1]});
+              if(!this.isEdgeLoop(add_product, drag_drop[index].tasks[task_index + 1])){
+                this.sched_precedences.push({from: add_product, to: drag_drop[index].tasks[task_index + 1]});
+              }
             }
           }
         }

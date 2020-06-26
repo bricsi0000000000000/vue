@@ -71,3 +71,9 @@ img{
 .longest-path-properties td{
     text-align: left;
 }
+
+#import-file{
+    padding: 8px;
+    background-color: #333;
+}
+

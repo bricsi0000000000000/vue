@@ -13,8 +13,8 @@ var recipieBuilder = new Vue({
           let sched_table = document.getElementsByClassName('sched-table');
 
           for(let table of sched_table){
-            let child_index;
             let tasks = [];
+            let child_index;
             for(child_index = 1; child_index < table.children.length; child_index++){
               if(table.children[child_index].innerText !== ''){
                 tasks.push(table.children[child_index].innerText);
@@ -31,13 +31,27 @@ var recipieBuilder = new Vue({
           let dropped_equipment = event.droptarget.textContent.split(' ')[0];
           if(!instance.checkTaskEquipment(act_task, dropped_equipment)){
             event.stop();
+            instance.showWarning(act_task + "doens't have an equipment called " + dropped_equipment, "error");
           }
           else{
             instance.updateTasksEquipmentAndProctime(act_task, dropped_equipment);
             instance.updatePrecedencesEquipmentAndProctime(act_task, dropped_equipment);
           }
+
+          for(let e of instance.equipments){
+            document.getElementById(e.name).classList.remove("available-equipment");
+          }
+        },
+        onDragstart(event){
+          let act_task = event.items[0].innerText;
+          for(let e of instance.equipments){
+            if(instance.checkTaskEquipment(act_task, e.name)){
+              document.getElementById(e.name).classList.add("available-equipment");
+            }
+          }
         }
       },
+
       /*Arrow images*/
       arrowImgProductsState: false,
       arrowImgProducts: "images/down-arrow.png",
@@ -1039,7 +1053,7 @@ var recipieBuilder = new Vue({
     },
     
     saveFile(){
-      this.download('recipie-graph-datas.json', this.convertArraysToText());
+      this.download('recipie-graph-data.json', this.convertArraysToText());
       this.showImport = false;
     },
     convertArraysToText(){
@@ -1090,11 +1104,15 @@ var recipieBuilder = new Vue({
 
         this.buildRecipieGraph();
         this.showImport = false;
+
+        this.showWarning("File successfully loaded", "success");
       };
       reader.readAsText(file);
-
     },
     showImportFile(){
+      if(!this.seenForms){
+        this.seenForms = true;
+      }
       this.showImport = !this.showImport;
     }
   }

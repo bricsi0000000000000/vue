@@ -59,6 +59,10 @@ input, select{
     color: #333;
 }
 
+.available-equipment{
+    background-color: #333;
+}
+
 /*DRAG AND DROP*/
 .drag-and-drop{
     margin-left: 20px;

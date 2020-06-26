@@ -42,6 +42,7 @@
             <button type="button" v-on:click="saveFile()">Save datas</button>
             <button type="button" v-on:click="showImportFile()">Import datas</button>
         </div>
+
         <div class="recipie-builder-tables" v-if="seenForms">
             <div class="row">
                 <div id="products-table" class="col-">
@@ -278,7 +279,7 @@
                         <div class="col- drag-and-drop">        
                             <div v-for="(dragdrop, index) in dragDropPrecedences">
                                 <div v-drag-and-drop:options="dragAndDropOptions">
-                                    <ul class="sched-table">
+                                    <ul class="sched-table" :id="dragdrop.equipment">
                                         <div style="background: #333333; color: white; text-align: center; font-weight: bold; margin-bottom:3px; padding-bottom:3px">
                                             <span>{{dragdrop.equipment}}</span>
                                         </div>
@@ -341,6 +342,8 @@
                 </tr>
             </table>
         </div>
+
+      
 
         <div id="import-file" v-if="showImport">
             <input type="file" v-on:change="readTextFile" style="background: #333; border: none; color: white">
