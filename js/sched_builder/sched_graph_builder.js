@@ -384,7 +384,7 @@ class SchedGraphBuilder{
       var width = 0;
       const height = 40;
       var font_size = 15;
-      var font_family = "Verdana";
+      var font_family = "Roboto";
 
       var width_unit = 40;
       var y_unit = height;
@@ -473,8 +473,10 @@ class SchedGraphBuilder{
         rect.setAttributeNS(null, "width", 40);
         rect.setAttributeNS(null, "height", 40);
         rect.setAttributeNS(null, "fill", color);
-        rect.setAttributeNS(null, "stroke", stroke_color);
-        rect.setAttributeNS(null, "stroke-width", "1px");
+        if(j > 0){
+          rect.setAttributeNS(null, "stroke", stroke_color);
+          rect.setAttributeNS(null, "stroke-width", "1px");
+        }
         document.getElementById("gantt-diagram").appendChild(rect);
 
         text_x = x + 15;

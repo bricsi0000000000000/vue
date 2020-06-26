@@ -30,8 +30,8 @@ var recipieBuilder = new Vue({
           let act_task = event.items[0].innerText;
           let dropped_equipment = event.droptarget.textContent.split(' ')[0];
           if(!instance.checkTaskEquipment(act_task, dropped_equipment)){
+            instance.showWarning("'" + act_task + "'" + " doens't have an equipment called '" + dropped_equipment + "'", "error");
             event.stop();
-            instance.showWarning(act_task + "doens't have an equipment called " + dropped_equipment, "error");
           }
           else{
             instance.updateTasksEquipmentAndProctime(act_task, dropped_equipment);
@@ -89,10 +89,15 @@ var recipieBuilder = new Vue({
       allProctimes: [],
 
       tasksLength: 0,
+      tasksTableTitle: 'no task',
       productsLength: 0,
-      eqsLength: 0,
+      productsTableTitle: 'no product',
+      equipmentsLength: 0,
+      equipmentsTableTitle: 'no equipment',
       precedencesLength: 0,
+      precendencesTableTitle: 'no precedence',
       proctimesLength: 0,
+      proctimesTableTitle: 'no proctime',
 
       precedenceTasksFrom: [],
       precedenceTasksTo: [], 
@@ -166,8 +171,6 @@ var recipieBuilder = new Vue({
       this.inputTaskName = '';
       this.inputTaskProductName = '';
 
-      //this.updateDragDropPrecedenes();
-
       this.updateTasksLength();
       this.buildRecipieGraph();
       this.addPrecedenceTaskFromAndTo();
@@ -187,7 +190,7 @@ var recipieBuilder = new Vue({
 
       this.inputEquipmentName = '';
 
-      this.updateEqsLength();
+      this.updateEquipmentsLength();
 
       this.ganttHeight = this.equipments.length * 40 + 80;
 
@@ -197,14 +200,14 @@ var recipieBuilder = new Vue({
       if((this.inputTaskPrecedenceFrom === "" && this.inputTaskPrecedenceTo === "") ||
          (this.inputTaskPrecedenceFrom === undefined && this.inputTaskPrecedenceTo === undefined))
         {
-          this.showWarning("Task1 and task2 are empty", "error");
+          this.showWarning("'from' and 'to' tasks are empty", "error");
         }
         else{
           if(this.inputTaskPrecedenceFrom === "" || this.inputTaskPrecedenceFrom === undefined){
-            this.showWarning("Task1 is empty", "error");
+            this.showWarning("'from' task is empty", "error");
           }
           else if(this.inputTaskPrecedenceTo === "" || this.inputTaskPrecedenceTo === undefined){
-            this.showWarning("Task2 is empty", "error");
+            this.showWarning("'to' task is empty", "error");
           }
           else{
             if(this.isInputPrecedenceNew(this.inputTaskPrecedenceFrom, this.inputTaskPrecedenceTo)){
@@ -671,7 +674,7 @@ var recipieBuilder = new Vue({
     },
     isInputProctimeNew(new_task, new_equipment){
       for(let proctime of this.proctimes){
-        if(proctime.name === new_task.name && proctime.equipment_and_proctime.equipment.name === new_equipment.name){
+        if(proctime.name === new_task.name && proctime.equipment_and_proctime.equipment === new_equipment.name){
           return false;
         }
       }
@@ -695,18 +698,63 @@ var recipieBuilder = new Vue({
     /* ------------- UPDATE ------------- */
     updateProductsLength() {
       this.productsLength = this.products.length;
+      if(this.productsLength === 0){
+        this.productsTableTitle = "No product";
+      }
+      else if(this.productsLength === 1){
+        this.productsTableTitle = this.productsLength + " product";
+      }
+      else{
+        this.productsTableTitle = this.productsLength + " products";
+      }
     },
     updateTasksLength() {
       this.tasksLength = this.tasks.length;
+      if(this.tasksLength === 0){
+        this.tasksTableTitle = "No task";
+      }
+      else if(this.tasksLength === 1){
+        this.tasksTableTitle = this.tasksLength + " task";
+      }
+      else{
+        this.tasksTableTitle = this.tasksLength + " tasks";
+      }
     },
-    updateEqsLength() {
-      this.eqsLength = this.equipments.length;
+    updateEquipmentsLength() {
+      this.equipmentsLength = this.equipments.length;
+      if(this.equipmentsLength === 0){
+        this.equipmentsTableTitle = "No equipment";
+      }
+      else if(this.equipmentsLength === 1){
+        this.equipmentsTableTitle = this.equipmentsLength + " equipment";
+      }
+      else{
+        this.equipmentsTableTitle = this.equipmentsLength + " equipments";
+      }
     },
     updatePrecedencesLength() {
       this.precedencesLength = this.precedences.length;
+      if(this.precedencesLength === 0){
+        this.precendencesTableTitle = "No precedence";
+      }
+      else if(this.precedencesLength === 1){
+        this.precendencesTableTitle = this.precedencesLength + " precedence";
+      }
+      else{
+        this.precendencesTableTitle = this.precedencesLength + " precedences";
+      }
     },
     updateProctimesLength() {
       this.proctimesLength = this.proctimes.length;
+      if(this.proctimesLength === 0){
+        this.proctimesTableTitle = "No proctime";
+      }
+      else if(this.proctimesLength === 1){
+        this.proctimesTableTitle = this.proctimesLength + " proctime";
+      }
+      else{
+        this.proctimesTableTitle = this.proctimesLength + " proctimes";
+      }
     },
     updatePrecedenceFromAndToTasks() {
       this.precedenceTasksFrom = [];
@@ -1002,6 +1050,7 @@ var recipieBuilder = new Vue({
           schedBuilder.buildSchedGraph();
 
           document.title = "Schedule graph builder";
+          this.seenForms = !this.seenForms;
         }
         catch(err){
           this.showWarning("There is not enough data to calculate.", "error");
@@ -1013,8 +1062,8 @@ var recipieBuilder = new Vue({
         this.buildRecipieGraph();
 
         document.title = "Recipie graph builder";
+        this.seenForms = !this.seenForms;
       }
-      this.seenForms = !this.seenForms;
       this.showImport = false;
     },
 
@@ -1040,16 +1089,21 @@ var recipieBuilder = new Vue({
     },
 
     download(filename, text) {
-      let element = document.createElement('a');
-      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-      element.setAttribute('download', filename);
+      if(this.products.length === 0 && this.tasks.length === 0 && this.equipments.length === 0){
+        this.showWarning("There is nothing to save", "warning");
+      }
+      else{
+        let element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+        element.setAttribute('download', filename);
 
-      element.style.display = 'none';
-      document.body.appendChild(element);
+        element.style.display = 'none';
+        document.body.appendChild(element);
 
-      element.click();
+        element.click();
 
-      document.body.removeChild(element);
+        document.body.removeChild(element);
+      }
     },
     
     saveFile(){
@@ -1076,6 +1130,8 @@ var recipieBuilder = new Vue({
           this.products.push(new Product(new_product.name));
         }
         
+        this.precedenceTasksFrom = [];
+        this.precedenceTasksTo = [];
         this.tasks = [];
         for(let new_task of JSON.parse(datas[1])){
           let add_task = new Task(new_task.name);
@@ -1086,6 +1142,8 @@ var recipieBuilder = new Vue({
           add_task.proctimes = new_task.proctimes;
           add_task.equipment_and_proctime = new_task.equipment_and_proctime;
           this.tasks.push(add_task);
+          this.precedenceTasksFrom.push(add_task);
+          this.precedenceTasksTo.push(add_task);
         }
 
         this.equipments = [];
@@ -1104,6 +1162,12 @@ var recipieBuilder = new Vue({
 
         this.buildRecipieGraph();
         this.showImport = false;
+
+        this.updateProductsLength();
+        this.updateTasksLength();
+        this.updateEquipmentsLength();
+        this.updatePrecedencesLength();
+        this.updateProctimesLength();
 
         this.showWarning("File successfully loaded", "success");
       };

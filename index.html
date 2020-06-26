@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 
+    <!--FONTS-->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;500&display=swap" rel="stylesheet"> 
+
     <!--CSS-->
     <link rel="stylesheet" href="css/recipie_builder.css">
     <link rel="stylesheet" href="css/sched_builder.css">
@@ -39,8 +42,10 @@
     <div id="recipie-builder">
         <div class="menu">
             <button type="button" v-on:click="switchForms()">Switch forms</button>
-            <button type="button" v-on:click="saveFile()">Save datas</button>
-            <button type="button" v-on:click="showImportFile()">Import datas</button>
+            <button type="button" v-on:click="saveFile()">Save data</button>
+            <button type="button" v-on:click="showImportFile()">Import data</button>
+            <button type="button" v-if="!seenForms" class="UIS-NIS-btns-container" v-bind:class="{ 'UIS-NIS-btns-inactive': !uis, 'UIS-NIS-btns-active': uis }" v-on:click="uisNisSwitch()">UIS</button>
+            <button type="button" v-if="!seenForms" class="UIS-NIS-btns-container" v-bind:class="{ 'UIS-NIS-btns-inactive': uis, 'UIS-NIS-btns-active': !uis }" v-on:click="uisNisSwitch()">NIS</button>
         </div>
 
         <div class="recipie-builder-tables" v-if="seenForms">
@@ -49,7 +54,8 @@
                     <table>
                         <th type="button" data-toggle="collapse" data-target="#products"
                             v-on:click="changeArrowImgProducts()">
-                            Products ({{productsLength}}) <img :src="arrowImgProducts" id="products-arrow">
+                            <span class="table-title">{{productsTableTitle}}</span>
+                            <img :src="arrowImgProducts" id="products-arrow">
                         </th>
                         <tr>
                             <td class="title">
@@ -83,7 +89,8 @@
                 <div id="tasks-table" class="col-">
                     <table>
                         <th colspan="2" type="button" data-toggle="collapse" data-target="#tasks" v-on:click="changeArrowImgTasks()">
-                            Tasks ({{tasksLength}}) <img :src="arrowImgTasks" id="tasks-arrow">
+                            <span class="table-title">{{tasksTableTitle}}</span>
+                            <img :src="arrowImgTasks" id="tasks-arrow">
                         </th>
                         <tr>
                             <td class="title">
@@ -129,7 +136,8 @@
                 <div id="equipments-table" class="col-">
                     <table>
                         <th type="button" data-toggle="collapse" data-target="#eqs"  v-on:click="changeArrowImgEquipments()">
-                            Equipments ({{eqsLength}}) <img :src="arrowImgEquipments" id="equipments-arrow">
+                            <span class="table-title">{{equipmentsTableTitle}}</span>
+                            <img :src="arrowImgEquipments" id="equipments-arrow">
                         </th>
                         <tr>
                             <td class="title">
@@ -162,7 +170,8 @@
                 <div id="precedences-table" class="col-">
                     <table>
                         <th colspan="2" type="button" data-toggle="collapse" data-target="#precedences" v-on:click="changeArrowImgPrecedences()">
-                            Precedences ({{precedencesLength}}) <img :src="arrowImgPrecedences" id="precedences-arrow">
+                            <span class="table-title">{{precendencesTableTitle}}</span>
+                            <img :src="arrowImgPrecedences" id="precedences-arrow">
                         </th>
                         <tr>
                             <td class="title">
@@ -206,7 +215,8 @@
                 <div id="proctimes-table" class="col-">
                     <table>
                         <th colspan="3" type="button" data-toggle="collapse" data-target="#proctimes" v-on:click="changeArrowImgProctimes()">
-                            Proctimes ({{proctimesLength}}) <img :src="arrowImgProctimes" id="proctimes-arrow">
+                            <span class="table-title">{{proctimesTableTitle}}</span>
+                            <img :src="arrowImgProctimes" id="proctimes-arrow">
                         </th>
                         <tr>
                             <td class="title">
@@ -261,11 +271,54 @@
                         </tr>
                     </table>
                 </div>
+            </div>
+            <div class="row">
                 <div id="recipie-graph" class="col-"></div>
             </div>
         </div>
         <div id="SchedGraphBuilder" v-if="!seenForms">
-            <table class="container">
+            <div class="container">
+                <div class="row">
+                    <div class="col-sm">
+                        <div id="sched-graph"></div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col card">
+                        <svg id="gantt-diagram" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" v-bind:style="{ width : ganttWidth + 'px', height : ganttHeight + 'px' }"></svg>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col card">
+                        <div class="drag-and-drop">        
+                            <div v-for="(dragdrop, index) in dragDropPrecedences">
+                                <div v-drag-and-drop:options="dragAndDropOptions">
+                                    <ul class="sched-table" :id="dragdrop.equipment">
+                                        <div style="background: #333333; color: white; text-align: center; font-weight: bold; margin-bottom:3px; padding-bottom:3px">
+                                            <span>{{dragdrop.equipment}}</span>
+                                        </div>
+                                        <li v-for="(task, index) in dragdrop.tasks"  style="background: #E2E2E2">
+                                            <span>{{task}}</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col card">
+                        <div class="card-header">
+                            <span v-if="!circle">Longest path</span>
+                            <span v-if="circle">Circle</span>
+                        </div>
+                        <ul v-if="!circle" class="list-group list-group-flush">
+                            <li class="list-group-item">Start task: {{longestPathStartTask}}</li>
+                            <li class="list-group-item">End product: {{longestPathEndTask}}</li>
+                            <li class="list-group-item">Time: {{longestPathTime}}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!--<table class="container">
                 <tr>
                     <td>
                         <div class="UIS-NIS-btns-container col-">
@@ -337,10 +390,12 @@
                         </div>
                     </td>
                     <td>
-                        <svg id="gantt-diagram" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" v-bind:style="{ width : ganttWidth + 'px', height : ganttHeight + 'px' }"></svg>
+                        <div class="scroll">
+                            <svg id="gantt-diagram" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" v-bind:style="{ width : ganttWidth + 'px', height : ganttHeight + 'px' }"></svg>
+                        </div>
                     </td>
                 </tr>
-            </table>
+            </table>-->
         </div>
 
       
