@@ -48,7 +48,7 @@ input, select {
 }
 
 #recipie-builder{
-    margin-left: 20px;
+    margin: 0 20px;
 }
   
 #recipie-graph{
