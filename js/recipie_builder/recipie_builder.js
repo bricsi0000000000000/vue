@@ -139,33 +139,25 @@ var recipieBuilder = new Vue({
       if (this.inputTaskName === "" && this.inputTaskProductName === "") {
         this.showWarning("Task name and product name are empty", "error");
       }
+      else if (this.inputTaskName === "") {
+        this.showWarning("Task name is empty", "error");
+      }
+      else if (this.inputTaskProductName === "") {
+        this.showWarning("Product name is empty", "error");
+      }
+      else if (this.inputTaskName.indexOf("\\\"") !== -1) {
+        this.showWarning("Task name contains wrong characters: \\\"", "error");
+      }
+      else if (this.inputTaskName === this.inputTaskProductName) {
+        this.showWarning("Task name (" + this.inputTaskName + ") and product (" + this.inputTaskProductName + ") are the same", "error");
+      }
+      else if (!this.isInputTaskAndProductNew(this.inputTaskName, this.inputTaskProductName)) {
+        this.showWarning("Task name (" + this.inputTaskName + ") and product (" + this.inputTaskProductName + ") is already exists", "error");
+      }
       else {
-        if (this.inputTaskName === "") {
-          this.showWarning("Task name is empty", "error");
-        }
-        else if (this.inputTaskProductName === "") {
-          this.showWarning("Product name is empty", "error");
-        }
-        else {
-          if (this.inputTaskName.indexOf("\\\"") !== -1) {
-            this.showWarning("Task name contains wrong characters: \\\"", "error");
-          }
-          else {
-            if (this.inputTaskName === this.inputTaskProductName) {
-              this.showWarning("Task name (" + this.inputTaskName + ") and product (" + this.inputTaskProductName + ") are the same", "error");
-            }
-            else {
-              if (this.isInputTaskAndProductNew(this.inputTaskName, this.inputTaskProductName)) {
-                let add_task = new Task(this.inputTaskName);
-                add_task.product = this.inputTaskProductName;
-                this.tasks.push(add_task);        
-              }
-              else {
-                this.showWarning("Task name (" + this.inputTaskName + ") and product (" + this.inputTaskProductName + ") is already exists", "error");
-              }
-            }
-          }
-        }
+        let add_task = new Task(this.inputTaskName);
+        add_task.product = this.inputTaskProductName;
+        this.tasks.push(add_task);
       }
 
       this.inputTaskName = '';
@@ -199,99 +191,87 @@ var recipieBuilder = new Vue({
     addPrecedence() {
       if((this.inputTaskPrecedenceFrom === "" && this.inputTaskPrecedenceTo === "") ||
          (this.inputTaskPrecedenceFrom === undefined && this.inputTaskPrecedenceTo === undefined))
-        {
-          this.showWarning("'from' and 'to' tasks are empty", "error");
-        }
-        else{
-          if(this.inputTaskPrecedenceFrom === "" || this.inputTaskPrecedenceFrom === undefined){
-            this.showWarning("'from' task is empty", "error");
-          }
-          else if(this.inputTaskPrecedenceTo === "" || this.inputTaskPrecedenceTo === undefined){
-            this.showWarning("'to' task is empty", "error");
-          }
-          else{
-            if(this.isInputPrecedenceNew(this.inputTaskPrecedenceFrom, this.inputTaskPrecedenceTo)){
-              this.precedences.push({ from: this.tasks.find(this.getPrecedenceTaskFrom), to: this.tasks.find(this.getPrecedenceTaskTo) });
-              this.buildRecipieGraph();
-              this.updatePrecedencesLength();
-            }
-            else{
-              this.showWarning("Precedence (" + this.inputTaskPrecedenceFrom.name + " -> " + this.inputTaskPrecedenceTo.name + ") is already exists", "error");
-            }
-          }
-        }
+      {
+        this.showWarning("'from' and 'to' tasks are empty", "error");
+      }
+      else if(this.inputTaskPrecedenceFrom === "" || this.inputTaskPrecedenceFrom === undefined){
+        this.showWarning("'from' task is empty", "error");
+      }
+      else if(this.inputTaskPrecedenceTo === "" || this.inputTaskPrecedenceTo === undefined){
+        this.showWarning("'to' task is empty", "error");
+      }
+      else if(!this.isInputPrecedenceNew(this.inputTaskPrecedenceFrom, this.inputTaskPrecedenceTo)){
+        this.showWarning("Precedence (" + this.inputTaskPrecedenceFrom.name + " -> " + this.inputTaskPrecedenceTo.name + ") is already exists", "error");
+      }
+      else{
+        this.precedences.push({ from: this.tasks.find(this.getPrecedenceTaskFrom), to: this.tasks.find(this.getPrecedenceTaskTo) });
+        this.buildRecipieGraph();
+        this.updatePrecedencesLength();
+      }
 
-        this.inputTaskPrecedenceFrom = "";
-        this.inputTaskPrecedenceTo = "";
+      this.inputTaskPrecedenceFrom = "";
+      this.inputTaskPrecedenceTo = "";
 
-        this.updatePrecedenceFromAndToTasks();
+      this.updatePrecedenceFromAndToTasks();
 
-        this.showImport = false;
+      this.showImport = false;
     },
     addProctime() {
       if (this.inputProctimeTask === "" && this.inputProctimeEquipment === "" && this.inputProctime === "") {
         this.showWarning("Task, equipment and proctime are empty", "error");
       }
-      else{
-        if (this.inputProctimeTask === "" && this.inputProctimeEquipment === "") {
-          this.showWarning("Task and equipment are empty", "error");
-        }
-        else if (this.inputProctimeTask === "" && this.inputProctime === "") {
-          this.showWarning("Task and proctime are empty", "error");
-        }
-        else if (this.inputProctimeEquipment === "" && this.inputProctime === "") {
-          this.showWarning("Equipment and proctime are empty", "error");
-        }
-        else{
-          if (this.inputProctimeTask === "") {
-            this.showWarning("Task is empty", "error");
-          }
-          else if (this.inputProctimeEquipment === "") {
-            this.showWarning("Eq is empty", "error");
-          }
-          else if (this.inputProctime === "") {
-            this.showWarning("Proctime is empty", "error");
-          }
-          else{
-            if(this.inputProctime < 0){
-              this.showWarning("Proctime is negativ", "error");
-            }
-            else{
-              if(this.isInputProctimeNew(this.inputProctimeTask, this.inputProctimeEquipment)){
-                let change_task = this.tasks.find(this.getProctimeTask);
-                //let change_task = new Task(this.tasks.find(this.getProctimeTask));
+      else if (this.inputProctimeTask === "" && this.inputProctimeEquipment === "") {
+        this.showWarning("Task and equipment are empty", "error");
+      }
+      else if (this.inputProctimeTask === "" && this.inputProctime === "") {
+        this.showWarning("Task and proctime are empty", "error");
+      }
+      else if (this.inputProctimeEquipment === "" && this.inputProctime === "") {
+        this.showWarning("Equipment and proctime are empty", "error");
+      }
+      else if (this.inputProctimeTask === "") {
+        this.showWarning("Task is empty", "error");
+      }
+      else if (this.inputProctimeEquipment === "") {
+        this.showWarning("Eq is empty", "error");
+      }
+      else if (this.inputProctime === "") {
+        this.showWarning("Proctime is empty", "error");
+      }
+      else if (this.inputProctime < 0){
+        this.showWarning("Proctime is negativ", "error");
+      }
+      else if (!this.isInputProctimeNew(this.inputProctimeTask, this.inputProctimeEquipment)){
+        this.showWarning("Proctime (" + this.inputProctimeTask.name + ", " + this.inputProctimeEquipment.name + ") is already exists", "error");
+      }
+      else {
+        let change_task = this.tasks.find(this.getProctimeTask);
+        //let change_task = new Task(this.tasks.find(this.getProctimeTask));
 
-                change_task.proctimes.push(this.inputProctime);
-                change_task.equipments.push(this.inputProctimeEquipment.name);
-                //change_task.AddProctime(this.inputProctime);
-                //change_task.AddEquipment(this.inputProctimeEquipment.name);
-                this.updateTasksFromProctime();
-                this.updatePrecedencesFromProctime();
-                let add_task = Object.assign(Object.create(Object.getPrototypeOf(change_task)),change_task);
-                //add_task.ChangeEquipmentAndProctime(this.inputProctimeEquipment.name, this.inputProctime);
-                add_task.equipment_and_proctime = { equipment: this.inputProctimeEquipment.name, proctime: this.inputProctime };
-                
-                this.proctimes.push(add_task);
-                this.buildRecipieGraph();
-                this.updateProctimesLength();
+        change_task.proctimes.push(this.inputProctime);
+        change_task.equipments.push(this.inputProctimeEquipment.name);
+        //change_task.AddProctime(this.inputProctime);
+        //change_task.AddEquipment(this.inputProctimeEquipment.name);
+        this.updateTasksFromProctime();
+        this.updatePrecedencesFromProctime();
+        let add_task = Object.assign(Object.create(Object.getPrototypeOf(change_task)),change_task);
+        //add_task.ChangeEquipmentAndProctime(this.inputProctimeEquipment.name, this.inputProctime);
+        add_task.equipment_and_proctime = { equipment: this.inputProctimeEquipment.name, proctime: this.inputProctime };
+        
+        this.proctimes.push(add_task);
+        this.buildRecipieGraph();
+        this.updateProctimesLength();
 
-                this.allProctimes.push({name: add_task.name, equipment: this.inputProctimeEquipment, proctime: this.inputProctime, product: add_task.product});
+        this.allProctimes.push({name: add_task.name, equipment: this.inputProctimeEquipment, proctime: this.inputProctime, product: add_task.product});
 
-                this.updateEquipmentsTasksAsSmallestProctime();
+        this.updateEquipmentsTasksAsSmallestProctime();
 
-                this.dragDropPrecedences.forEach(precedence => {
-                  if(precedence.equipment === this.inputProctimeEquipment.name){
-                    console.log(add_task.name);
-                    precedence.tasks.push(add_task.name);
-                  }
-                });
-              }
-              else{
-                this.showWarning("Proctime (" + this.inputProctimeTask.name + ", " + this.inputProctimeEquipment.name + ") is already exists", "error");
-              }
-            }
+        this.dragDropPrecedences.forEach(precedence => {
+          if(precedence.equipment === this.inputProctimeEquipment.name){
+            console.log(add_task.name);
+            precedence.tasks.push(add_task.name);
           }
-        }
+        });
       }
 
       this.inputProctimeTask = "";
