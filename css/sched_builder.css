@@ -51,6 +51,11 @@ input, select{
     background-color: #333;
 }
 
+.drag-and-drop .disable-equipment{
+    pointer-events: none;
+    opacity: .5;
+}
+
 /*DRAG AND DROP*/
 .drag-and-drop{
     margin-left: 20px;
