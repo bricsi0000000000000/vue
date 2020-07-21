@@ -402,6 +402,7 @@ class SchedGraphBuilder{
         color = "#333333";
 
         let rect = document.createElementNS(svgNS, "rect");
+        rect.setAttributeNS(null, "id", "rect-" + this.gantt[i].eq);
         rect.setAttributeNS(null, "x", x);
         rect.setAttributeNS(null, "y", y);
         rect.setAttributeNS(null, "width", width);
@@ -409,8 +410,12 @@ class SchedGraphBuilder{
         rect.setAttributeNS(null, "fill", color);
         rect.setAttributeNS(null, "stroke", stroke_color);
         rect.setAttributeNS(null, "stroke-width", "1px");
+        rect.setAttributeNS(null, "data-toggle", "tooltip");
+        rect.setAttributeNS(null, "data-placement", "top");
+        rect.setAttributeNS(null, "title", this.gantt[i].eq);
         document.getElementById("gantt-diagram").appendChild(rect);
-
+        $("[data-toggle='tooltip']").tooltip();
+    
         text_y += 40;
         color = "white";
         let txt = document.createElementNS(svgNS, "text");
@@ -419,10 +424,19 @@ class SchedGraphBuilder{
         txt.setAttributeNS(null, "font-family", font_family);
         txt.setAttributeNS(null, "font-size", font_size);
         txt.setAttributeNS(null, "fill", color);
-        let text_node = document.createTextNode(this.gantt[i].eq);
+        let inner_text = this.gantt[i].eq + '';
+        if(inner_text.length > 2){
+          inner_text = inner_text.substring(0, 2) + '..';
+        }
+        let text_node = document.createTextNode(inner_text);
         txt.appendChild(text_node);
+        txt.setAttributeNS(null, "data-toggle", "tooltip");
+        txt.setAttributeNS(null, "data-placement", "top");
+        txt.setAttributeNS(null, "title", this.gantt[i].eq);
         document.getElementById("gantt-diagram").appendChild(txt);
+        $("[data-toggle='tooltip']").tooltip();
       }
+
 
       x = +40;
       text_y = -15;
@@ -442,20 +456,50 @@ class SchedGraphBuilder{
           rect.setAttributeNS(null, "fill", color);
           rect.setAttributeNS(null, "stroke", stroke_color);
           rect.setAttributeNS(null, "stroke-width", "1px");
+          rect.setAttributeNS(null, "data-toggle", "tooltip");
+          rect.setAttributeNS(null, "data-placement", "top");
+          rect.setAttributeNS(null, "title", this.gantt[j].tasks[i].task);
           document.getElementById("gantt-diagram").appendChild(rect);
+          $("[data-toggle='tooltip']").tooltip();
 
           text_y = y + 25;
-          text_x = x + 10;
+          text_x = x + 5;
           color = "#333333";
           let txt = document.createElementNS(svgNS, "text");
           txt.setAttributeNS(null, "x", text_x);
           txt.setAttributeNS(null, "y", text_y);
           txt.setAttributeNS(null, "font-family", font_family);
           txt.setAttributeNS(null, "font-size", font_size);
-          txt.setAttributeNS(null, "fill", color);
-          let text_node = document.createTextNode(this.gantt[j].tasks[i].task);
+          txt.setAttributeNS(null, "id", this.gantt[j].tasks[i].task);
+          let inner_text = this.gantt[j].tasks[i].task + '';
+        
+          let text_node = document.createTextNode(inner_text);
           txt.appendChild(text_node);
           document.getElementById("gantt-diagram").appendChild(txt);
+
+          let txt_width = txt.getBBox().width;
+
+          document.getElementById("gantt-diagram").removeChild(txt);
+
+          txt = document.createElementNS(svgNS, "text");
+          txt.setAttributeNS(null, "x", text_x);
+          txt.setAttributeNS(null, "y", text_y);
+          txt.setAttributeNS(null, "font-family", font_family);
+          txt.setAttributeNS(null, "font-size", font_size);
+          txt.setAttributeNS(null, "fill", color);
+          txt.setAttributeNS(null, "id", this.gantt[j].tasks[i].task);
+          inner_text = this.gantt[j].tasks[i].task + '';
+          
+          if(width < txt_width){
+            inner_text = inner_text.substring(0, (width / 40 * 3)) + '..';
+          }
+          text_node = document.createTextNode(inner_text);
+          txt.appendChild(text_node);
+          txt.setAttributeNS(null, "data-toggle", "tooltip");
+          txt.setAttributeNS(null, "data-placement", "top");
+          txt.setAttributeNS(null, "title", this.gantt[j].tasks[i].task);
+          document.getElementById("gantt-diagram").appendChild(txt);
+          $("[data-toggle='tooltip']").tooltip();
         }
       }
 
@@ -477,9 +521,21 @@ class SchedGraphBuilder{
           rect.setAttributeNS(null, "stroke", stroke_color);
           rect.setAttributeNS(null, "stroke-width", "1px");
         }
+        rect.setAttributeNS(null, "data-toggle", "tooltip");
+        rect.setAttributeNS(null, "data-placement", "top");
+        rect.setAttributeNS(null, "title", j);
         document.getElementById("gantt-diagram").appendChild(rect);
+        $("[data-toggle='tooltip']").tooltip();
 
-        text_x = x + 15;
+        if(j < 10){
+          text_x = x + 25;
+        }
+        else if(j < 100){
+          text_x = x + 20;
+        }
+        else{
+          text_x = x + 15;
+        }
         color = "#333333";
         if(j > 0){
           let txt = document.createElementNS(svgNS, "text");
@@ -490,7 +546,11 @@ class SchedGraphBuilder{
           txt.setAttributeNS(null, "fill", color);
           let text_node = document.createTextNode(j);
           txt.appendChild(text_node);
+          txt.setAttributeNS(null, "data-toggle", "tooltip");
+          txt.setAttributeNS(null, "data-placement", "top");
+          txt.setAttributeNS(null, "title", j);
           document.getElementById("gantt-diagram").appendChild(txt);
+          $("[data-toggle='tooltip']").tooltip();
         }
       }
     }
