@@ -50,6 +50,9 @@
             <button type="button" v-if="!seenForms" class="UIS-NIS-btns-container" v-bind:class="{ 'UIS-NIS-btns-inactive': !uis, 'UIS-NIS-btns-active': uis }" v-on:click="uisNisSwitch()">UIS</button>
             <button type="button" v-if="!seenForms" class="UIS-NIS-btns-container" v-bind:class="{ 'UIS-NIS-btns-inactive': uis, 'UIS-NIS-btns-active': !uis }" v-on:click="uisNisSwitch()">NIS</button>
         </div>
+        <div id="import-file" v-if="showImport">
+            <input type="file" v-on:change="readTextFile" style="background: #333; border: none; color: white">
+        </div>
 
         <div class="recipie-builder-tables" v-if="seenForms">
             <div class="row">
