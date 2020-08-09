@@ -1,9 +1,9 @@
-"use strict";
+'use strict';
 
 Vue.use(VueDraggable.default);
 
-var recipieBuilder = new Vue({
-  el: '#recipie-builder',
+var main = new Vue({
+  el: '#main',
   data() {
     const instance = this;
     return {
@@ -27,26 +27,30 @@ var recipieBuilder = new Vue({
           schedBuilder.buildSchedGraph();
         },
         onDragend(event) {
-          let act_task = event.items[0].innerText;
-          let dropped_equipment = event.droptarget.textContent.split(' ')[0];
-          if(!instance.checkTaskEquipment(act_task, dropped_equipment)){
-            instance.showWarning("'" + act_task + "'" + " doesn't have an equipment named '" + dropped_equipment + "'", "error");
-            event.stop();
-          }
-          else{
-            instance.updateTasksEquipmentAndProctime(act_task, dropped_equipment);
-            instance.updatePrecedencesEquipmentAndProctime(act_task, dropped_equipment);
-          }
-
-          for(let equipment of instance.equipments){
+          for(let equipment of instance.equipmentManager.Equipments){
             document.getElementById(equipment.name).classList.remove("available-equipment");
             document.getElementById(equipment.name).classList.remove("disable-equipment");
           }
+
+          let act_task = event.items[0].innerText;
+          let dropped_equipment = event.droptarget.textContent.split(' ')[0];
+          if(!instance.proctimeManager.IsEquipment(act_task, dropped_equipment)){
+            //instance.showWarning("'" + act_task + "'" + " doesn't have an equipment named '" + dropped_equipment + "'", instance.snackbarMessageTypes.error);
+            event.stop();
+          }
+          else{
+            instance.taskManager.Update(act_task, dropped_equipment, null);
+           // instance.updateTasksEquipmentAndProctime(act_task, dropped_equipment);
+           // instance.updatePrecedencesEquipmentAndProctime(act_task, dropped_equipment);
+          }
+
+         
         },
         onDragstart(event){
           let act_task = event.items[0].innerText;
-          for(let equipment of instance.equipments){
-            if(instance.checkTaskEquipment(act_task, equipment.name)){
+          for(let equipment of instance.equipmentManager.Equipments){
+            //if(instance.checkTaskEquipment(act_task, equipment.name)){
+            if(instance.proctimeManager.IsEquipment(act_task, equipment.name)){
               document.getElementById(equipment.name).classList.add("available-equipment");
             }
             else{
@@ -56,41 +60,48 @@ var recipieBuilder = new Vue({
         }
       },
 
-      /*Arrow images*/
+      //#region ARROW IMAGES
       arrowImgProductsState: false,
-      arrowImgProducts: "images/down-arrow.png",
+      arrowImgProducts: 'images/down-arrow.png',
 
       arrowImgTasksState: false,
-      arrowImgTasks: "images/down-arrow.png",
+      arrowImgTasks: 'images/down-arrow.png',
 
       arrowImgEquipmentsState: false,
-      arrowImgEquipments: "images/down-arrow.png",
+      arrowImgEquipments: 'images/down-arrow.png',
 
       arrowImgPrecedencesState: false,
-      arrowImgPrecedences: "images/down-arrow.png",
+      arrowImgPrecedences: 'images/down-arrow.png',
 
       arrowImgProctimesState: false,
-      arrowImgProctimes: "images/down-arrow.png",
+      arrowImgProctimes: 'images/down-arrow.png',
+      //#endregion  ARROW IMAGES
 
+      snackbarMessageTypes: '',
+
+      //#region MANAGERS
+      productManager: '',
+      taskManager: '',
+      equipmentManager: '',
+      precedenceManager: '',
+      proctimeManager: '',
+      //#endregion MANAGERS
+
+      //#region INPUTS
       inputProductName: '',
-      products: [],
 
       inputTaskName: '',
       inputTaskProductName: '',
-      tasks: [],
 
       inputEquipmentName: '',
-      equipments: [], //TODO delete tasks from equipment, I don't need them
-
+      
       inputTaskPrecedenceFrom: "",
       inputTaskPrecedenceTo: "",
-      precedences: [],
-
+      
       inputProctime: "",
       inputProctimeTask: "",
       inputProctimeEquipment: "",
-      proctimes: [],
-      allProctimes: [],
+      //#endregion INPUTS
 
       tasksLength: 0,
       tasksTableTitle: 'no task',
@@ -102,9 +113,6 @@ var recipieBuilder = new Vue({
       precendencesTableTitle: 'no precedence',
       proctimesLength: 0,
       proctimesTableTitle: 'no proctime',
-
-      precedenceTasksFrom: [],
-      precedenceTasksTo: [], 
 
       seenForms: true,
       uis: true,
@@ -121,76 +129,537 @@ var recipieBuilder = new Vue({
     }
   },
   methods: {
-    /* ------------- ADD ------------- */
+    init(){
+      this.productManager = new ProductManager();
+      this.taskManager = new TaskManager();
+      this.equipmentManager = new EquipmentManager();
+      this.precedenceManager = new PrecedenceManager();
+      this.proctimeManager = new ProctimeManager();
+
+      this.snackbarMessageTypes ={
+        success: 'success',
+        danger: 'danger',
+        error: 'error',
+        info: 'info'
+      };
+    },
+
+    //#region PRODUCT
     addProduct() {
-      if (this.isInputProductValid(this.inputProductName)) {
-        if (this.isInputProductNew(this.inputProductName)) {
-          let add_product = new Product(this.inputProductName);
-          this.products.push(add_product);
-          this.inputProductName = '';
-        }
-        else {
-          this.showWarning("This product (" + this.inputProductName + ") is already exists", "error");
-        }
+      if (this.inputProductName === '') {
+        this.showWarning('Product name is empty', this.snackbarMessageTypes.error);
       }
+      else if (this.inputProductName.indexOf('"') !== -1) {
+        this.showWarning('Product name contains wrong characters: (")', this.snackbarMessageTypes.error);
+      }
+      else if(this.productManager.GetProduct(this.inputProductName) !== null){
+        this.showWarning('This product (' + this.inputProductName + ') is already exists', this.snackbarMessageTypes.error);
+      }
+      else{
+        this.productManager.AddProduct(new Product(this.inputProductName));
+        this.updateProductsLength();
+      }
+
       this.inputProductName = '';
-      this.updateProductsLength();
 
       this.showImport = false;
     },
+    deleteProduct(delete_product) {
+      this.productManager.RemoveProduct(delete_product.name);
+      this.taskManager.UpdateTasks(this.productManager.Products);
+      this.precedenceManager.UpdatePrecedences(this.taskManager.Tasks);
+      this.proctimeManager.UpdateProctimesAsTasks(this.taskManager.Tasks);
+      this.deleteFromDragDropPrecedences();
+
+      this.updateProductsLength();
+      this.updateTasksLength();
+      this.updatePrecedencesLength();
+      this.updateProctimesLength();
+
+      this.precedenceManager.FillFromAndToPrecedences(this.taskManager.Tasks);
+
+      this.buildRecipieGraph();
+
+      this.showImport = false;
+    },
+    updateProductsLength() {
+      this.productsLength = this.productManager.ProductsLength;
+      if(this.productsLength === 0){
+        this.productsTableTitle = 'No product';
+      }
+      else if(this.productsLength === 1){
+        this.productsTableTitle = this.productsLength + ' product';
+      }
+      else{
+        this.productsTableTitle = this.productsLength + ' products';
+      }
+    },
+    //#endregion PRODUCT
+
+    //#region TASK
     addTask() {
-      if (this.inputTaskName === "" && this.inputTaskProductName === "") {
-        this.showWarning("Task name and product name are empty", "error");
+      if (this.inputTaskName === '' && this.inputTaskProductName === '') {
+        this.showWarning('Task name and product name are empty', this.snackbarMessageTypes.error);
       }
-      else if (this.inputTaskName === "") {
-        this.showWarning("Task name is empty", "error");
+      else if (this.inputTaskName === '') {
+        this.showWarning('Task name is empty', this.snackbarMessageTypes.error);
       }
-      else if (this.inputTaskProductName === "") {
-        this.showWarning("Product name is empty", "error");
+      else if (this.inputTaskProductName === '') {
+        this.showWarning('Product name is empty', this.snackbarMessageTypes.error);
       }
-      else if (this.inputTaskName.indexOf("\\\"") !== -1) {
-        this.showWarning("Task name contains wrong characters: \\\"", "error");
+      else if (this.inputTaskName.indexOf('"') !== -1) {
+        this.showWarning('Task name contains wrong characters: "', this.snackbarMessageTypes.error);
       }
       else if (this.inputTaskName === this.inputTaskProductName) {
-        this.showWarning("Task name (" + this.inputTaskName + ") and product (" + this.inputTaskProductName + ") are the same", "error");
+        this.showWarning('Task name (' + this.inputTaskName + ') and product (' + this.inputTaskProductName + ') are the same', this.snackbarMessageTypes.error);
       }
-      else if (!this.isInputTaskAndProductNew(this.inputTaskName, this.inputTaskProductName)) {
-        this.showWarning("Task name (" + this.inputTaskName + ") and product (" + this.inputTaskProductName + ") is already exists", "error");
+      else if (this.taskManager.GetTask(this.inputTaskName) !== null) {
+        //if(this.taskManager.GetTask(this.inputTaskName))
+        this.showWarning('Task name (' + this.inputTaskName + ') and product (' + this.inputTaskProductName + ') is already exists', this.snackbarMessageTypes.error);
       }
       else {
-        let add_task = new Task(this.inputTaskName);
-        add_task.product = this.inputTaskProductName;
-        this.tasks.push(add_task);
+        this.taskManager.AddTask(new Task(this.inputTaskName, this.inputTaskProductName));
+        this.updateTasksLength();
+        this.precedenceManager.FillFromAndToPrecedences(this.taskManager.Tasks);
+        this.buildRecipieGraph();
       }
 
       this.inputTaskName = '';
       this.inputTaskProductName = '';
 
+      this.showImport = false;
+    },
+    deleteTask(delete_task){
+      this.taskManager.RemoveTask(delete_task.name, delete_task.product);
+      this.precedenceManager.UpdatePrecedences(this.taskManager.Tasks);
+      this.proctimeManager.UpdateProctimesAsTasks(this.taskManager.Tasks);
+      this.deleteFromDragDropPrecedences();
+
       this.updateTasksLength();
+      this.updatePrecedencesLength();
+      this.updateProctimesLength();
+
+      this.precedenceManager.FillFromAndToPrecedences(this.taskManager.Tasks);
+
       this.buildRecipieGraph();
-      this.addPrecedenceTaskFromAndTo();
 
       this.showImport = false;
     },
+    updateTasksLength() {
+      this.tasksLength = this.taskManager.TasksLength;
+      if(this.tasksLength === 0){
+        this.tasksTableTitle = "No task";
+      }
+      else if(this.tasksLength === 1){
+        this.tasksTableTitle = this.tasksLength + " task";
+      }
+      else{
+        this.tasksTableTitle = this.tasksLength + " tasks";
+      }
+    },
+    //#endregion TASK
+
+    //#region EQUIPMENT
     addEquipment() {
-      if(this.isInputEquipmentValid(this.inputEquipmentName)){
-        if(this.isInputEquipmentNew(this.inputEquipmentName)){
-          let add_equipment = new Equipment(this.inputEquipmentName);
-          this.equipments.push(add_equipment);
-        }
-        else {
-          this.showWarning("This equipment (" + this.inputEquipmentName + ") is already exists!", "error");
-        }
+      if (this.inputEquipmentName === '') {
+        this.showWarning('Equipment name is empty', this.snackbarMessageTypes.error);
+      }
+      else if (this.inputEquipmentName.indexOf('"') !== -1) {
+        this.showWarning('Equipment name contains wrong characters: (")', this.snackbarMessageTypes.error);
+      }
+      else if(this.equipmentManager.GetEquipment(this.inputEquipmentName) !== null){
+        this.showWarning('This equipment (' + this.inputEquipmentName + ') is already exists', this.snackbarMessageTypes.error);
+      }
+      else{
+        this.equipmentManager.AddEquipment(new Equipment(this.inputEquipmentName));
+        this.updateEquipmentsLength();
+        this.ganttHeight = this.equipmentManager.EquipmentsLength * 40 + 80;
       }
 
       this.inputEquipmentName = '';
 
-      this.updateEquipmentsLength();
+      this.showImport = false;
+    },
+    deleteEquipment(delete_equipment){
+      this.equipmentManager.RemoveEquipment(delete_equipment.name);
+      this.proctimeManager.UpdateProctimesAsEquipments(this.equipmentManager.Equipments);
 
-      this.ganttHeight = this.equipments.length * 40 + 80;
+      this.updateEquipmentsLength();
+      this.updateProctimesLength();
+
+      this.buildRecipieGraph();
 
       this.showImport = false;
     },
+    updateEquipmentsLength() {
+      this.equipmentsLength = this.equipmentManager.EquipmentsLength;
+      if(this.equipmentsLength === 0){
+        this.equipmentsTableTitle = 'No equipment';
+      }
+      else if(this.equipmentsLength === 1){
+        this.equipmentsTableTitle = this.equipmentsLength + ' equipment';
+      }
+      else{
+        this.equipmentsTableTitle = this.equipmentsLength + ' equipments';
+      }
+    },
+    //#endregion EQUIPMENT
+
+    //#region PRECEDENCE
+    addPrecedence() {
+      if(this.inputTaskPrecedenceFrom === '' && this.inputTaskPrecedenceTo === ''){
+        this.showWarning('\'from\' and \'to\' tasks are empty', this.snackbarMessageTypes.error);
+      }
+      else if(this.inputTaskPrecedenceFrom === ''){
+        this.showWarning('\'from\' task is empty', this.snackbarMessageTypes.error);
+      }
+      else if(this.inputTaskPrecedenceTo === ''){
+        this.showWarning('\'to\' task is empty',  this.snackbarMessageTypes.error);
+      }
+      else if(this.precedenceManager.GetPrecedence(this.inputTaskPrecedenceFrom, this.inputTaskPrecedenceTo) !== null){
+        this.showWarning('Precedence (' + this.inputTaskPrecedenceFrom.name + ' -> ' + this.inputTaskPrecedenceTo.name + ') is already exists', this.snackbarMessageTypes.error);
+      }
+      else{
+        this.precedenceManager.AddPrecedence(new Precedence(this.inputTaskPrecedenceFrom, this.inputTaskPrecedenceTo));
+        this.updatePrecedencesLength();
+        this.buildRecipieGraph();
+        this.precedenceManager.FillFromAndToPrecedences(this.taskManager.Tasks);
+      }
+
+      this.inputTaskPrecedenceFrom = '';
+      this.inputTaskPrecedenceTo = '';
+
+      this.showImport = false;
+    },
+    deletePrecedence(from_name, to_name){
+      this.precedenceManager.RemovePrecedence(from_name, to_name);
+
+      this.updatePrecedencesLength();
+
+      this.buildRecipieGraph();
+
+      this.showImport = false;
+    },
+    updatePrecedencesLength() {
+      this.precedencesLength = this.precedenceManager.PrecedencesLength;
+      if(this.precedencesLength === 0){
+        this.precendencesTableTitle = 'No precedence';
+      }
+      else if(this.precedencesLength === 1){
+        this.precendencesTableTitle = this.precedencesLength + ' precedence';
+      }
+      else{
+        this.precendencesTableTitle = this.precedencesLength + ' precedences';
+      }
+    },
+    deleteFromDragDropPrecedences(){
+      this.dragDropPrecedences.forEach(precedence =>{
+        let tasks = [];
+        precedence.tasks.forEach((task, index) =>{
+          if(this.taskManager.GetTask(task) !== null){
+            tasks.push(task);
+          }
+        });
+        precedence.tasks = tasks;
+      });
+    },
+    //#endregion PRECEDENCE
+
+    //#region PROCTIME
+    addProctime() {
+      if (this.inputProctimeTask === '' && this.inputProctimeEquipment === '' && this.inputProctime === '') {
+        this.showWarning('Task, equipment and proctime are empty', this.snackbarMessageTypes.error);
+      }
+      else if (this.inputProctimeTask === '' && this.inputProctimeEquipment === '') {
+        this.showWarning('Task and equipment are empty', this.snackbarMessageTypes.error);
+      }
+      else if (this.inputProctimeTask === '' && this.inputProctime === '') {
+        this.showWarning('Task and proctime are empty', this.snackbarMessageTypes.error);
+      }
+      else if (this.inputProctimeEquipment === '' && this.inputProctime === '') {
+        this.showWarning('Equipment and proctime are empty', this.snackbarMessageTypes.error);
+      }
+      else if (this.inputProctimeTask === '') {
+        this.showWarning('Task is empty', this.snackbarMessageTypes.error);
+      }
+      else if (this.inputProctimeEquipment === '') {
+        this.showWarning('Equipment is empty', this.snackbarMessageTypes.error);
+      }
+      else if (this.inputProctime === '') {
+        this.showWarning('Proctime is empty', this.snackbarMessageTypes.error);
+      }
+      else if (this.inputProctime < 0){
+        this.showWarning('Proctime is negativ', this.snackbarMessageTypes.error);
+      }
+      else if (this.proctimeManager.GetProctime(this.inputProctimeTask.name, this.inputProctimeEquipment.name) !== null){
+        this.showWarning('Proctime (' + this.inputProctimeTask.name + ', ' + this.inputProctimeEquipment.name + ') is already exists', this.snackbarMessageTypes.error);
+      }
+      else {
+        this.proctimeManager.AddProctime(new Proctime(this.inputProctimeTask.name, this.inputProctimeEquipment.name, this.inputProctime));
+        this.taskManager.Update(this.inputProctimeTask.name, this.inputProctimeEquipment.name, this.inputProctime);
+        this.updateProctimesLength();
+
+        this.buildRecipieGraph();
+      }
+
+      this.inputProctimeTask = '';
+      this.inputProctimeEquipment = '';
+      this.inputProctime = '';
+
+      this.showImport = false;
+    },
+    deleteProctime(proctime){
+      this.proctimeManager.RemoveProctime(proctime.task, proctime.equipment, proctime.proctime);
+
+      this.updateProctimesLength();
+
+      this.buildRecipieGraph();
+
+      this.showImport = false;
+    },
+    updateProctimesLength() {
+      this.proctimesLength = this.proctimeManager.ProctimesLength;
+      if(this.proctimesLength === 0){
+        this.proctimesTableTitle = 'No proctime';
+      }
+      else if(this.proctimesLength === 1){
+        this.proctimesTableTitle = this.proctimesLength + ' proctime';
+      }
+      else{
+        this.proctimesTableTitle = this.proctimesLength + ' proctimes';
+      }
+    },
+    //#endregion PROCTIME
+
+    showWarning(message, type) {
+      var message = SnackBar({
+        message: message,
+        status: type
+      });
+    },
+
+    //#region  ARROWS
+    changeArrowImgProducts() {
+      var arrow = document.getElementById('products-arrow');
+      var deg = this.arrowImgProductsState ? 0 : 180;
+
+      arrow.style.webkitTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.mozTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.msTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.oTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.transform = 'rotate(' + deg + 'deg)';
+
+      this.arrowImgProductsState = !this.arrowImgProductsState;
+    },
+    changeArrowImgTasks() {
+      var arrow = document.getElementById('tasks-arrow');
+      var deg = this.arrowImgTasksState ? 0 : 180;
+
+      arrow.style.webkitTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.mozTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.msTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.oTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.transform = 'rotate(' + deg + 'deg)';
+
+      this.arrowImgTasksState = !this.arrowImgTasksState;
+    },
+    changeArrowImgEquipments() {
+      var arrow = document.getElementById('equipments-arrow');
+      var deg = this.arrowImgEquipmentsState ? 0 : 180;
+
+      arrow.style.webkitTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.mozTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.msTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.oTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.transform = 'rotate(' + deg + 'deg)';
+
+      this.arrowImgEquipmentsState = !this.arrowImgEquipmentsState;
+    },
+    changeArrowImgPrecedences() {
+      var arrow = document.getElementById('precedences-arrow');
+      var deg = this.arrowImgPrecedencesState ? 0 : 180;
+
+      arrow.style.webkitTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.mozTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.msTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.oTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.transform = 'rotate(' + deg + 'deg)';
+
+      this.arrowImgPrecedencesState = !this.arrowImgPrecedencesState;
+    },
+    changeArrowImgProctimes() {
+      var arrow = document.getElementById('proctimes-arrow');
+      var deg = this.arrowImgProctimesState ? 0 : 180;
+
+      arrow.style.webkitTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.mozTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.msTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.oTransform = 'rotate(' + deg + 'deg)';
+      arrow.style.transform = 'rotate(' + deg + 'deg)';
+
+      this.arrowImgProctimesState = !this.arrowImgProctimesState;
+    },
+    //#endregion ARROWS
+
+    //#region IMPORT/EXPORT
+    download(filename, text) {
+      if(this.productManager.ProductsLength === 0 && this.taskManager.TasksLength === 0 && this.equipmentManager.EquipmentsLength === 0){
+        this.showWarning('There is nothing to save', this.snackbarMessageTypes.warning);
+      }
+      else{
+        let element = document.createElement('a');
+        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+        element.setAttribute('download', filename);
+
+        element.style.display = 'none';
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+      }
+    },
+    saveFile(){
+      this.download('recipie-graph-data.json', this.convertArraysToText());
+      this.showImport = false;
+    },
+    convertArraysToText(){
+      return JSON.stringify(this.productManager.Products) + '\n' +
+             JSON.stringify(this.taskManager.Tasks) + '\n' +
+             JSON.stringify(this.equipmentManager.Equipments) + '\n' +
+             JSON.stringify(this.precedenceManager.Precedences) + '\n' +
+             JSON.stringify(this.proctimeManager.Proctimes);
+    },
+
+    readTextFile(ev)
+    {
+      const file = ev.target.files[0];
+      const reader = new FileReader();
+      reader.onload = e => {
+        let datas = e.target.result.split('\n');
+
+        this.productManager.ClearProducts();
+        for(let new_product of JSON.parse(datas[0])){
+          this.productManager.AddProduct(new Product(new_product._name));
+        }
+        
+        this.taskManager.ClearTasks();
+        for(let new_task of JSON.parse(datas[1])){
+          this.taskManager.AddTask(new Task(new_task._name, new_task._product));
+          this.taskManager.Update(new_task._name, new_task._equipment, new_task._proctime);
+        }
+
+        this.equipmentManager.ClearEquipments();
+        for(let new_equipment of JSON.parse(datas[2])){
+          this.equipmentManager.AddEquipment(new Equipment(new_equipment._name));
+        }
+
+        this.precedenceManager.ClearPrecedences();
+        for(let new_precedence of JSON.parse(datas[3])){
+          this.precedenceManager.AddPrecedence(new Precedence(new_precedence._from, new_precedence._to));
+        }
+
+        this.proctimeManager.ClearProctimes();
+        for(let new_proctime of JSON.parse(datas[4])){
+          this.proctimeManager.AddProctime(new Proctime(new_proctime._task, new_proctime._equipment, new_proctime._proctime));
+        }
+
+        this.showWarning('File successfully loaded', this.snackbarMessageTypes.success);
+        this.buildRecipieGraph();
+
+        this.updateProductsLength();
+        this.updateTasksLength();
+        this.updateEquipmentsLength();
+        this.updatePrecedencesLength();
+        this.updateProctimesLength();
+
+        this.ganttHeight = this.equipmentManager.EquipmentsLength * 40 + 80;
+      };
+      reader.readAsText(file);
+    },
+    //#endregion IMPORT/EXPORT
+
+    switchForms() {
+      if (this.seenForms) {
+        schedBuilder.buildDragAndDrop();
+        schedBuilder.makeSchedPrecedences(this.dragDropPrecedences);
+        schedBuilder.buildSchedGraph();
+
+        document.title = 'Schedule graph builder';
+        this.seenForms = !this.seenForms;
+      }
+      else {
+        this.updateDragDropPrecedenes();
+        this.buildRecipieGraph();
+
+        document.title = 'Recipie graph builder';
+        this.seenForms = !this.seenForms;
+      }
+      this.showImport = false;
+    },
+
+    buildRecipieGraph(){
+      let recipieGraphBuilder = new RecipieGraphBuilder();
+      var viz_graph = new Viz();
+      viz_graph.renderSVGElement(recipieGraphBuilder.recipieGraphText)
+        .then(function (element) {
+          document.getElementById('recipie-graph').innerHTML = '';
+          document.getElementById('recipie-graph').appendChild(element);
+        })
+        .catch(error => {
+          viz_graph = new Viz();
+          console.error(error);
+        });
+    },
+
+    updateDragDropPrecedenes(){
+      this.dragDropPrecedences = [];
+      let sched_table = document.getElementsByClassName('sched-table');
+
+      for(let table of sched_table){
+        let child_index;
+        let tasks = [];
+        for(child_index = 1; child_index < table.children.length; child_index++){
+          if(table.children[child_index].innerText !== ''){
+            tasks.push(table.children[child_index].innerText);
+          }
+        }
+        this.dragDropPrecedences.push({equipment: table.children[0].innerText, tasks: tasks});
+      }
+    },
+    uisNisSwitch() {
+      this.uis = !this.uis;
+
+      let new_drag_drop = []; //equipment, tasks
+      let sched_table = document.getElementsByClassName('sched-table');
+
+      for(let table of sched_table){
+        let child_index;
+        let tasks = [];
+        for(child_index = 1; child_index < table.children.length; child_index++){
+          if(table.children[child_index].innerText !== ''){
+            tasks.push(table.children[child_index].innerText);
+          }
+        }
+        new_drag_drop.push({equipment: table.children[0].innerText, tasks: tasks});
+      }
+      
+      schedBuilder.makeSchedPrecedences(new_drag_drop);
+      schedBuilder.buildSchedGraph();
+    },
+
+
+
+
+
+
+
+
+
+
+
+
+    /*
     addPrecedence() {
       if((this.inputTaskPrecedenceFrom === "" && this.inputTaskPrecedenceTo === "") ||
          (this.inputTaskPrecedenceFrom === undefined && this.inputTaskPrecedenceTo === undefined))
@@ -292,28 +761,7 @@ var recipieBuilder = new Vue({
       }
     },
 
-    /* ------------- DELETE ------------- */
-    deleteProduct(index) {
-      let product = this.products[index];
-      this.products.splice(index, 1);
-
-      this.updateTasks(product);
-      this.updateTasksLength();
-
-      this.updatePrecedenceFromAndToTasks();
-      this.deletePrecedenceFromProduct(product);
-      this.updatePrecedencesLength();
-
-      this.deleteProctimeFromProduct(product);
-      this.deleteAllProctimeFromProduct(product);
-      this.updateProctimesLength();
-      this.updateEquipmentsTasksAsSmallestProctime();
-
-      this.buildRecipieGraph();
-
-      this.showImport = false;
-    },
-    updateTasks(product){
+   /* updateTasks(product){
       let delete_these = [];
       for(let task of this.tasks){
         if(task.product === product.name){
@@ -330,8 +778,8 @@ var recipieBuilder = new Vue({
       });
 
       this.showImport = false;
-    },
-    deletePrecedenceFromProduct(product){
+    },*/
+   /* deletePrecedenceFromProduct(product){
       let delete_these = [];
       for(let precedence of this.precedences){
         if(precedence.from.product === product.name ||
@@ -384,24 +832,6 @@ var recipieBuilder = new Vue({
           }
         });
       });
-
-      this.showImport = false;
-    },
-    deleteTask(index){
-      let task = this.tasks[index];
-      this.tasks.splice(index, 1);
-
-      this.updatePrecedenceFromAndToTasks();
-      this.deletePrecedenceFromTask(task);
-      this.updatePrecedencesLength();
-
-      this.deleteProctimeFromTask(task);
-      this.deleteAllProctimeFromTask(task);
-      this.updateProctimesLength();
-      this.updateEquipmentsFromTask(task);
-      this.updateEquipmentsTasksAsSmallestProctime();
-
-      this.buildRecipieGraph();
 
       this.showImport = false;
     },
@@ -632,7 +1062,7 @@ var recipieBuilder = new Vue({
     },
 
     /* ------------- GET ------------- */
-    getPrecedenceTaskFrom(value) {
+   /* getPrecedenceTaskFrom(value) {
       return value === this.inputTaskPrecedenceFrom;
     },
     getPrecedenceTaskTo(value) {
@@ -678,7 +1108,7 @@ var recipieBuilder = new Vue({
     },
 
     /* ------------- CHECK ------------- */
-    isInputProductValid(new_product) {
+  /*  isInputProductValid(new_product) {
       if (new_product === "") {
         this.showWarning("Product name is empty", "error");
       }
@@ -768,7 +1198,7 @@ var recipieBuilder = new Vue({
     },
 
     /* ------------- UPDATE ------------- */
-    updateProductsLength() {
+    /*updateProductsLength() {
       this.productsLength = this.products.length;
       if(this.productsLength === 0){
         this.productsTableTitle = "No product";
@@ -959,7 +1389,7 @@ var recipieBuilder = new Vue({
           }
         }
       }*/
-    },
+  //  },
 
   /*  isTaskLast(search_task){
       let last = true;
@@ -976,7 +1406,7 @@ var recipieBuilder = new Vue({
       return last;
     },*/
     /* ------------- REMOVE ------------- */
-    removePrecedenceTasksTo() {
+   /* removePrecedenceTasksTo() {
       this.precedenceTasksTo = [];
       for(let task of this.tasks){
         if(task.product === this.inputTaskPrecedenceFrom.product){
@@ -997,7 +1427,6 @@ var recipieBuilder = new Vue({
       }
     },
 
-    /* ------------- SHOW ------------- */
     showWarning(message, type) { //type: success, danger, error, info
       var message = SnackBar({
         message: message,
@@ -1005,7 +1434,6 @@ var recipieBuilder = new Vue({
       });
     },
 
-    /* ------------- ARROWS ------------- */
     changeArrowImgProducts() {
       var arrow = document.getElementById('products-arrow');
       var deg = this.arrowImgProductsState ? 0 : 180;
@@ -1251,6 +1679,9 @@ var recipieBuilder = new Vue({
         this.showWarning("File successfully loaded", "success");
       };
       reader.readAsText(file);
-    }
+    }*/
+  },
+  beforeMount(){
+    this.init();
   }
 });

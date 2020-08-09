@@ -10,13 +10,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;500&display=swap" rel="stylesheet"> 
 
     <!--CSS-->
-    <link rel="stylesheet" href="css/recipie_builder.css">
-    <link rel="stylesheet" href="css/sched_builder.css">
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/snackbar.min.css">
+    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="styles/recipie-builder-style.css">
+    <link rel="stylesheet" href="styles/sched-builder-style.css">
+    <link rel="stylesheet" href="styles/snackbar.min.css">
 
     <!--VUE-->
-    <!--<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>-->
     <script src="js/vue/vue.js"></script>
     <script src="js/viz_graph/viz.js"></script>
     <script src="js/viz_graph/full.render.js"></script>
@@ -37,15 +36,20 @@
 
     <!--snackbar-->
     <script src="js/snackbar/snackbar.min.js"></script>
+
+    <script src="js/recipie_builder/product/product-manager.js"></script>
+    <script src="js/recipie_builder/task/task-manager.js"></script>
+    <script src="js/recipie_builder/equipment/equipment-manager.js"></script>
+    <script src="js/recipie_builder/precedence/precedence-manager.js"></script>
+    <script src="js/recipie_builder/proctime/proctime-manager.js"></script>
     
 </head>
 
 <body>
-    <div id="recipie-builder">
+    <div id="main">
         <div class="menu">
             <button type="button" v-on:click="switchForms()">Switch forms</button>
             <button type="button" v-on:click="saveFile()">Save data</button>
-            <!--<button type="button" v-on:click="showImportFile()">Import data</button>-->
             <input type="file" v-on:change="readTextFile" style="background: #333; border: none; color: white; width: 300px">
             <button type="button" v-if="!seenForms" class="UIS-NIS-btns-container" v-bind:class="{ 'UIS-NIS-btns-inactive': !uis, 'UIS-NIS-btns-active': uis }" v-on:click="uisNisSwitch()">UIS</button>
             <button type="button" v-if="!seenForms" class="UIS-NIS-btns-container" v-bind:class="{ 'UIS-NIS-btns-inactive': uis, 'UIS-NIS-btns-active': !uis }" v-on:click="uisNisSwitch()">NIS</button>
@@ -78,13 +82,13 @@
                                 </form>
                             </td>
                         </tr>
-                        <tr id="products" class="collapse show" v-for="(product, index) in products" :key="index">
+                        <tr id="products" class="collapse show" v-for="(product, index) in productManager.Products" :key="index">
                             <td>
                                 {{product.name}}
                             </td>
                             <td>
-                                <button type="button" v-on:click="deleteProduct(index)"
-                                    class="delete-btn">Delete</button>
+                                <button type="button" v-on:click="deleteProduct(product)"
+                                        class="delete-btn">Delete</button>
                             </td>
                         </tr>
                     </table>
@@ -111,7 +115,7 @@
                             </td>
                             <td>
                                 <select id="task_id" v-model="inputTaskProductName">
-                                    <option v-for="(product, index) in products" :key="index" :value="product.name">
+                                    <option v-for="(product, index) in productManager.Products" :key="index" :value="product.name">
                                         {{product.name}}
                                     </option>
                                 </select>
@@ -122,7 +126,7 @@
                                 </form>
                             </td>
                         </tr>
-                        <tr id="tasks" class="collapse show" v-for="(task, index) in tasks" :key="index">
+                        <tr id="tasks" class="collapse show" v-for="(task, index) in taskManager.Tasks" :key="index">
                             <td>
                                 {{task.name}}
                             </td>
@@ -130,8 +134,8 @@
                                 {{task.product}}
                             </td>
                             <td>
-                                <button type="button" v-on:click="deleteTask(index)"
-                                    class="delete-btn">Delete</button>
+                                <button type="button" v-on:click="deleteTask(task)"
+                                        class="delete-btn">Delete</button>
                             </td>
                         </tr>
                     </table>
@@ -160,12 +164,12 @@
                                 </form>
                             </td>
                         </tr>
-                        <tr id="equipments" class="collapse show" v-for="(equipment, index) in equipments" :key="index">
+                        <tr id="equipments" class="collapse show" v-for="(equipment, index) in equipmentManager.Equipments" :key="index">
                             <td>
                                 {{equipment.name}}
                             </td>
                             <td>
-                                <button type="button" v-on:click="deleteEquipment(index)" class="delete-btn">Delete</button>
+                                <button type="button" v-on:click="deleteEquipment(equipment)" class="delete-btn">Delete</button>
                             </td>
                         </tr>
                     </table>
@@ -186,14 +190,16 @@
                         </tr>
                         <tr id="precedences" class="collapse show">
                             <td>
-                                <select id="task_id" v-model="inputTaskPrecedenceFrom">
-                                    <option v-for="(task, index) in precedenceTasksFrom" v-on:click="removePrecedenceTasksTo()" :key="index" :value="task">{{task.name}}
+                                <select id="from-precedence-id" v-model="inputTaskPrecedenceFrom">
+                                    <option v-for="(task, index) in precedenceManager.ToPrecedences" v-on:click="precedenceManager.RemoveFrom(task)" :key="index" :value="task">
+                                        {{task}}
                                     </option>
                                 </select>
                             </td>
                             <td>
-                                <select id="task_id" v-model="inputTaskPrecedenceTo">
-                                    <option v-for="(task, index) in precedenceTasksTo" v-on:click="removePrecedenceTasksFrom()" :key="index" :value="task">{{task.name}}
+                                <select id="from-precedence-id" v-model="inputTaskPrecedenceTo">
+                                    <option v-for="(task, index) in precedenceManager.FromPrecedences" v-on:click="precedenceManager.RemoveTo(task)" :key="index" :value="task">
+                                        {{task}}
                                     </option>
                                 </select>
                             </td>
@@ -201,16 +207,16 @@
                                 <button type="button" v-on:click="addPrecedence()" class="add-btn">Add</button>
                             </td>
                         </tr>
-                        <tr id="precedences" class="collapse show" v-for="(precedence, index) in precedences" :key="index">
+                        <tr id="precedences" class="collapse show" v-for="(precedence, index) in precedenceManager.Precedences" :key="index">
                             <td>
-                                {{precedence.from.name}}
+                                {{precedence.from}}
                             </td>
                             <td>
-                                {{precedence.to.name}}
+                                {{precedence.to}}
                             </td>
                             <td>
-                                <button type="button" v-on:click="deletePrecedence(index)"
-                                    class="delete-btn">Delete</button>
+                                <button type="button" v-on:click="deletePrecedence(precedence.from, precedence.to)"
+                                        class="delete-btn">Delete</button>
                             </td>
                         </tr>
                     </table>
@@ -235,20 +241,22 @@
                         <tr id="proctimes" class="collapse show">
                             <td>
                                 <select id="task_id" v-model="inputProctimeTask">
-                                    <option v-for="(task, index) in tasks" :key="index" :value="task">{{task.name}}
+                                    <option v-for="(task, index) in taskManager.Tasks" :key="index" :value="task">
+                                        {{task.name}}
                                     </option>
                                 </select>
                             </td>
                             <td>
                                 <select id="eq_id" v-model="inputProctimeEquipment">
-                                    <option v-for="(equipment, index) in equipments" :key="index" :value="equipment">
-                                        {{equipment.name}}</option>
+                                    <option v-for="(equipment, index) in equipmentManager.Equipments" :key="index" :value="equipment">
+                                        {{equipment.name}}
+                                    </option>
                                 </select>
                             </td>
                             <td>
                                 <form>
                                     <input type="number" v-model="inputProctime" id="proctime" placeholder="Proctime"
-                                        step="any">
+                                           step="any">
                                 </form>
                             </td>
                             <td>
@@ -257,19 +265,19 @@
                                 </form>
                             </td>
                         </tr>
-                        <tr id="proctimes" class="collapse show" v-for="(proctime, index) in allProctimes" :key="index">
+                        <tr id="proctimes" class="collapse show" v-for="(proctime, index) in proctimeManager.Proctimes" :key="index">
                             <td>
-                                {{proctime.name}}
+                                {{proctime.task}}
                             </td>
                             <td>
-                                {{proctime.equipment.name}}
+                                {{proctime.equipment}}
                             </td>
                             <td>
                                 {{proctime.proctime}}
                             </td>
                             <td>
-                                <button type="button" v-on:click="deleteProctime(index)"
-                                    class="delete-btn">Delete</button>
+                                <button type="button" v-on:click="deleteProctime(proctime)"
+                                        class="delete-btn">Delete</button>
                             </td>
                         </tr>
                     </table>
@@ -324,13 +332,15 @@
         </div>
     </div>
 
-    <script src="js/recipie_builder/recipie_graph_builder.js"></script>
-    <script src="js/recipie_builder/recipie_builder.js"></script>
-    <script src="js/recipie_builder/equipment.js"></script>
-    <script src="js/recipie_builder/product.js"></script>
-    <script src="js/recipie_builder/task.js"></script>
-    <script src="js/sched_builder/sched_builder.js"></script>
-    <script src="js/sched_builder/sched_graph_builder.js"></script>
+    <script src="js/recipie_builder/recipie-graph-builder.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/recipie_builder/equipment/equipment.js"></script>
+    <script src="js/recipie_builder/product/product.js"></script>
+    <script src="js/recipie_builder/task/task.js"></script>
+    <script src="js/recipie_builder/precedence/precedence.js"></script>
+    <script src="js/recipie_builder/proctime/proctime.js"></script>
+    <script src="js/sched_builder/sched-builder.js"></script>
+    <script src="js/sched_builder/sched-graph-builder.js"></script>
     <script src="js/sched_builder/circle.js"></script>
 </body>
 
