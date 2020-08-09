@@ -1,12 +1,13 @@
-"use strict";
+'use strict';
 
 class Circle{
   constructor(precedencesWithProducts){
-    this.precedencesWithProducts = precedencesWithProducts;
-    this.circleTaskPairs = [];
+    this._precedencesWithProducts = precedencesWithProducts;
+    this._circleTaskPairs = [];
   }
+
   CheckCircle(){
-    recipieBuilder.circle = false;
+    main.circle = false;
 
     let start_tasks = this.getStartTasks();
     for(let start_task of start_tasks){
@@ -15,7 +16,7 @@ class Circle{
       circle_array.push({task: start_task, to_tasks: to_tasks, end: true});
 
       for(let edge of this.allEdges()){
-        if(!recipieBuilder.circle){
+        if(!main.circle){
           let end_tasks = []; //task, to_tasks, end
           for(let circle_item of circle_array){
             if(circle_item.end){
@@ -26,11 +27,11 @@ class Circle{
 
           //megnézem hogy ezek közül van e amivel kör lesz
           for(let to_task of to_tasks){
-            if(!recipieBuilder.circle){
+            if(!main.circle){
               for(let circle_item of circle_array){
-                if(!recipieBuilder.circle){
+                if(!main.circle){
                   if(to_task == circle_item.task){
-                    recipieBuilder.circle = true;
+                    main.circle = true;
                     circle_array.push({task: circle_array[circle_array.length - 1].to_tasks[0], to_tasks: [], end: false});
                     circle_array.push({task: to_task, to_tasks: [], end: false});
                   }
@@ -39,7 +40,7 @@ class Circle{
             }
           }
 
-          if(recipieBuilder.circle){
+          if(main.circle){
             let end_task = circle_array[circle_array.length - 1].task;
             let stop = false;
             let circle_search_item_index;
@@ -55,7 +56,7 @@ class Circle{
               tmp_array.push(circle_array[circle_item_index].task);
             }
 
-            this.circleTaskPairs = [];
+            this._circleTaskPairs = [];
             this.getCircleTaskPairs(tmp_array); //from, to
           }
           else{
@@ -111,15 +112,15 @@ class Circle{
     for(index = 0; index < tmp_array.length - 1; index++){
       let stop = false;
       let circle_task_pair_index;
-      for(circle_task_pair_index = 0; circle_task_pair_index < this.circleTaskPairs.length & !stop; circle_task_pair_index++){
-        if(this.circleTaskPairs[circle_task_pair_index].from === tmp_array[index] &&
-           this.circleTaskPairs[circle_task_pair_index].to === tmp_array[index + 1])
+      for(circle_task_pair_index = 0; circle_task_pair_index < this._circleTaskPairs.length & !stop; circle_task_pair_index++){
+        if(this._circleTaskPairs[circle_task_pair_index].from === tmp_array[index] &&
+           this._circleTaskPairs[circle_task_pair_index].to === tmp_array[index + 1])
           {
             stop = true;
           }
       }
       if(!stop){
-        this.circleTaskPairs.push({from: tmp_array[index], to: tmp_array[index + 1]});
+        this._circleTaskPairs.push({from: tmp_array[index], to: tmp_array[index + 1]});
       }
     }
   }
@@ -136,7 +137,7 @@ class Circle{
   allEdges(){
     let all_edges = [];
 
-    for(let precedence of this.precedencesWithProducts){
+    for(let precedence of this._precedencesWithProducts){
       all_edges.push({from: precedence.from, to: precedence.to});
     }
 
@@ -149,16 +150,16 @@ class Circle{
   getStartTasks(){
     let start_tasks = [];
 
-    for(let precedence1 of recipieBuilder.precedences){
+    for(let precedence1 of main.precedenceManager.Precedences){
       let yes = true;
-      for(let precedence2 of recipieBuilder.precedences){
-        if(precedence1.from.name === precedence2.to.name){
+      for(let precedence2 of main.precedenceManager.Precedences){
+        if(precedence1.from === precedence2.to){
           yes = false;
         }
       }
       if(yes){
-        if(!this.isInStartTasks(start_tasks, precedence1.from.name)){
-          start_tasks.push(precedence1.from.name);
+        if(!this.isInStartTasks(start_tasks, precedence1.from)){
+          start_tasks.push(precedence1.from);
         }
       }
     }
@@ -177,7 +178,7 @@ class Circle{
     return yes;
   }
   isInCircle(from, to){
-    for(let edge of this.circleTaskPairs){
+    for(let edge of this._circleTaskPairs){
       if(from === edge.from && to === edge.to){
         return true;
       }

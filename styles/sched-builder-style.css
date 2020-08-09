@@ -47,9 +47,9 @@ input, select{
     color: #333;
 }
 
-.drag-and-drop .available-equipment{
+/*.drag-and-drop .available-equipment{
     background-color: #333;
-}
+}*/
 
 .drag-and-drop .disable-equipment{
     pointer-events: none;
